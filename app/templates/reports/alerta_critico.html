@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Ajustes de Fonte para o Modal conforme solicitado */
+    #res-ud { 
+        font-size: 2rem !important; 
+        letter-spacing: 1px; 
+    }
+    #res-nome { 
+        font-size: 1.25rem !important; 
+        color: #212529; 
+        padding: 12px; 
+        background-color: #f8f9fa !important;
+    }
+    .info-label { color: #6c757d; font-size: 0.85rem; font-weight: bold; display: block; text-transform: uppercase; }
+    .info-value { font-weight: bold; font-size: 1.2rem; color: #333; }
+    
+    /* Design da Tabela */
+    .tabela-dinamica { font-size: 0.85rem; }
+    .btn-lupa { border: none; background: none; color: #007bff; transition: 0.2s; }
+    .btn-lupa:hover { color: #0056b3; transform: scale(1.2); }
+</style>
+
+<div class="container-fluid">
+    <div class="alert alert-danger border-0 shadow-sm mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-1"><i class="bi bi-shield-lock-fill"></i> Alerta de Consumo Crítico (Retenção)</h5>
+            <small>Materiais importados há mais de 1 hora que ainda não foram localizados fisicamente.</small>
+        </div>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-light btn-sm fw-bold">
+            <i class="bi bi-arrow-left"></i> VOLTAR
+        </a>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive p-3">
+                <table class="table table-striped table-hover table-sm mb-0 text-nowrap tabela-dinamica">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>UD</th>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Estoque</th>
+                            <th>Entrada</th>
+                            <th>Retenção</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in alertas %}
+                        <tr>
+                            <td class="fw-bold font-monospace text-primary">{{ item.unidade_deposito }}</td>
+                            <td class="small">{{ item.cod_material }}</td>
+                            <td class="small">{{ item.desc_material or '---' }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    {{ item.quantidade_estoque|int }} {{ item.unidade_medida }}
+                                </span>
+                            </td>
+                            <td>{{ item.data_importacao.strftime('%d/%m/%Y %H:%M') if item.data_importacao }}</td>
+                            <td>
+                                {% if item.data_importacao %}
+                                    {% set diff = now - item.data_importacao %}
+                                    {% set horas = (diff.total_seconds() / 3600) | int %}
+                                    <span class="badge {% if horas >= 24 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                        <i class="bi bi-clock-history"></i> {{ horas }}h parado
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <button class="btn-lupa" onclick="verDetalhes('{{ item.unidade_deposito }}')" title="Visualizar Detalhes">
+                                    <i class="bi bi-search fs-5"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalResultado" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white border-0">
+        <h6 class="m-0 fw-bold">Detalhes da Unidade (UD)</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      
+      <div class="modal-body p-0 text-center">
+        <div class="py-3">
+            <div class="info-label">Unidade Depósito</div>
+            <div id="res-ud" class="text-primary fw-bold">---</div>
+        </div>
+
+        <div class="px-3 mb-3 text-start">
+            <label class="info-label mb-1">Descrição do Material</label>
+            <div id="res-nome" class="form-control border-0 fw-bold">---</div>
+        </div>
+
+        <div class="container-fluid pb-4">
+            <div class="row mb-3">
+                <div class="col-6">
+                    <span class="info-label">Qtd Estoque</span>
+                    <span id="res-qtd" class="info-value">0</span>
+                </div>
+                <div class="col-6">
+                    <span class="info-label">Lote</span>
+                    <span id="res-lote" class="info-value">S/L</span>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-6">
+                    <span class="info-label text-danger">Vencimento</span>
+                    <span id="res-venc" class="info-value text-danger">---</span>
+                </div>
+                <div class="col-6">
+                    <span class="info-label">Últ. Movimentação</span>
+                    <span id="res-ult-mov" class="info-value">---</span>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="modal-footer border-0 p-3">
+        <button type="button" class="btn btn-secondary w-100 fw-bold py-2" data-bs-dismiss="modal">FECHAR</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    /**
+     * Função para buscar e exibir detalhes da UD
+     * Mapeada para o to_dict() do seu material.py
+     */
+    function verDetalhes(ud) {
+        fetch(`/get_detalhes_ud/${ud}`)
+            .then(res => res.json())
+            .then(dados => {
+                if (dados.error) {
+                    alert("Erro: " + dados.error);
+                    return;
+                }
+                
+                // Preenchimento do Modal com chaves do material.py
+                document.getElementById('res-ud').innerText = dados.ud || "---";
+                document.getElementById('res-nome').innerText = dados.descricao || "---";
+                document.getElementById('res-qtd').innerText = (dados.qtd || "0") + " " + (dados.unidade || "");
+                document.getElementById('res-lote').innerText = dados.lote || "S/L";
+                document.getElementById('res-venc').innerText = dados.vencimento || "S/V";
+                document.getElementById('res-ult-mov').innerText = dados.ult_mov || "---";
+
+                // Abre o modal via Bootstrap 5
+                var modalElement = document.getElementById('modalResultado');
+                var instance = bootstrap.Modal.getOrCreateInstance(modalElement);
+                instance.show();
+            })
+            .catch(err => console.error("Erro ao buscar UD:", err));
+    }
+</script>
+{% endblock %}

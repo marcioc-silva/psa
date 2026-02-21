@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="alert alert-danger border-0 shadow-sm mb-4">
+        <h5 class="fw-bold mb-1"><i class="bi bi-shield-lock-fill"></i> Alerta de Consumo Crítico (Retenção)</h5>
+        <small>Materiais importados do SAP há mais de 1 hora que ainda não foram localizados fisicamente.</small>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive p-3">
+                <table class="table table-striped table-hover table-sm mb-0 text-nowrap tabela-dinamica">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>UD</th>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Estoque</th>
+                            <th>Entrada</th>
+                            <th>Retenção</th>
+                            <th class="text-center">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {# IMPORTANTE: O nome 'alertas' deve bater com o que você envia na rota Python #}
+                        {% for item in alertas %}
+                        <tr>
+                            <td class="fw-bold font-monospace text-primary">{{ item.unidade_deposito }}</td>
+                            <td class="small">{{ item.cod_material or '---' }}</td>
+                            <td class="small">{{ item.desc_material or '---' }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ item.quantidade_estoque|int if item.quantidade_estoque else '0' }} {{ item.unidade_medida }}</span></td>
+                            
+                            <td data-order="{{ item.data_importacao.strftime('%Y%m%d%H%M') if item.data_importacao else '0' }}">
+                                {{ item.data_importacao.strftime('%d/%m/%Y %H:%M') if item.data_importacao else '---' }}
+                            </td>
+
+                            <td>
+                                {% if item.data_importacao %}
+                                    {% set diff = now - item.data_importacao %}
+                                    {% set horas = (diff.total_seconds() / 3600) | int %}
+                                    <span class="badge {% if horas >= 24 %}bg-danger{% else %}bg-warning text-dark{% endif %} shadow-sm">
+                                        <i class="bi bi-clock-history me-1"></i> {{ horas }}h parado
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">---</span>
+                                {% endif %}
+                            </td>
+                            
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-dark shadow-sm" onclick="verDetalhes('{{ item.unidade_deposito }}')">
+                                    <i class="bi bi-search"></i> Detalhes
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+   function verDetalhes(ud) {
+    fetch(`/get_detalhes_ud/${ud}`)
+        .then(res => res.json())
+        .then(dados => {
+            // Mapeamento direto com o seu to_dict() do material.py
+            document.getElementById('res-ud').innerText = dados.ud || "---";
+            document.getElementById('res-nome').innerText = dados.descricao || "---";
+            document.getElementById('res-qtd').innerText = (dados.qtd || "0") + " " + (dados.unidade || "");
+            document.getElementById('res-lote').innerText = dados.lote || "S/L";
+            document.getElementById('res-venc').innerText = dados.vencimento || "S/V";
+            document.getElementById('res-ult-mov').innerText = dados.ult_mov || "---";
+
+            // Abre o modal de forma segura
+            var modalElement = document.getElementById('modalResultado');
+            var instance = bootstrap.Modal.getOrCreateInstance(modalElement);
+            instance.show();
+        })
+        .catch(err => alert("Erro ao carregar detalhes da UD: " + ud));
+}
+</script>
+{% endblock %}

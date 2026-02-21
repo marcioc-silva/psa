@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold text-danger">Auditoria de Risco</h4>
+        <a href="{{ url_for('reports.index') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+    </div>
+
+    <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+        <li class="nav-item w-50">
+            <button class="nav-link active w-100 fw-bold" data-bs-toggle="tab" data-bs-target="#pendentes">⚠️ PENDENTES</button>
+        </li>
+        <li class="nav-item w-50">
+            <button class="nav-link w-100 fw-bold" data-bs-toggle="tab" data-bs-target="#conferidos">✅ CONFERIDOS</button>
+        </li>
+    </ul>
+
+    <div class="tab-content shadow-sm rounded bg-white p-2">
+        <div class="tab-pane fade show active" id="pendentes">
+            <table class="table table-sm align-middle tabela-dinamica">
+                <thead><tr><th>UD</th><th>Código Material</th><th>Descrição Material</th><th>Estoque</th><th>Lote</th></tr></thead>
+                <tbody>
+                    {% for m in pendentes %}
+                    <tr onclick='abrirDetalhes({{ m.to_dict() | tojson | safe }})' style="cursor:pointer">
+                        <td class="font-monospace">{{ m.unidade_deposito }}</td>
+                        <td class="small">{{ m.cod_material }}</td>
+                        <td class="small">{{ m.desc_material }}</td>
+                        <td class="small">{{ m.quantidade_estoque|int }}</td>
+                        <td><span class="badge bg-light text-dark border">{{ m.lote or 'S/L' }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="tab-pane fade" id="conferidos">
+            <table class="table table-sm align-middle tabela-dinamica">
+                <thead><tr><th>Data</th><th>UD</th><th>Código Material</th><th>Descrição Material</th><th>Quantidade</th><th>Conferente</th></tr></thead>
+                <tbody>
+                    {% for m in conferidos %}
+                    <tr onclick='abrirDetalhes({{ m.to_dict() | tojson | safe }})' style="cursor:pointer">
+                        <td class="small text-success fw-bold">{{ m.data_conferencia.strftime('%d/%m %H:%M') }}</td>
+                        <td class="font-monospace">{{ m.unidade_deposito }}</td>
+                        <td class="font-monospace">{{ m.cod_material }}</td>
+                        <td class="font-monospace">{{ m.desc_material }}</td>
+                        <td class="font-monospace">{{ m.qtd }}</td>
+                        <td class="small">{{ m.sap_id }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold text-secondary"><i class="bi bi-speedometer2 me-2"></i>Indicadores de Performance</h4>
+        <a href="{{ url_for('reports.index') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+    </div>
+
+    <div class="card shadow mb-4 border-0 bg-light">
+        <div class="card-body py-2">
+            <div class="card shadow mb-4 border-0 bg-light">
+                <div class="card-body py-3">
+                    <div class="row align-items-center">
+                        <div class="col-auto">
+                            <span class="small fw-bold text-muted text-uppercase">Análise de Pareto:</span>
+                        </div>
+                        <div class="col">
+                            <form action="{{ url_for('reports.kpis') }}" method="GET" id="paretoForm">
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Filtros de Pareto">
+                                    <input type="radio" class="btn-check" name="tipo_pareto" id="btn_ud" value="ocorrencias" 
+                                        {% if tipo_filtro == 'ocorrencias' %}checked{% endif %} onchange="this.form.submit()">
+                                    <label class="btn btn-outline-primary px-3" for="btn_ud">
+                                        <i class="bi bi-layers me-1"></i> Carga (UDs)
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="tipo_pareto" id="btn_vol" value="estoque" 
+                                        {% if tipo_filtro == 'estoque' %}checked{% endif %} onchange="this.form.submit()">
+                                    <label class="btn btn-outline-primary px-3" for="btn_vol">
+                                        <i class="bi bi-box-seam me-1"></i> Volume (Qtd)
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="tipo_pareto" id="btn_ret" value="retencao" 
+                                        {% if tipo_filtro == 'retencao' %}checked{% endif %} onchange="this.form.submit()">
+                                    <label class="btn btn-outline-danger px-3" for="btn_ret">
+                                        <i class="bi bi-hourglass-split me-1"></i> Retenção (Dias)
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow border-0 h-100">
+                <div class="card-body text-center bg-primary text-white p-4 rounded shadow d-flex flex-column justify-content-center">
+                    <h6 class="text-uppercase opacity-75 fw-bold">IRA (Acuracidade do Inventário)</h6>
+                    <div class="display-3 fw-bold my-2">{{ ira }}%</div>
+                    <div><span class="badge bg-white text-primary fs-6">Meta: 98.5%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card shadow border-0 h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase text-muted fw-bold text-center mb-3">Status da Conferência (UDs)</h6>
+                    <div style="height: 180px;">
+                        <canvas id="roscaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                <h6 class="m-0 fw-bold text-primary">
+                    <i class="bi bi-graph-up-arrow me-2"></i>Análise de Pareto por Material
+                </h6>
+                <span class="badge bg-light text-dark fw-normal border mt-2 mt-md-0" style="font-size: 0.75rem; white-space: normal; text-align: left;">
+                    <i class="bi bi-funnel-fill text-info me-1"></i>
+                    Ordenação Atual: <strong>{{ desc_regra }}</strong>
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div style="overflow-x: auto;">
+                <div style="min-width: 1000px; height: 400px;">
+                    <canvas id="paretoChart"></canvas>
+                </div>
+            </div>
+            <p class="text-muted small mt-3 mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                Filtro aplicado: <strong>{{ desc_regra }}</strong>. Este gráfico ajuda na priorização estratégica da Nestlé Araçatuba.
+            </p>
+        </div>
+        <div class="card shadow border-0 mt-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="m-0 fw-bold text-danger">
+                    <i class="bi bi-calendar-range me-2"></i>Aging de Vencimento (UDs por Mês)
+                </h6>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px;">
+                    <canvas id="agingChart"></canvas>
+                </div>
+                <p class="text-muted small mt-2 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Este gráfico mostra a distribuição das UDs pendentes com base no mês de validade, facilitando o planejamento FEFO.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// --- GRÁFICO DE AGING (VENCIMENTO) ---
+// --- GRÁFICO DE AGING (VENCIMENTO) ---
+const ctxAging = document.getElementById('agingChart').getContext('2d');
+new Chart(ctxAging, {
+    type: 'bar',
+    data: {
+        labels: {{ labels_venc | tojson | safe }},
+        datasets: [{
+            label: 'Qtd de UDs',
+            data: {{ valores_venc | tojson | safe }},
+            // Vamos usar uma cor que lembre "alerta" (alaranjado/vermelho)
+            backgroundColor: '#fd7e14', 
+            borderRadius: 5
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: { 
+                beginAtZero: true,
+                title: { display: true, text: 'Total de Etiquetas' }
+            },
+            x: {
+                title: { display: true, text: 'Mês de Vencimento (AAAA-MM)' }
+            }
+        }
+    }
+});
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- GRÁFICO DE PARETO ---
+        const ctxPareto = document.getElementById('paretoChart').getContext('2d');
+        new Chart(ctxPareto, {
+            type: 'bar',
+            data: {
+                labels: {{ labels | tojson | safe }},
+                datasets: [{
+                    label: '{{ desc_regra }}', // Legenda dinâmica!
+                    data: {{ valores | tojson | safe }},
+                    backgroundColor: '#0056b3',
+                    order: 2
+                }, {
+                    label: '% Acumulada',
+                    data: {{ acumulado | tojson | safe }},
+                    type: 'line',
+                    borderColor: '#D51C29',
+                    backgroundColor: '#D51C29',
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    yAxisID: 'y1',
+                    order: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { 
+                    y: { beginAtZero: true, title: { display: true, text: 'Valores' } },
+                    y1: { position: 'right', max: 100, title: { display: true, text: '%' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+
+        // --- GRÁFICO DE ROSCA ---
+        const ctxRosca = document.getElementById('roscaChart').getContext('2d');
+        new Chart(ctxRosca, {
+            type: 'doughnut',
+            data: {
+                labels: ['Conferidos', 'Pendentes'],
+                datasets: [{
+                    data: [{{ encontrados }}, {{ pendentes }}],
+                    backgroundColor: ['#28a745', '#ffc107'],
+                    hoverOffset: 4,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                },
+                cutout: '70%'
+            }
+        });
+    });
+
+
+    const ctx = document.getElementById('paretoRetencaoVertical').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar', // Gráfico vertical
+        data: {
+            labels: {{ labels|tojson if labels else [] }},
+            datasets: [{
+                label: 'Soma de Dias em Estoque',
+                data: {{ valores|tojson if valores else [] }},
+                backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                borderColor: '#0d6efd',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (item) => `${item.raw} dias acumulados` } }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true,
+                    title: { display: true, text: 'Dias de Retenção' }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+
+</script>
+{% endblock %}
