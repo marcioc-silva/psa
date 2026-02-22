@@ -242,36 +242,55 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
+        
+        // O seu código JavaScript entra aqui
+        const campoVencimento = document.getElementById('det-venc');
+        const campoMovimentacao = document.getElementById('det-ult_mov');
+
+        // Verificamos se os elementos existem antes de atribuir os valores
+        if (campoVencimento && typeof data !== 'undefined') {
+            campoVencimento.innerText = data.vencimento; 
+        }
+        if (campoMovimentacao && typeof data !== 'undefined') {
+            campoMovimentacao.innerText = data.ult_mov;
+        }
+    
     // Localize esta função no final do seu base.html e altere a URL:
-    function verDetalhes(ud) {
-    // Usando a rota que você definiu no main.py
+   function verDetalhes(ud) {
     fetch(`/get_detalhes_ud/${ud}`) 
         .then(response => {
             if (!response.ok) throw new Error('UD não encontrada no sistema!');
             return response.json();
         })
         .then(data => {
-            // Sincronizando com as chaves do seu Python (main.py linha 115)
+            // Sincronizando com as chaves do seu to_dict do Python
             document.getElementById('det-ud').innerText = data.ud; 
             document.getElementById('det-texto-breve').innerText = data.descricao;
             document.getElementById('det-qtd').innerText = data.qtd + " " + (data.unidade || "UNI");
-            document.getElementById('det-lote').innerText = data.lote;
-            document.getElementById('det-venc').innerText = data.vencimento;
-            document.getElementById('det-data-import').innerText = data.data_import;
-            document.getElementById('det-ult_mov').innerText = data.ult_mov;
+            document.getElementById('det-lote').innerText = data.lote;            
             
-            // Importante para a confirmação funcionar depois:
-            // Salva o ID real do banco em um campo oculto (se existir no seu modal)
-            const inputId = document.getElementById('mat-id');
-            if (inputId) inputId.value = data.id;
+            // Aqui estão as variáveis que você capturou do banco
+            document.getElementById('det-venc').innerText = data.vencimento;
+            document.getElementById('det-data-import').innerText = data.data_import || "---";
+            
+            // CORREÇÃO AQUI: troquei 'det-ult-mov' por 'det-ult_mov' para bater com seu HTML
+            document.getElementById('det-ult_mov').innerText = data.ult_mov; 
 
-            document.getElementById('det-status').innerHTML = data.conferido 
-                ? '<span class="badge bg-success w-100">CONFERIDO</span>' 
-                : '<span class="badge bg-warning text-dark w-100">PENDENTE</span>';
+            // Status com tratamento visual
+            const statusElement = document.getElementById('det-status');
+            if (statusElement) {
+                statusElement.innerHTML = data.status === "CONFERIDO" 
+                    ? '<span class="badge bg-success w-100">CONFERIDO</span>' 
+                    : '<span class="badge bg-warning text-dark w-100">PENDENTE</span>';
+            }
 
+            // Exibe o modal
             new bootstrap.Modal(document.getElementById('modalDetalhes')).show();
         })
-        .catch(error => alert(error.message));
+        .catch(error => {
+            console.error("Erro no PSA:", error);
+            alert(error.message);
+        });
 }
 
     $(document).ready(function() {

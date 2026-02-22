@@ -40,7 +40,7 @@ def dashboard():
     # Cálculo das Percentagens (Proteção contra divisão por zero)
     taxa_qualidade = round(((conferidos - itens_com_divergencia) / conferidos * 100), 1) if conferidos > 0 else 100.0
     acuracidade = round((conferidos / total_itens * 100), 1) if total_itens > 0 else 0.0
-
+    
     # 5. RETORNO PARA O INDEX.HTML
     return render_template('index.html',
                            datas=datas_formatadas, 
@@ -65,20 +65,25 @@ def get_detalhes_ud(ud_numero):
     # Pegamos os dados reais do objeto no banco
     # Usamos getattr para garantir que funcione independente do nome da coluna (material ou cod_material)
     return jsonify({
-        'id': ud_obj.id,
-        'ud': ud_obj.unidade_deposito,
-        'material_sap': str(getattr(ud_obj, 'material', getattr(ud_obj, 'cod_material', 'S/C'))).split('.')[0],
-        
-        # AQUI ESTÁ O SEGREDO: Mapear para os nomes que o base.html espera
-        'descricao': getattr(ud_obj, 'texto_breve', getattr(ud_obj, 'desc_material', 'S/D')), # Modal espera .descricao
-        'qtd': f"{float(getattr(ud_obj, 'quantidade', getattr(ud_obj, 'quantidade_estoque', 0))):.0f}", # Modal espera .qtd
-        
-        'lote': ud_obj.lote or "S/L",
-        'validade': ud_obj.validade.strftime('%d/%m/%Y') if hasattr(ud_obj, 'validade') and ud_obj.validade else "S/V",
-        'data_import': ud_obj.data_importacao.strftime('%d/%m/%Y') if ud_obj.data_importacao else "---",
-        'ult_mov': getattr(ud_obj, 'ultimo_movimento', '---'),
-        'conferido': ud_obj.conferido
-    })
+    'id': ud_obj.id,
+    'ud': ud_obj.unidade_deposito,
+    'material_sap': str(getattr(ud_obj, 'material', getattr(ud_obj, 'cod_material', 'S/C'))).split('.')[0],
+    'descricao': getattr(ud_obj, 'texto_breve', getattr(ud_obj, 'desc_material', 'S/D')),
+    'qtd': f"{float(getattr(ud_obj, 'quantidade', getattr(ud_obj, 'quantidade_estoque', 0))):.0f}",
+    'lote': ud_obj.lote or "S/L",
+    
+    # AJUSTE AQUI: Mude de 'validade' para 'vencimento'
+    # E use 'data_vencimento' que é o nome real na sua tabela
+    'vencimento': ud_obj.data_vencimento.strftime('%d/%m/%Y') if ud_obj.data_vencimento else "S/V",
+    
+    'data_import': ud_obj.data_importacao.strftime('%d/%m/%Y') if ud_obj.data_importacao else "---",
+    
+    # AJUSTE AQUI: Use 'data_ultimo_mov' para bater com seu SQL
+    'ult_mov': ud_obj.data_ultimo_mov.strftime('%d/%m/%Y') if ud_obj.data_ultimo_mov else "---",
+    
+    'conferido': ud_obj.conferido,
+    'status': "CONFERIDO" if ud_obj.conferido else "PENDENTE" # Garante o texto no badge
+})
 
 @bp.route('/api/confirmar', methods=['POST'])
 def confirmar_leitura():
