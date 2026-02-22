@@ -1,21 +1,26 @@
-from app import create_app
-from config import Config # Importação necessária para ler a URI
 
-# Criamos a instância da aplicação
+from config import Config # Importação necessária para ler a URI
+from app import create_app, db # Garanta que o db seja importado
+import os
+
 app = create_app()
 
 with app.app_context():
-    from app import db
-    try:
-        db.create_all()
-        print(">>> Banco de dados sincronizado com sucesso!")
-        
-        # Correção aqui: Usamos Config (com C maiúsculo)
-        if Config.SQLALCHEMY_DATABASE_URI:
-            db_host = Config.SQLALCHEMY_DATABASE_URI.split('@')[-1].split('/')[0]
-            print(f">>> SISTEMA PSA CONECTADO EM: {db_host}")
-    except Exception as e:
-        print(f">>> ERRO AO CONECTAR NO BANCO: {e}")
+    # 1. Verifica a URL (Igual ao seu finanças)
+    db_uri = os.getenv("DATABASE_URL")
+    
+    if db_uri:
+        # Se achou a variável do Neon, garante o postgresql://
+        if db_uri.startswith("postgres://"):
+            db_uri = db_uri.replace("postgres://", "postgresql://", 1)
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
+    
+    # 2. Cria as tabelas se não existirem
+    db.create_all()
+    
+    # 3. Log de Qualidade (O "olho" do supervisor)
+    origem = "NEON (Nuvem)" if "neon.tech" in app.config["SQLALCHEMY_DATABASE_URI"] else "SQLITE (Local)"
+    print(f">>> INSPEÇÃO DE BANCO: {origem}")
 
 if __name__ == '__main__':
     print("-" * 30)
