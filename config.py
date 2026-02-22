@@ -21,3 +21,5 @@ class Config:
     
     # Atualizado para a versão com banco de dados persistente
     VERSION = "1.3.0"
+
+    
