@@ -19,8 +19,10 @@ with app.app_context():
     db.create_all()
     
     # 3. Log de Qualidade (O "olho" do supervisor)
+    print("-" * 30, flush=True)
     origem = "NEON (Nuvem)" if "neon.tech" in app.config["SQLALCHEMY_DATABASE_URI"] else "SQLITE (Local)"
-    print(f">>> INSPEÇÃO DE BANCO: {origem}")
+    print(f">>> INSPEÇÃO DE BANCO: {origem}", flush=True)
+    print("-" * 30, flush=True)
 
 if __name__ == '__main__':
     print("-" * 30)
