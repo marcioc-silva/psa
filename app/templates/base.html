@@ -78,26 +78,42 @@
 <body>
 
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
-                <i class="bi bi-box-seam me-2"></i>Controle PSA
-            </a>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link fw-bold text-warning" href="/scanner"><i class="bi bi-qr-code-scan"></i> SCANNER</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/importer/">Importar SAP</a></li>                                       
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('importer.exportar') }}">Exportar Excel</a></li>                    
-                </ul>
-            </div>                  
-            <div class="d-flex text-white align-items-center">
-                <span class="small me-3 border-end pe-3 border-secondary">
-                        <i class="bi bi-person-circle me-1"></i> {{ current_user.nome_completo }} ({{ current_user.cargo }})
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
+            <i class="bi bi-box-seam me-2"></i>Controle PSA
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link fw-bold text-warning" href="/scanner">
+                        <i class="bi bi-qr-code-scan"></i> SCANNER
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/importer/">Importar SAP</a>
+                </li>                                     
+                <li class="nav-item">
+                    <a class="nav-link" href="/importer/exportar">Exportar Excel</a>
+                </li>                    
+            </ul>
+            
+            <div class="d-flex text-white align-items-center mt-3 mt-lg-0">
+                <span class="small me-3 border-end pe-3 border-secondary d-none d-md-inline">
+                    <i class="bi bi-person-circle me-1"></i> {{ current_user.nome_completo }} ({{ current_user.cargo }})
                 </span>
-                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Sair</a>
-            </div>            
-        </div>
-    </nav>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Sair</a>
+            </div>
+        </div>            
+    </div>
+</nav>
 
     <div class="container-fluid px-4 mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
