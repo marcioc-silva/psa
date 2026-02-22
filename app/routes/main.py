@@ -1,3 +1,6 @@
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_user, login_required, logout_user
+from app.models.material import Usuario
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from app.models.material import MaterialPSA
 from app import db
@@ -6,6 +9,7 @@ from datetime import datetime, timedelta
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
+@login_required
 def dashboard():
     # 1. PEGAR TUDO DO BANCO (Ordenado pela importação mais recente)
     todos_materiais = MaterialPSA.query.order_by(MaterialPSA.data_importacao.desc()).all()
@@ -109,6 +113,7 @@ def confirmar_leitura():
     return jsonify({'success': False, 'message': 'Material não encontrado'})
 
 @bp.route('/search_manual', methods=['GET'])
+@login_required
 def search_manual():
     try:
         termo = request.args.get('q', '').strip()
@@ -131,10 +136,12 @@ def search_manual():
         return jsonify([]), 500
 
 @bp.route('/scanner')
+@login_required
 def scanner_page():
     return render_template('scanner.html')
 
 @bp.route('/relatorios/divergencias')
+@login_required
 def relatorio_divergencias():
     # Pega a data que vem do clique no card
     data_filtro = request.args.get('data_filtro')
@@ -157,6 +164,7 @@ def relatorio_divergencias():
     return render_template('relatorio_lista.html', materiais=materiais_filtrados, data_atual=data_filtro)
 
 @bp.route('/resetar-testes')
+@login_required
 def resetar_testes():
     try:
         db.session.query(MaterialPSA).update({MaterialPSA.conferido: False, MaterialPSA.data_conferencia: None})
@@ -166,3 +174,37 @@ def resetar_testes():
         db.session.rollback()
         flash(f'Erro: {str(e)}', 'danger')
     return redirect(url_for('main.dashboard'))
+
+@bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        sap = request.form.get('sap')
+        senha = request.form.get('password')       
+
+        # Busca o usuário pelo SAP
+        usuario = Usuario.query.filter_by(sap=sap).first()
+        
+        # Verifica se o usuário existe e se a senha está correta
+        if usuario and usuario.verificar_senha(senha):
+            login_user(usuario)
+            flash('Login realizado com sucesso!', 'success')
+            return redirect(url_for('index')) # Mude 'index' para sua página principal
+        else:
+            flash('SAP ou senha incorretos. Tente novamente.', 'danger')
+
+        print(f'Senha',sap)
+        print(f'Senha',senha)
+        print(f'Usuário',usuario)
+           
+    return render_template('login.html')
+
+@bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@bp.route('/conferencia')
+@login_required # Isso impede o acesso de quem não logou
+def conferencia():
+    return render_template('conferencia.html', nome=current_user.nome_completo)

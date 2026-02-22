@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container-fluid">
+        
+            <div class="container d-flex justify-content-center align-items-center vh-100">
+                <div class="card shadow-sm" style="width: 100%; max-width: 400px;">
+                    <div class="card-body">
+                        <h3 class="card-title text-center mb-4">Acesso PSA</h3>
+                        
+                        <form action="/login" method="POST">
+                            <div class="mb-3">
+                                <label for="sap" class="form-label">SAP</label>
+                                <input type="text" name="sap" id="sap" class="form-control" required placeholder="Digite seu SAP">
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Senha</label>
+                                <input type="password" name="password" id="password" class="form-control" required placeholder="Digite sua senha">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Entrar</button>
+                        </form>
+
+                        {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            <div class="alert alert-danger mt-3 text-center">
+                            {{ messages[0] }}
+                            </div>
+                        {% endif %}
+                        {% endwith %}
+
+                        <hr class="my-4">
+                        <p class="text-center mb-2">Primeiro acesso?</p>
+                        <a href="{{ url_for('registrar') }}" class="btn btn-outline-secondary w-100">Cadastrar Colaborador</a>
+                    </div> </div>
+            </div>    
+    </div>
+{% endblock %}

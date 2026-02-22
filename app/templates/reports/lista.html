@@ -3,84 +3,12 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-<style>
-    #res-ud {
-    font-size: 2rem !important;
-    letter-spacing: 1px;
-}
-
-
-    /* Fonte da Unidade de Depósito aumentada */
-    #res-ud {
-        font-size: 2rem !important;
-        letter-spacing: 1px;
-    }
-
-    /* Fonte da Descrição aumentada dentro do box cinza */
-    #res-nome {
-        font-size: 1.25rem !important;
-        color: #212529;
-        padding: 10px;
-    }
-
-    /* Estilo para rótulos e valores do grid */
-    .text-muted.small.fw-bold {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-    }
-
-    .fw-bold.fs-5 {
-        font-size: 1.2rem !important;
-    }
-
-#res-nome {
-    font-size: 1.2rem !important;
-    color: #212529;
-    padding: 12px;
-}
-
-.info-label {
-    color: #6c757d;
-    font-size: 0.9rem;
-    font-weight: bold;
-    display: block;
-}
-
-.info-value {
-    font-weight: bold;
-    font-size: 1.2rem;
-}
-    /* Estilos do Modal conforme solicitado anteriormente */
-    .modal-header-blue {
-        background-color: #007bff;
-        color: white;
-        padding: 12px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .res-nome-box {
-        background-color: #f8f9fa;
-        border-radius: 5px;
-        padding: 10px;
-        font-weight: bold;
-        min-height: 45px;
-        font-size: 1.1rem; /* Fonte aumentada conforme sua preferência */
-    }
-    #res-ud {
-        font-size: 1.8rem; /* Fonte da UD aumentada */
-    }
-    .info-label { color: #6c757d; font-size: 0.85rem; font-weight: bold; display: block; }
-    .info-value { font-weight: bold; font-size: 1.1rem; color: #343a40; }
-    
-    @media print { .no-print { display: none; } }
-</style>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3 no-print">
         <h5 class="fw-bold text-{{ cor }}">{{ titulo }}</h5>
         <div>            
-            <a href="{{ url_for('reports.index') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm btn-outline-secondary">Voltar</a>
         </div>
     </div>
 
