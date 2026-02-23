@@ -44,10 +44,10 @@ def confirmar_conferencia_api():
 
         ud = dados.get('ud')
         sap_conferente = dados.get('conferente_id')
-
+        bp.logger.info(f"--- SOLICITAÇÃO DE CONFERÊNCIA: {ud} ---")
         # Procura o material pela Unidade de Depósito (UD)
         material = MaterialPSA.query.filter_by(unidade_deposito=ud).first()
-
+        
         if material:
             material.conferido = True
             material.data_conferencia = datetime.now()

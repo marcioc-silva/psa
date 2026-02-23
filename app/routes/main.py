@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from app.models.material import MaterialPSA
 from app import db
 from datetime import datetime, timedelta
-
+from sqlalchemy import String, cast
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
@@ -60,34 +60,36 @@ def dashboard():
 
 @bp.route('/get_detalhes_ud/<string:ud_numero>')
 def get_detalhes_ud(ud_numero):
+    # POKA-YOKE: Limpeza total do dado recebido
     termo = str(ud_numero).strip()
-    ud_obj = MaterialPSA.query.filter(MaterialPSA.unidade_deposito.like(f"%{termo}%")).first()
+    
+    print(f"\n[COMPARAR PSA] Buscando UD: '{termo}'", flush=True)
+
+    # O SEGREDO: Cast para String garante que a comparação funcione no Render/Postgres
+    # Mesmo que a UD seja um número no banco, o LIKE vai funcionar agora
+    ud_obj = MaterialPSA.query.filter(
+        cast(MaterialPSA.unidade_deposito, String).like(f"%{termo}%")
+    ).first()
     
     if not ud_obj:
+        print(f"[COMPARAR PSA] Erro: UD '{termo}' não encontrada no banco.", flush=True)
         return jsonify({'error': 'Não encontrado'}), 404
     
-    # Pegamos os dados reais do objeto no banco
-    # Usamos getattr para garantir que funcione independente do nome da coluna (material ou cod_material)
+    print(f"[COMPARAR PSA] Sucesso: Localizada UD {ud_obj.unidade_deposito}", flush=True)
+
+    # Retorno unificado conforme seu padrão Nestlé
     return jsonify({
-    'id': ud_obj.id,
-    'ud': ud_obj.unidade_deposito,
-    'material_sap': str(getattr(ud_obj, 'material', getattr(ud_obj, 'cod_material', 'S/C'))).split('.')[0],
-    'descricao': getattr(ud_obj, 'texto_breve', getattr(ud_obj, 'desc_material', 'S/D')),
-    'qtd': f"{float(getattr(ud_obj, 'quantidade', getattr(ud_obj, 'quantidade_estoque', 0))):.0f}",
-    'lote': ud_obj.lote or "S/L",
-    
-    # AJUSTE AQUI: Mude de 'validade' para 'vencimento'
-    # E use 'data_vencimento' que é o nome real na sua tabela
-    'vencimento': ud_obj.data_vencimento.strftime('%d/%m/%Y') if ud_obj.data_vencimento else "S/V",
-    
-    'data_import': ud_obj.data_importacao.strftime('%d/%m/%Y') if ud_obj.data_importacao else "---",
-    
-    # AJUSTE AQUI: Use 'data_ultimo_mov' para bater com seu SQL
-    'ult_mov': ud_obj.data_ultimo_mov.strftime('%d/%m/%Y') if ud_obj.data_ultimo_mov else "---",
-    
-    'conferido': ud_obj.conferido,
-    'status': "CONFERIDO" if ud_obj.conferido else "PENDENTE" # Garante o texto no badge
-})
+        'id': ud_obj.id,
+        'ud': ud_obj.unidade_deposito,
+        'material_sap': str(getattr(ud_obj, 'material', getattr(ud_obj, 'cod_material', 'S/C'))).split('.')[0],
+        'descricao': getattr(ud_obj, 'texto_breve', getattr(ud_obj, 'desc_material', 'S/D')),
+        'qtd': f"{float(getattr(ud_obj, 'quantidade', getattr(ud_obj, 'quantidade_estoque', 0))):.0f}",
+        'lote': ud_obj.lote or "S/L",
+        'vencimento': ud_obj.data_vencimento.strftime('%d/%m/%Y') if ud_obj.data_vencimento else "S/V",
+        'ult_mov': ud_obj.data_ultimo_mov.strftime('%d/%m/%Y') if ud_obj.data_ultimo_mov else "---",
+        'conferido': ud_obj.conferido,
+        'status': "CONFERIDO" if ud_obj.conferido else "PENDENTE"
+    })
 
 @bp.route('/api/confirmar', methods=['POST'])
 def confirmar_leitura():

@@ -91,12 +91,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@app.route('/')
-@login_required
-def index():
-    # Agora não precisamos passar 'total', 'conferidos', etc. O context_processor já faz isso!
-    return render_template('index.html', nome=current_user.nome_completo)
-
 @app.route('/registrar', methods=['GET', 'POST'])
 def registrar():
     if request.method == 'POST':
