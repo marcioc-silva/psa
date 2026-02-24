@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from flask_login import login_user, login_required, logout_user
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from app.models.material import MaterialPSA
 from app import db
@@ -8,12 +9,14 @@ from datetime import datetime
 bp = Blueprint('importer', __name__, url_prefix='/importer')
 
 @bp.route('/')
+@login_required
 def index():
     # Busca apenas os materiais da última importação para não sobrecarregar a tela de upload
     materiais = MaterialPSA.query.order_by(MaterialPSA.data_importacao.desc()).limit(50).all()
     return render_template('importer/index.html', materiais=materiais)
 
 @bp.route('/upload', methods=['POST'])
+@login_required
 def upload():
     if 'file' not in request.files:
         flash('Nenhum arquivo enviado.', 'danger')
@@ -119,6 +122,7 @@ def upload():
     return redirect(url_for('main.dashboard'))
 
 @bp.route('/exportar')
+@login_required
 def exportar():
     import os
     import pandas as pd

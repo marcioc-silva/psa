@@ -171,9 +171,9 @@
         const modalEl = document.getElementById('modalResultado');
         const modal = bootstrap.Modal.getInstance(modalEl);
         if(modal) modal.hide();
+        // Verifica o estado antes de retomar para evitar erro de motor
         if(html5QrCode && html5QrCode.getState() === 3) html5QrCode.resume();
         
-        // Reset dos campos de divergência
         document.getElementById('checkDivergenciaConferencia').checked = false;
         document.getElementById('campoObservacaoConferencia').classList.add('d-none');
         document.getElementById('txtObservacaoConferencia').value = '';
@@ -214,25 +214,21 @@
         const udLimpa = ud.trim();
         const udParaBusca = encodeURIComponent(udLimpa);
 
-        console.log(">>> Buscando UD na base PSA: " + udLimpa);
-
-        // Chamando a rota de detalhes que retorna o seu to_dict()
         fetch(`/get_detalhes_ud/${udParaBusca}`)
             .then(response => {
                 if (!response.ok) throw new Error('UD_NAO_ENCONTRADA');
                 return response.json();
             })
             .then(data => {
-                // MAPEAMENTO: IDs do HTML vs Chaves do seu to_dict()
+                // Mapeamento direto com as chaves estáticas do to_dict
                 document.getElementById('mat-id').value = data.id;
                 document.getElementById('res-ud').innerText = data.ud;
-                document.getElementById('res-nome').innerText = data.descricao || "Sem descrição"; // Fix: desc_material
+                document.getElementById('res-nome').innerText = data.descricao || "Sem descrição";
                 document.getElementById('res-qtd').innerText = data.qtd + " " + (data.unidade || "UNI");
                 document.getElementById('res-lote').innerText = data.lote || "S/L";
                 document.getElementById('res-venc').innerText = data.vencimento || "S/V";
                 document.getElementById('res-ult-mov').innerText = data.ult_mov || "---";
 
-                // Status Visual
                 const badge = document.getElementById('status-conferido');
                 if (badge) {
                     badge.style.display = (data.status === 'CONFERIDO') ? 'block' : 'none';
@@ -244,7 +240,7 @@
             .catch(err => {
                 console.error("Erro PSA:", err);
                 alert(`Erro: A UD "${udLimpa}" não foi localizada.`);
-                if(html5QrCode) html5QrCode.resume();
+                if(html5QrCode && html5QrCode.getState() === 3) html5QrCode.resume();
             });
     }
 
@@ -260,13 +256,13 @@
             body: JSON.stringify(payload)
         }).then(() => {
             fecharModal();
-            location.reload(); // Atualiza os cards estáticos
-        });
+            location.reload(); 
+        }).catch(err => alert("Erro ao confirmar: " + err));
     }
 
     // --- BUSCA MANUAL ---
     function abrirBuscaManual() {
-        if(html5QrCode) stopScanner();
+        if(html5QrCode && html5QrCode.getState() === 2) stopScanner();
         document.getElementById('modal-busca-manual').style.display = 'block';
         setTimeout(() => document.getElementById('input-ud-manual').focus(), 200);
     }
