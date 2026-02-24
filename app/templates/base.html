@@ -1,116 +1,102 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Controle PSA - Nestlé{% endblock %}</title>
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    
-    <style>
-        :root { --nestle-red: #D51C29; --nestle-blue: #0056b3; }
-        body { background-color: #353736; padding-bottom: 110px !important; font-family: 'Segoe UI', sans-serif; }
-        .navbar { background-color: #212529 !important; border-bottom: 4px solid var(--nestle-red); }
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Controle PSA - Nestlé{% endblock %}</title>
         
-        /* Estilo para manter o Dashboard Header fixo visualmente se desejar */
-        .sticky-indicators { position: sticky; top: 0; z-index: 1000; background: #353736; padding-top: 10px; }
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap5.min.css') }}">       
+            
+        <style>
+            :root { --nestle-red: #D51C29; --nestle-blue: #0056b3; }
+            body { background-color: #353736; padding-bottom: 110px !important; font-family: 'Segoe UI', sans-serif; }
+            .navbar { background-color: #212529 !important; border-bottom: 4px solid var(--nestle-red); }
+            
+            .sticky-indicators { position: sticky; top: 0; z-index: 1000; background: #353736; padding-top: 10px; }
 
-        .footer-custom {
-            background: rgba(33, 37, 41, 0.95);
-            backdrop-filter: blur(10px);
-            color: #ffffff;
-            padding: 12px 20px;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 1050;
-        }
+            .footer-custom {
+                background: rgba(33, 37, 41, 0.95);
+                backdrop-filter: blur(10px);
+                color: #ffffff;
+                padding: 12px 20px;
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                z-index: 1050;
+            }
 
-        /* Padronização de Tabela PSA Nestlé conforme seu código */
-        .tabela-dinamica { font-size: 0.85rem !important; }
-        .tabela-dinamica thead th { background-color: #212529 !important; color: #ffffff !important; font-weight: 600 !important; padding: 10px 8px !important; }
-        .text-primary-psa { color: #0056b3 !important; font-weight: 700 !important; }
-        .text-danger-psa { color: #D51C29 !important; font-weight: 700 !important; }
-        .badge-lote { background-color: #f8f9fa !important; color: #333 !important; border: 1px solid #dee2e6 !important; border-radius: 15px !important; padding: 4px 10px !important; }
-        
-        /* Estilo dos Cards do Partial (Brancos com borda colorida) */
-        .card-indicator { background-color: #ffffff !important; border: none !important; border-left: 5px solid !important; transition: transform 0.2s; }
-        .card-indicator:hover { transform: translateY(-3px); }
-        /* 4. Tipografia dos Cards - Ajustada para Hierarquia */
-        /* 4. Tipografia Delicada - Padrão Nestlé Araçatuba */
-           /* 4. Tipografia Minimalista e Delicada */
-        .card-indicator {
-            padding: 0.8rem !important; /* Card mais compacto */
-        }
+            .tabela-dinamica { font-size: 0.85rem !important; }
+            .tabela-dinamica thead th { background-color: #212529 !important; color: #ffffff !important; font-weight: 600 !important; padding: 10px 8px !important; }
+            .text-primary-psa { color: #0056b3 !important; font-weight: 700 !important; }
+            .text-danger-psa { color: #D51C29 !important; font-weight: 700 !important; }
+            .badge-lote { background-color: #f8f9fa !important; color: #333 !important; border: 1px solid #dee2e6 !important; border-radius: 15px !important; padding: 4px 10px !important; }
+            
+            .card-indicator { background-color: #ffffff !important; border: none !important; border-left: 5px solid !important; transition: transform 0.2s; padding: 0.8rem !important; }
+            .card-indicator:hover { transform: translateY(-3px); }
 
-        /* Título: Discreto e bem pequeno */
-        .card-indicator .text-muted.small {
-            font-size: 0.6rem !important; /* Reduzido */
-            letter-spacing: 1px;
-            font-weight: 500 !important; /* Menos negrito */
-            text-transform: uppercase;
-            margin-bottom: 2px !important;
-            display: block;
-            opacity: 0.7;
-        }
+            .card-indicator .text-muted.small {
+                font-size: 0.6rem !important;
+                letter-spacing: 1px;
+                font-weight: 500 !important;
+                text-transform: uppercase;
+                margin-bottom: 2px !important;
+                display: block;
+                opacity: 0.7;
+            }
 
-        /* O Valor: Fino e elegante */
-        .card-indicator .h3 {
-            font-size: 1.3rem !important; /* Menos agressivo */
-            font-weight: 600 !important;
-            margin: 0 !important;
-            color: #212529 !important;
-            line-height: 1;
-        }
+            .card-indicator .h3 {
+                font-size: 1.3rem !important;
+                font-weight: 600 !important;
+                margin: 0 !important;
+                color: #212529 !important;
+                line-height: 1;
+            }
 
-        /* Descrição inferior: Detalhe sutil */
-        .card-indicator .text-muted:not(.small) {
-            font-size: 0.6rem !important;
-            margin-top: 1px;
-            font-weight: 400;
-        }
-    </style>
-</head>
-<body>
+            .card-indicator .text-muted:not(.small) {
+                font-size: 0.6rem !important;
+                margin-top: 1px;
+                font-weight: 400;
+            }
+        </style>
+    </head>
+    <body>
 
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
-    <div class="container-fluid px-4">
-        <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
-            <i class="bi bi-box-seam me-2"></i>Controle PSA
-        </a>
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
+                <i class="bi bi-box-seam me-2"></i>Controle PSA
+            </a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link fw-bold text-warning" href="/scanner">
-                        <i class="bi bi-qr-code-scan"></i> SCANNER
-                    </a>
-                </li>                
-                <li class="nav-item">
-                    <a class="nav-link" href="/importer/">Importar SAP</a>
-                </li>                                     
-                <li class="nav-item">
-                    <a class="nav-link" href="/importer/exportar">Exportar Excel</a>
-                </li>                    
-            </ul>
-            
-            <div class="d-flex text-white align-items-center mt-3 mt-lg-0">
-                <span class="small me-3 border-end pe-3 border-secondary d-none d-md-inline">
-                    <i class="bi bi-person-circle me-1"></i> {{ current_user.nome_completo }} ({{ current_user.cargo }})
-                </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Sair</a>
-            </div>
-        </div>            
-    </div>
-</nav>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold text-warning" href="/scanner">
+                            <i class="bi bi-qr-code-scan"></i> SCANNER
+                        </a>
+                    </li>                
+                    <li class="nav-item"><a class="nav-link" href="/importer/">Importar SAP</a></li>                                     
+                    <li class="nav-item"><a class="nav-link" href="/importer/exportar">Exportar Excel</a></li>                    
+                </ul>
+                
+                <div class="d-flex text-white align-items-center mt-3 mt-lg-0">
+                    {% if current_user.is_authenticated %}
+                    <span class="small me-3 border-end pe-3 border-secondary d-none d-md-inline">
+                        <i class="bi bi-person-circle me-1"></i> {{ current_user.nome_completo }} ({{ current_user.cargo }})
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Sair</a>
+                    {% endif %}
+                </div>
+            </div>            
+        </div>
+    </nav>
 
     <div class="container-fluid px-4 mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -132,98 +118,100 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalDetalhes" tabindex="-1">
-        ...
+    <div class="modal fade" id="modalDetalhes" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Detalhes da Unidade</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6"><strong>UD:</strong> <span id="det-ud"></span></div>
+                        <div class="col-6"><strong>Lote:</strong> <span id="det-lote"></span></div>
+                        <div class="col-12"><strong>Material:</strong> <span id="det-texto-breve"></span></div>
+                        <div class="col-6"><strong>Quantidade:</strong> <span id="det-qtd"></span></div>
+                        <div class="col-6"><strong>Vencimento:</strong> <span id="det-venc" class="text-danger fw-bold"></span></div>
+                        <div class="col-6"><strong>Última Mov:</strong> <span id="det-ult_mov"></span></div>
+                        <div class="col-6"><strong>Importação:</strong> <span id="det-data-import"></span></div>
+                        <div class="col-12 mt-3" id="det-status"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    {% if request.path == '/scanner' %}
-    <button class="btn-manual-fixo" onclick="abrirBuscaManual()">
-        <i class="bi bi-keyboard-fill"></i> DIGITAR UD MANUALMENTE
-    </button>
-    {% endif %}
-
     <footer class="footer-custom">
-        <div class="footer-container">            
+        <div class="footer-container d-flex justify-content-between">            
             <div class="footer-info small">
                 <span>{{ current_user.nome_completo if current_user.is_authenticated else 'Visitante' }} - Nestlé Araçatuba</span> | PSA | 2026
             </div>
             <div class="version-tag small opacity-50">v1.3.0</div>
         </div>
     </footer>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-    <script>
-        
-        // O seu código JavaScript entra aqui
-        const campoVencimento = document.getElementById('det-venc');
-        const campoMovimentacao = document.getElementById('det-ult_mov');
+            <!-- jQuery primeiro -->
+        <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+        <!-- DataTables principal -->
+        <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
+        <!-- Integração com Bootstrap 5 -->
+        <script src="{{ url_for('static', filename='js/dataTables.bootstrap5.min.js') }}"></script>        
+        <script src="{{ url_for('static', filename='js/jquery-3.7.0.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+        <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-        // Verificamos se os elementos existem antes de atribuir os valores
-        if (campoVencimento && typeof data !== 'undefined') {
-            campoVencimento.innerText = data.vencimento; 
-        }
-        if (campoMovimentacao && typeof data !== 'undefined') {
-            campoMovimentacao.innerText = data.ult_mov;
-        }
-    
-    // Localize esta função no final do seu base.html e altere a URL:
-   function verDetalhes(ud) {
-    fetch(`/get_detalhes_ud/${ud}`) 
-        .then(response => {
-            if (!response.ok) throw new Error('UD não encontrada no sistema!');
-            return response.json();
-        })
-        .then(data => {
-            // Sincronizando com as chaves do seu to_dict do Python
-            document.getElementById('det-ud').innerText = data.ud; 
-            document.getElementById('det-texto-breve').innerText = data.descricao;
-            document.getElementById('det-qtd').innerText = data.qtd + " " + (data.unidade || "UNI");
-            document.getElementById('det-lote').innerText = data.lote;            
-            
-            // Aqui estão as variáveis que você capturou do banco
-            document.getElementById('det-venc').innerText = data.vencimento;
-            document.getElementById('det-data-import').innerText = data.data_import || "---";
-            
-            // CORREÇÃO AQUI: troquei 'det-ult-mov' por 'det-ult_mov' para bater com seu HTML
-            document.getElementById('det-ult_mov').innerText = data.ult_mov; 
+            <script>
+                // Função global para visualização de detalhes na Dashboard
+                function verDetalhes(ud) {
+                    const modalEl = document.getElementById('modalDetalhes');
+                    if (!modalEl) return;
 
-            // Status com tratamento visual
-            const statusElement = document.getElementById('det-status');
-            if (statusElement) {
-                statusElement.innerHTML = data.status === "CONFERIDO" 
-                    ? '<span class="badge bg-success w-100">CONFERIDO</span>' 
-                    : '<span class="badge bg-warning text-dark w-100">PENDENTE</span>';
-            }
+                    fetch(`/get_detalhes_ud/${ud}`) 
+                        .then(response => {
+                            if (!response.ok) throw new Error('UD não encontrada no sistema!');
+                            return response.json();
+                        })
+                        .then(data => {
+                            // Sincronização com as chaves estáticas do to_dict do Python
+                            document.getElementById('det-ud').innerText = data.ud; 
+                            document.getElementById('det-texto-breve').innerText = data.descricao;
+                            document.getElementById('det-qtd').innerText = data.qtd + " " + (data.unidade || "UNI");
+                            document.getElementById('det-lote').innerText = data.lote;            
+                            document.getElementById('det-venc').innerText = data.vencimento;
+                            document.getElementById('det-data-import').innerText = data.data_importacao || "---";
+                            document.getElementById('det-ult_mov').innerText = data.ult_mov; 
 
-            // Exibe o modal
-            new bootstrap.Modal(document.getElementById('modalDetalhes')).show();
-        })
-        .catch(error => {
-            console.error("Erro no PSA:", error);
-            alert(error.message);
-        });
-}
+                            const statusElement = document.getElementById('det-status');
+                            if (statusElement) {
+                                statusElement.innerHTML = data.status === "CONFERIDO" 
+                                    ? '<span class="badge bg-success w-100 p-2">ITEM CONFERIDO</span>' 
+                                    : '<span class="badge bg-warning text-dark w-100 p-2">AGUARDANDO CONFERÊNCIA</span>';
+                            }
 
-    $(document).ready(function() {
-        if ($('.tabela-dinamica').length > 0) {
-            $('.tabela-dinamica').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json",
-                    "search": "Filtrar:",
-                    "searchPlaceholder": "Buscar na tabela..."
-                },
-                "pageLength": 10,
-                "order": [[1, "asc"]],
-                "responsive": true,
-                "dom": '<"d-flex justify-content-end mb-3"f>t<"d-flex justify-content-between mt-3"ip>'
-            });
-        }
-    });
-    </script>
-</body>
+                            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                        })
+                        .catch(error => {
+                            console.error("Erro no PSA:", error);
+                            alert(error.message);
+                        });
+                }
 
+                // Inicialização das Tabelas Dinâmicas (DataTables)
+                $(document).ready(function() {
+                    if ($('.tabela-dinamica').length > 0) {
+                        $('.tabela-dinamica').DataTable({
+                            "language": {
+                                "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/pt-BR.json",
+                                "search": "Filtrar:",
+                                "searchPlaceholder": "Buscar na tabela..."
+                            },
+                            "pageLength": 10,
+                            "order": [[1, "asc"]],
+                            "responsive": true,
+                            "dom": '<"d-flex justify-content-end mb-3"f>t<"d-flex justify-content-between mt-3"ip>'
+                        });
+                    }
+                });
+            </script>
+    </body>
 </html>
