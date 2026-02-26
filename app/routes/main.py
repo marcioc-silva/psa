@@ -200,6 +200,32 @@ def login():
            
     return render_template('login.html')
 
+@bp.route('/registrar', methods=['GET', 'POST'])
+def registrar():
+    if request.method == 'POST':
+        sap = request.form.get('sap')
+        nome = request.form.get('nome')
+        senha = request.form.get('password')
+
+        if Usuario.query.filter_by(sap=sap).first():
+            flash('Usuário já cadastrado.')
+            return redirect(url_for('main.registrar'))
+
+        novo_usuario = Usuario(sap=sap, nome_completo=nome)
+        novo_usuario.set_senha(senha)
+
+        # Regra simples: o primeiro usuário criado vira admin.
+        if Usuario.query.count() == 0:
+            novo_usuario.cargo = 'admin'
+
+        db.session.add(novo_usuario)
+        db.session.commit()
+
+        flash('Usuário cadastrado com sucesso!')
+        return redirect(url_for('main.login'))
+
+    return render_template('registrar.html')
+
 @bp.route('/logout')
 @login_required
 def logout():
