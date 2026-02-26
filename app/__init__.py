@@ -7,7 +7,7 @@ from flask_login import LoginManager
 
 login_manager = LoginManager()
 # 1. REMOVI o import do reports_bp daqui do topo para evitar o erro circular
-
+from app.models.material import Usuario
 db = SQLAlchemy()
 migrate = Migrate()
 
