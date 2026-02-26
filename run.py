@@ -69,28 +69,6 @@ def inject_global_metrics():
         data_atual=data_filtro
     )
 
-# --- ROTAS ---
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        sap = request.form.get('sap')
-        senha = request.form.get('password')
-        usuario = Usuario.query.filter_by(sap=sap).first()
-        
-        if usuario and usuario.verificar_senha(senha):
-            login_user(usuario)
-            return redirect(url_for('index'))
-        
-        flash('Erro: SAP ou Senha inválidos.')
-    return render_template('login.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
-
 @app.route('/registrar', methods=['GET', 'POST'])
 def registrar():
     if request.method == 'POST':
