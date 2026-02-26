@@ -12,18 +12,21 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 def create_app():
-    app = Flask(__name__, 
-                template_folder='templates', 
-                static_folder='static')
+    app = Flask(__name__)
 
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, '..', 'instance', 'psa_storage.db')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'nestle-aracatuba-supervisao'
+    # configure SECRET_KEY e DATABASE_URI AQUI, antes de init_app
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "uma-chave-muito-segura-da-nestle")
+    app.config["SQLALCHEMY_DATABASE_URI"] = resolve_database_url()
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # 2. Inicializa db e migrate primeiro
     db.init_app(app)
-    migrate.init_app(app, db)
+
+    login_manager.init_app(app)
+    login_manager.login_view = "login"   # ou "main.login" se estiver em blueprint
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return db.session.get(Usuario, int(user_id))
 
     # 3. Processador de contexto corrigido
     @app.context_processor
