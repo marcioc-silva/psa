@@ -106,7 +106,7 @@
                 <span class="small me-3 border-end pe-3 border-secondary d-none d-md-inline">
                     <i class="bi bi-person-circle me-1"></i> {{ current_user.nome_completo }} ({{ current_user.cargo }})
                 </span>
-                <a href="{{ url_for('logout') }}" class="btn btn-outline-danger btn-sm">Sair</a>
+                <a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger btn-sm">Sair</a>
             </div>
         </div>            
     </div>
