@@ -14,6 +14,7 @@ def index():
     return render_template('importer/index.html', materiais=materiais)
 
 @bp.route('/upload', methods=['POST'])
+@login_required
 def upload():
     if 'file' not in request.files:
         flash('Nenhum arquivo enviado.', 'danger')
@@ -119,6 +120,7 @@ def upload():
     return redirect(url_for('main.dashboard'))
 
 @bp.route('/exportar')
+ @login_required
 def exportar():
     import os
     import pandas as pd
