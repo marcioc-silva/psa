@@ -8,6 +8,7 @@ from flask_login import login_required
 bp = Blueprint('importer', __name__, url_prefix='/importer')
 
 @bp.route('/')
+@login_required
 def index():
     # Busca apenas os materiais da última importação para não sobrecarregar a tela de upload
     materiais = MaterialPSA.query.order_by(MaterialPSA.data_importacao.desc()).limit(50).all()
