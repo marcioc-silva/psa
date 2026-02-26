@@ -7,7 +7,7 @@ from flask_login import LoginManager
 
 login_manager = LoginManager()
 # 1. REMOVI o import do reports_bp daqui do topo para evitar o erro circular
-from app.models.material import Usuario
+
 db = SQLAlchemy()
 migrate = Migrate()
 
@@ -33,6 +33,7 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(user_id):
+        from app.models.material import Usuario        
         return db.session.get(Usuario, int(user_id))
 
     # 3. Processador de contexto corrigido
