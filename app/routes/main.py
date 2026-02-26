@@ -190,7 +190,7 @@ def login():
         if usuario and usuario.verificar_senha(senha):
             login_user(usuario)
             flash('Login realizado com sucesso!', 'success')
-            return redirect(url_for('index')) # Mude 'index' para sua página principal
+            return redirect(url_for('main.index')) # Mude 'index' para sua página principal
         else:
             flash('SAP ou senha incorretos. Tente novamente.', 'danger')
 
