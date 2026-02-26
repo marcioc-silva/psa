@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from app.models.material import MaterialPSA
 from app import db
 from datetime import datetime
-
+from flask_login import login_required
 bp = Blueprint('importer', __name__, url_prefix='/importer')
 
 @bp.route('/')
