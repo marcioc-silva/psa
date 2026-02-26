@@ -11,8 +11,15 @@ login_manager = LoginManager()
 db = SQLAlchemy()
 migrate = Migrate()
 
+def resolve_database_url():
+    url = os.getenv("DATABASE_URL")
+    if url and url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url or "sqlite:///default.db"
+
 def create_app():
     app = Flask(__name__)
+    app.config["SQLALCHEMY_DATABASE_URI"] = resolve_database_url()
 
     # configure SECRET_KEY e DATABASE_URI AQUI, antes de init_app
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "uma-chave-muito-segura-da-nestle")
