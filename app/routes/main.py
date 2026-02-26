@@ -212,7 +212,7 @@ def registrar():
             return redirect(url_for('main.registrar'))
 
         novo_usuario = Usuario(sap=sap, nome_completo=nome)
-        novo_usuario.set_senha(senha)
+        novo_usuario.definir_senha(senha)
 
         # Regra simples: o primeiro usuário criado vira admin.
         if Usuario.query.count() == 0:
@@ -230,7 +230,7 @@ def registrar():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('main.login'))
 
 @bp.route('/conferencia')
 @login_required # Isso impede o acesso de quem não logou
