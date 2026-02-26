@@ -16,9 +16,7 @@ from app.models.material import MaterialPSA
 
 # ... outras rotas (index, dashboard_psa) ...
 
-@views_bp.route('/scanner')
-def scanner():
-    return render_template('scanner.html')
+
 
 # Certifique-se que a função dashboard_psa está enviando as variáveis
 @views_bp.route('/psa')

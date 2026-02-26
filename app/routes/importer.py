@@ -1,18 +1,78 @@
-import pandas as pd
+import os
+import re
+from datetime import datetime, time, date
+
 import numpy as np
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
-from app.models.material import MaterialPSA
+import pandas as pd
+from flask import Blueprint, flash, redirect, render_template, request, send_file, url_for
+from flask_login import login_required, current_user
+from sqlalchemy import func
+
 from app import db
-from datetime import datetime
-from flask_login import login_required
+from app.models.material import MaterialPSA
+from app.services.scoping import scoped_material_query
+
+
 bp = Blueprint('importer', __name__, url_prefix='/importer')
+
+
+def limpar_numero(val):
+    if val is None:
+        return None
+    s = str(val).strip()
+    if not s or s.lower() == 'none':
+        return None
+    return s.split('.')[0].strip()
+
+
+def parse_float(val, default=0.0):
+    if val is None:
+        return float(default)
+    try:
+        if isinstance(val, str):
+            s = val.strip()
+            if not s:
+                return float(default)
+            s = s.replace('.', '').replace(',', '.')
+            return float(s)
+        return float(val)
+    except Exception:
+        return float(default)
+
+
+def parse_date(val):
+    if val is None:
+        return None
+    if isinstance(val, date) and not isinstance(val, datetime):
+        return val
+    if isinstance(val, datetime):
+        return val.date()
+    try:
+        dt = pd.to_datetime(val, dayfirst=True, errors='coerce')
+        if pd.isna(dt):
+            return None
+        return dt.date()
+    except Exception:
+        return None
+
+
+def data_importacao_from_filename(filename: str):
+    m = re.search(r'(\d{2})-(\d{2})-(\d{4})', filename or '')
+    if not m:
+        return None
+    dd, mm, yyyy = map(int, m.groups())
+    try:
+        return datetime(yyyy, mm, dd, 0, 0, 0)
+    except ValueError:
+        return None
+
 
 @bp.route('/')
 @login_required
 def index():
-    # Busca apenas os materiais da última importação para não sobrecarregar a tela de upload
-    materiais = MaterialPSA.query.order_by(MaterialPSA.data_importacao.desc()).limit(50).all()
+    materiais = scoped_material_query().order_by(MaterialPSA.data_importacao.desc()).limit(50).all()
     return render_template('importer/index.html', materiais=materiais)
+
 
 @bp.route('/upload', methods=['POST'])
 @login_required
@@ -20,99 +80,99 @@ def upload():
     if 'file' not in request.files:
         flash('Nenhum arquivo enviado.', 'danger')
         return redirect(url_for('importer.index'))
-    
+
     file = request.files['file']
-    if file.filename == '':
+    if not file or file.filename == '':
         flash('Nenhum arquivo selecionado.', 'danger')
         return redirect(url_for('importer.index'))
 
     try:
-        # Lendo o Excel e tratando valores nulos
-        # Forçamos as colunas críticas a serem lidas como String logo de cara
-        df = pd.read_excel(file, dtype={'Unidade de depósito': str, 'Material': str, 'Lote': str})
-        df = df.replace({np.nan: None})
-        
-        data_atual = datetime.now()
+        df = pd.read_excel(
+            file,
+            dtype={'Unidade de depósito': str, 'Material': str, 'Lote': str},
+        ).replace({np.nan: None})
 
-        # Função interna para limpar o ".0" de números longos (UD e Material)
-        def limpar_numero(val):
-            if val is None or str(val).strip() == "" or str(val).lower() == "none":
-                return None
-            return str(val).split('.')[0].strip()
+        # Data de importação padronizada (00:00) e, se possível, pelo nome do arquivo
+        data_base = data_importacao_from_filename(file.filename) or datetime.now()
+        data_importacao = datetime.combine(data_base.date(), time.min)
 
-        # --- NOVA LÓGICA DE LIMPEZA (Sincronização) ---
-        # 1. Mapeamos todas as UDs que vieram no Excel novo
-        uds_atuais_no_excel = []
+        # UDs no excel
+        uds_excel = []
         for _, row in df.iterrows():
             ud = limpar_numero(row.get('Unidade de depósito'))
             if ud:
-                uds_atuais_no_excel.append(ud)
+                uds_excel.append(ud)
 
-        # 2. EXCLUSÃO: Remove do banco tudo que NÃO está nessa lista do Excel
-        # Isso garante que se o item saiu do SAP, ele sai do sistema.
-        if uds_atuais_no_excel:
-            MaterialPSA.query.filter(MaterialPSA.unidade_deposito.notin_(uds_atuais_no_excel)).delete(synchronize_session=False)
-        # ----------------------------------------------
+        # Sincronização por usuário: remove do banco apenas o que é desse usuário
+        if uds_excel:
+            scoped_material_query().filter(MaterialPSA.unidade_deposito.notin_(uds_excel)).delete(synchronize_session=False)
 
-        count_novos = 0
-        count_existentes = 0
+        novos = 0
+        atualizados = 0
+        ignorados = 0
 
         for _, row in df.iterrows():
-            ud_codigo = limpar_numero(row.get('Unidade de depósito'))
-            
-            if not ud_codigo:
+            ud = limpar_numero(row.get('Unidade de depósito'))
+            if not ud:
+                ignorados += 1
                 continue
 
-            # Verifica se a UD já existe
-            existente = MaterialPSA.query.filter_by(unidade_deposito=ud_codigo).first()
-            
+            cod_material = limpar_numero(row.get('Material'))
+            desc = str(row.get('Texto breve material') or 'SEM DESCRIÇÃO')
+            lote = limpar_numero(row.get('Lote')) or 'S/L'
+            pos = str(row.get('Posição no depósito') or '')
+            tipo = str(row.get('Tipo de depósito') or '')
+            um = str(row.get('UM básica') or 'UN')
+
+            qtd = parse_float(
+                row.get('Estoque total', None)
+                if row.get('Estoque total', None) is not None
+                else row.get('Quantidade total', 0),
+                default=0.0,
+            )
+
+            data_venc = parse_date(row.get('Data do vencimento'))
+            raw_ultmov = row.get('Último movimento') or row.get('data_ultimo_mov')
+            data_ultmov = parse_date(raw_ultmov)
+
+            existente = scoped_material_query().filter_by(unidade_deposito=ud).first()
             if not existente:
-                # Tratamento de Data de Vencimento
-                raw_venc = row.get('Data do vencimento')
-                
-                # CORREÇÃO: Mapeando o nome exato da coluna que vem do SAP/Excel
-                # Verifique se no Excel a coluna chama 'Data do último mov.' ou 'data_ultimo_mov'
-                raw_ultmov = row.get('Último movimento') or row.get('data_ultimo_mov')
-                
-                data_venc = None
-                data_ultmov = None
-
-                if raw_venc:
-                    try:
-                        data_venc = pd.to_datetime(raw_venc).date()
-                    except:
-                        data_venc = None
-
-                if raw_ultmov:
-                    try:
-                        data_ultmov = pd.to_datetime(raw_ultmov).date()
-                    except:
-                        data_ultmov = None        
-
-                novo_material = MaterialPSA(
-                    unidade_deposito=ud_codigo,
-                    cod_material=limpar_numero(row.get('Material')),
-                    desc_material=str(row.get('Texto breve material') or "SEM DESCRIÇÃO"),
-                    lote=limpar_numero(row.get('Lote')) or "S/L",
-                    posicao_deposito=str(row.get('Posição no depósito') or ""),
-                    tipo_deposito=str(row.get('Tipo de depósito') or ""),
-                    quantidade_estoque=float(row.get('Estoque total', 0) or row.get('Quantidade total', 0)),
-                    unidade_medida=str(row.get('UM básica', 'UN')),
-                    data_vencimento=data_venc,
-                    # CORREÇÃO: O nome do campo deve ser data_ultimo_mov (conforme seu modelo)
-                    data_ultimo_mov=data_ultmov,   
-                    conferido=False,
-                    data_importacao=data_atual
+                db.session.add(
+                    MaterialPSA(
+                        user_id=current_user.id,
+                        unidade_deposito=ud,
+                        cod_material=cod_material,
+                        desc_material=desc,
+                        lote=lote,
+                        posicao_deposito=pos,
+                        tipo_deposito=tipo,
+                        quantidade_estoque=qtd,
+                        unidade_medida=um,
+                        data_vencimento=data_venc,
+                        data_ultimo_mov=data_ultmov,
+                        conferido=False,
+                        data_importacao=data_importacao,
+                    )
                 )
-                db.session.add(novo_material)
-                count_novos += 1
+                novos += 1
             else:
-                count_existentes += 1
-        
+                existente.cod_material = cod_material
+                existente.desc_material = desc
+                existente.lote = lote
+                existente.posicao_deposito = pos
+                existente.tipo_deposito = tipo
+                existente.quantidade_estoque = qtd
+                existente.unidade_medida = um
+                existente.data_vencimento = data_venc
+                existente.data_ultimo_mov = data_ultmov
+                existente.data_importacao = data_importacao
+                atualizados += 1
+
         db.session.commit()
-        
-        # MENSAGEM ÚNICA DE SUPERVISOR
-        flash(f'Sincronização concluída! {count_novos} novos itens importados e itens ausentes removidos.', 'success')
+        flash(
+            f"Importação concluída ({data_importacao.strftime('%d/%m/%Y')}) — {novos} novos, {atualizados} atualizados, {ignorados} ignorados. Itens ausentes removidos (sincronização).",
+            'success',
+        )
 
     except Exception as e:
         db.session.rollback()
@@ -120,46 +180,38 @@ def upload():
 
     return redirect(url_for('main.dashboard'))
 
+
 @bp.route('/exportar')
 @login_required
 def exportar():
-    import os
-    import pandas as pd
-    from flask import send_file
-    from datetime import datetime
+    materiais = scoped_material_query().all()
 
-    # 1. Busca todos os registros no banco
-    materiais = MaterialPSA.query.all()
+    uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'uploads'))
+    os.makedirs(uploads_dir, exist_ok=True)
 
-    # 2. Define o caminho absoluto para evitar erro de "Arquivo não encontrado"
-    # Isso garante que o arquivo seja salvo na mesma pasta deste script
-    basedir = os.path.abspath(os.path.dirname(__file__))
-    filename = "relatorio_psa_aracatuba.xlsx"
-    output_path = os.path.join(basedir, filename)
+    filename = f"relatorio_psa_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    output_path = os.path.join(uploads_dir, filename)
 
-    # 3. Monta a lista com TODOS os campos baseada no seu modelo
     data_list = []
     for m in materiais:
-        data_list.append({
-            "ID": m.id,
-            "UD": m.unidade_deposito,
-            "Material": m.cod_material,
-            "Descrição": m.desc_material,
-            "Lote": m.lote or "S/L",
-            "Posição": m.posicao_deposito or "S/P",
-            "Tipo Dep": m.tipo_deposito,
-            "Qtd": m.quantidade_estoque,
-            "Unidade": m.unidade_medida,
-            "Vencimento": m.data_vencimento.strftime('%d/%m/%Y') if m.data_vencimento else "S/V",
-            "Últ. Mov.": m.data_ultimo_mov.strftime('%d/%m/%Y') if m.data_ultimo_mov else "---",
-            "Status": "CONFERIDO" if m.conferido else "PENDENTE",
-            "Divergência": "SIM" if m.possui_divergencia else "NÃO",
-            "Observação": m.observacao_conferente or ""
-        })
+        data_list.append(
+            {
+                'UD': m.unidade_deposito,
+                'Material': m.cod_material,
+                'Descrição': m.desc_material,
+                'Lote': m.lote or 'S/L',
+                'Posição': m.posicao_deposito or 'S/P',
+                'Tipo Dep': m.tipo_deposito or '',
+                'Qtd': m.quantidade_estoque,
+                'Unidade': m.unidade_medida,
+                'Vencimento': m.data_vencimento.strftime('%d/%m/%Y') if m.data_vencimento else 'S/V',
+                'Últ. Mov.': m.data_ultimo_mov.strftime('%d/%m/%Y') if m.data_ultimo_mov else '---',
+                'Data Importação': m.data_importacao.strftime('%d/%m/%Y %H:%M:%S') if m.data_importacao else '---',
+                'Status': 'CONFERIDO' if m.conferido else 'PENDENTE',
+                'Divergência': 'SIM' if m.possui_divergencia else 'NÃO',
+                'Observação': m.observacao_conferente or '',
+            }
+        )
 
-    # 4. Cria o DataFrame e gera o arquivo Excel
-    df = pd.DataFrame(data_list)
-    df.to_excel(output_path, index=False)
-
-    # 5. Envia o arquivo para o navegador
+    pd.DataFrame(data_list).to_excel(output_path, index=False)
     return send_file(output_path, as_attachment=True)

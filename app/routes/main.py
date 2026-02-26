@@ -1,204 +1,100 @@
-from flask import render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, login_required, logout_user
-from app.models.material import Usuario
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from app.models.material import MaterialPSA
+from app.models.usuario import Usuario
 from app import db
-from datetime import datetime, timedelta
-from sqlalchemy import String, cast
+from datetime import datetime
+from sqlalchemy import func
+
+from app.services.scoping import scoped_material_query
+
 bp = Blueprint('main', __name__)
 
-@bp.route('/')
+
+@bp.route("/")
 @login_required
 def dashboard():
-    # 1. PEGAR TUDO DO BANCO (Ordenado pela importação mais recente)
-    todos_materiais = MaterialPSA.query.order_by(MaterialPSA.data_importacao.desc()).all()
+    data_filtro = request.args.get("data_filtro")  # esperado: YYYY-MM-DD ou None
 
-    # 2. AGRUPAR DATAS PARA O MENU (Tratando milissegundos e nulos)
-    datas_unicas = set()
-    for m in todos_materiais:
-        if m.data_importacao:
-            datas_unicas.add(m.data_importacao.strftime('%d/%m/%Y'))
-    
-    datas_formatadas = sorted(list(datas_unicas), reverse=True)
+    # 1) Query base (mesmo universo para tabela e cards)
+    base_q = scoped_material_query()
 
-    # 3. FILTRAR DADOS POR DATA (Sincronizado com o select do index.html)
-    data_filtro = request.args.get('data_filtro')
+    # 2) Aplica filtro apenas se o usuário filtrou
+    data_dt = None
     if data_filtro:
-        materiais_exibidos = [m for m in todos_materiais if m.data_importacao and m.data_importacao.strftime('%d/%m/%Y') == data_filtro]
-    else:
-        materiais_exibidos = todos_materiais
-
-    # 4. CÁLCULOS DE KPI (Nomes de variáveis idênticos aos do index.html)
-    total_itens = len(materiais_exibidos)
-    conferidos = sum(1 for m in materiais_exibidos if m.conferido)
-    pendentes = total_itens - conferidos
-    
-    # KPIs de Qualidade e Retenção
-    itens_com_divergencia = sum(1 for m in materiais_exibidos if getattr(m, 'possui_divergencia', False))
-    
-    # Limite Crítico (48 horas para o card de Retenção)
-    limite_critico = datetime.now() - timedelta(hours=48)
-    itens_criticos = sum(1 for m in materiais_exibidos if not m.conferido and m.data_importacao and m.data_importacao <= limite_critico)
-
-    # Cálculo das Percentagens (Proteção contra divisão por zero)
-    taxa_qualidade = round(((conferidos - itens_com_divergencia) / conferidos * 100), 1) if conferidos > 0 else 100.0
-    acuracidade = round((conferidos / total_itens * 100), 1) if total_itens > 0 else 0.0
-    
-    # 5. RETORNO PARA O INDEX.HTML
-    return render_template('index.html',
-                           datas=datas_formatadas, 
-                           data_atual=data_filtro,
-                           total=total_itens,
-                           conferidos=conferidos,
-                           pendentes=pendentes,
-                           acuracidade=acuracidade,
-                           taxa_qualidade=taxa_qualidade,
-                           itens_com_divergencia=itens_com_divergencia,
-                           total_retencao=itens_criticos, # Nome esperado pelo index.html
-                           materiais=materiais_exibidos)
-
-@bp.route('/get_detalhes_ud/<string:ud_numero>')
-def get_detalhes_ud(ud_numero):
-    # POKA-YOKE: Limpeza total do dado recebido
-    termo = str(ud_numero).strip()
-    
-    print(f"\n[COMPARAR PSA] Buscando UD: '{termo}'", flush=True)
-
-    # O SEGREDO: Cast para String garante que a comparação funcione no Render/Postgres
-    # Mesmo que a UD seja um número no banco, o LIKE vai funcionar agora
-    ud_obj = MaterialPSA.query.filter(
-        cast(MaterialPSA.unidade_deposito, String).like(f"%{termo}%")
-    ).first()
-    
-    if not ud_obj:
-        print(f"[COMPARAR PSA] Erro: UD '{termo}' não encontrada no banco.", flush=True)
-        return jsonify({'error': 'Não encontrado'}), 404
-    
-    print(f"[COMPARAR PSA] Sucesso: Localizada UD {ud_obj.unidade_deposito}", flush=True)
-
-    # Retorno unificado conforme seu padrão Nestlé
-    return jsonify({
-        'id': ud_obj.id,
-        'ud': ud_obj.unidade_deposito,
-        'material_sap': str(getattr(ud_obj, 'material', getattr(ud_obj, 'cod_material', 'S/C'))).split('.')[0],
-        'descricao': getattr(ud_obj, 'texto_breve', getattr(ud_obj, 'desc_material', 'S/D')),
-        'qtd': f"{float(getattr(ud_obj, 'quantidade', getattr(ud_obj, 'quantidade_estoque', 0))):.0f}",
-        'lote': ud_obj.lote or "S/L",
-        'vencimento': ud_obj.data_vencimento.strftime('%d/%m/%Y') if ud_obj.data_vencimento else "S/V",
-        'ult_mov': ud_obj.data_ultimo_mov.strftime('%d/%m/%Y') if ud_obj.data_ultimo_mov else "---",
-        'conferido': ud_obj.conferido,
-        'status': "CONFERIDO" if ud_obj.conferido else "PENDENTE"
-    })
-
-@bp.route('/api/confirmar', methods=['POST'])
-def confirmar_leitura():
-    data = request.get_json()
-    material = MaterialPSA.query.get(data.get('id'))
-    
-    if material:
         try:
-            material.conferido = True
-            material.data_conferencia = datetime.utcnow()
-            
-            # Grava divergências se as colunas existirem
-            if hasattr(material, 'possui_divergencia'):
-                material.possui_divergencia = data.get('possui_divergencia', False)
-                material.observacao_conferente = data.get('observacao', '')
-            
-            db.session.commit()
-            return jsonify({'success': True})
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'success': False, 'message': str(e)})
-    
-    return jsonify({'success': False, 'message': 'Material não encontrado'})
+            data_dt = datetime.strptime(data_filtro, "%d-%m-%Y").date()
+            base_q = base_q.filter(func.date(MaterialPSA.data_importacao) == data_dt)
+        except ValueError:
+            # se veio formato errado, ignora filtro
+            data_filtro = None
+            data_dt = None
 
-@bp.route('/search_manual', methods=['GET'])
-@login_required
-def search_manual():
-    try:
-        termo = request.args.get('q', '').strip()
-        if not termo or len(termo) < 3:
-            return jsonify([])
+    # 3) Tabela (recarrega sempre do banco)
+    materiais = base_q.order_by(MaterialPSA.data_importacao.desc()).all()
 
-        resultados = MaterialPSA.query.filter(
-            MaterialPSA.unidade_deposito.contains(termo),
-            MaterialPSA.conferido == False
-        ).limit(10).all()
+    # 4) Cards (mesma base_q, mas contagens via SQL)
+    total = base_q.count()
 
-        # Usamos getattr para garantir compatibilidade caso as colunas mudem de nome
-        return jsonify([{
-            'ud': m.unidade_deposito, 
-            'material': getattr(m, 'cod_material', getattr(m, 'material', 'S/C')), 
-            'texto': getattr(m, 'desc_material', getattr(m, 'texto_breve', 'S/D'))
-        } for m in resultados])
-    except Exception as e:
-        print(f"Erro na busca manual: {e}")
-        return jsonify([]), 500
+    conferidos = base_q.filter(MaterialPSA.conferido.is_(True)).count()
+    pendentes = base_q.filter(MaterialPSA.conferido.is_(False)).count()
 
-@bp.route('/scanner')
-@login_required
-def scanner_page():
-    return render_template('scanner.html')
+    itens_com_divergencia = base_q.filter(MaterialPSA.possui_divergencia.is_(True)).count()
 
-@bp.route('/relatorios/divergencias')
-@login_required
-def relatorio_divergencias():
-    # Pega a data que vem do clique no card
-    data_filtro = request.args.get('data_filtro')
-    
-    # Tratamento para string 'None' ou vazia
-    if data_filtro == 'None' or not data_filtro:
-        data_filtro = None
-        
-    # Busca materiais que possuem a marcação de divergência
-    query = MaterialPSA.query.filter_by(possui_divergencia=True)
-    
-    if data_filtro:
-        # Filtra pela data de importação formatada
-        todos_erros = query.all()
-        materiais_filtrados = [m for m in todos_erros if m.data_importacao and m.data_importacao.strftime('%d/%m/%Y') == data_filtro]
-    else:
-        # Mostra os erros mais recentes de conferência
-        materiais_filtrados = query.order_by(MaterialPSA.data_conferencia.desc()).all()
-        
-    return render_template('relatorio_lista.html', materiais=materiais_filtrados, data_atual=data_filtro)
+    acuracidade = round((conferidos / total * 100), 1) if total else 0
+    taxa_qualidade = round(((total - itens_com_divergencia) / total * 100), 1) if total else 0
 
-@bp.route('/resetar-testes')
-@login_required
-def resetar_testes():
-    try:
-        db.session.query(MaterialPSA).update({MaterialPSA.conferido: False, MaterialPSA.data_conferencia: None})
-        db.session.commit()
-        flash('Base resetada com sucesso.', 'warning')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro: {str(e)}', 'danger')
-    return redirect(url_for('main.dashboard'))
+    hoje = datetime.now()
+    # Retenção: itens com data_importacao > 3 dias
+    # Aqui é melhor calcular em SQL também
+    total_retencao = base_q.filter(
+        MaterialPSA.data_importacao.isnot(None),
+        (func.julianday(hoje) - func.julianday(MaterialPSA.data_importacao)) > 3
+    ).count()
+
+    # 5) Datas disponíveis no seletor (do universo completo, SEM filtro de data)
+    #    e respeitando o scopo (usuário) — usa scoped_material_query novamente.
+    datas_q = scoped_material_query().with_entities(func.date(MaterialPSA.data_importacao)).filter(
+        MaterialPSA.data_importacao.isnot(None)
+    ).distinct().order_by(func.date(MaterialPSA.data_importacao).desc())
+
+    # transforma em lista "YYYY-MM-DD"
+    datas = [
+        d[0].strftime("%d-%m-%Y") if hasattr(d[0], "strftime") else str(d[0])
+        for d in datas_q.all()
+    ]
+
+    return render_template(
+        "index.html",
+        materiais=materiais,
+        datas=datas,
+        data_atual=data_filtro,
+        total=total,
+        conferidos=conferidos,
+        pendentes=pendentes,
+        acuracidade=acuracidade,
+        taxa_qualidade=taxa_qualidade,
+        itens_com_divergencia=itens_com_divergencia,
+        total_retencao=total_retencao,
+    )
+
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         sap = request.form.get('sap')
-        senha = request.form.get('password')       
+        senha = request.form.get('password')
 
-        # Busca o usuário pelo SAP
         usuario = Usuario.query.filter_by(sap=sap).first()
-        
-        # Verifica se o usuário existe e se a senha está correta
+
         if usuario and usuario.verificar_senha(senha):
             login_user(usuario)
-            flash('Login realizado com sucesso!', 'success')
-            return redirect(url_for('main.dashboard')) # Mude 'index' para sua página principal
+            return redirect(url_for('main.dashboard'))
         else:
-            flash('SAP ou senha incorretos. Tente novamente.', 'danger')
+            flash('SAP ou senha inválidos')
 
-        print(f'Senha',sap)
-        print(f'Senha',senha)
-        print(f'Usuário',usuario)
-           
     return render_template('login.html')
+
 
 @bp.route('/registrar', methods=['GET', 'POST'])
 def registrar():
@@ -212,7 +108,7 @@ def registrar():
             return redirect(url_for('main.registrar'))
 
         novo_usuario = Usuario(sap=sap, nome_completo=nome)
-        novo_usuario.definir_senha(senha)
+        novo_usuario.set_senha(senha)
 
         # Regra simples: o primeiro usuário criado vira admin.
         if Usuario.query.count() == 0:
@@ -226,13 +122,22 @@ def registrar():
 
     return render_template('registrar.html')
 
+
 @bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('main.login'))
 
-@bp.route('/conferencia')
-@login_required # Isso impede o acesso de quem não logou
-def conferencia():
-    return render_template('conferencia.html', nome=current_user.nome_completo)
+@bp.route('/relatorio_divergencias')
+@login_required
+def relatorio_divergencias():
+    # Filtra onde a quantidade_estoque é diferente da quantidade_contada
+    # Ajuste os nomes dos campos conforme seu modelo no SQLAlchemy
+    divergencias = MaterialPSA.query.filter(MaterialPSA.possui_divergencia == True).all()
+    
+    return render_template('relatorio_lista.html', materiais=divergencias)
+
+@bp.route('/scanner')
+def scanner():
+    return render_template('scanner.html')
