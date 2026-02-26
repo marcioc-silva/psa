@@ -120,7 +120,7 @@ def upload():
     return redirect(url_for('main.dashboard'))
 
 @bp.route('/exportar')
- @login_required
+@login_required
 def exportar():
     import os
     import pandas as pd
