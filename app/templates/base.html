@@ -5,11 +5,10 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>{% block title %}Controle PSA - Nestlé{% endblock %}</title>
         
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
-        <!-- DataTables (local) -->
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/datatables.min.css') }}">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
         <link rel="icon" href="{{ url_for('static', filename='icon-192.png') }}">
         <link rel="icon" href="{{ url_for('static', filename='icon-512.png') }}"> 
 <style>
@@ -161,17 +160,13 @@
     </footer>
 
             <!-- jQuery (precisa vir antes do DataTables) -->
-        <script src="{{ url_for('static', filename='js/jquery-3.7.0.min.js') }}"></script>
+        <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 
-        <!-- Bootstrap 5 (JS) -->
-        <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
-
-
-        <!-- DataTables (jQuery) + integração Bootstrap 5 (VERSÕES COMPATÍVEIS) -->
-        <!-- DataTables (local) -->
-        <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
-        <!-- Responsivo via Bootstrap (sem extensão Responsive do DataTables) -->
-<!-- QRCode Scanner -->        <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        
+        <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+        
+        <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
             <script>
                 // Função global para visualização de detalhes na Dashboard
@@ -237,4 +232,5 @@
                 });
             </script>
     </body>
+
 </html>
