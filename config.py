@@ -1,22 +1,37 @@
 import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))
+
+def _clean_database_url(raw: str) -> str:
+    """Normaliza DATABASE_URL vinda de variáveis/CLI.
+
+    Casos comuns que quebram o SQLAlchemy:
+    - prefixo acidental: "psql 'postgresql://...'"
+    - aspas simples/duplas em volta
+    - postgres:// (SQLAlchemy prefere postgresql://)
+    """
+    s = (raw or "").strip()
+    if not s:
+        return s
+
+    if s.lower().startswith("psql "):
+        s = s[5:].strip()
+
+    # remove aspas externas
+    if (s.startswith("'") and s.endswith("'")) or (s.startswith('"') and s.endswith('"')):
+        s = s[1:-1].strip()
+
+    if s.startswith("postgres://"):
+        s = s.replace("postgres://", "postgresql://", 1)
+
+    return s
+
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev")
+    SECRET_KEY = os.getenv('SECRET_KEY', 'uma-chave-muito-segura-da-nestle')
 
-    # 1) tenta Postgres (Neon) via env var
-    db_url = os.getenv("DATABASE_URL")
+    # Banco: usa env (Render/Neon) e cai para SQLite local
+    BASEDIR = os.path.abspath(os.path.dirname(__file__))
+    DEFAULT_SQLITE = f"sqlite:///{os.path.join(BASEDIR, 'psa_storage.db')}"
+    SQLALCHEMY_DATABASE_URI = _clean_database_url(os.getenv('DATABASE_URL', DEFAULT_SQLITE))
 
-    # 2) normaliza caso venha postgres://
-    if db_url and db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-
-    # 3) fallback local (dev) para sqlite na pasta instance
-    if not db_url:
-        db_path = os.path.join(basedir, "instance", "app.db")
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        db_url = "sqlite:///" + db_path
-
-    SQLALCHEMY_DATABASE_URI = db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
