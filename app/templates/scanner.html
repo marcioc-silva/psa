@@ -5,16 +5,49 @@
 {% block content %}
 <style>
     /* Estilos Gerais e Scanner */
-    #reader { 
-        width: 100%; 
-        border-radius: 15px; 
-        overflow: hidden; 
-        background: #000; 
-        border: 3px solid #007bff;
-    }
-    #reader video { object-fit: cover; }
-    .scan-area { max-width: 500px; margin: 0 auto; }
-    
+    /* Container principal do leitor */
+        #reader {
+        width: 100% !important;
+        border: none !important;
+        background-color: #000 !important;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        }
+
+        #reader video {
+        object-fit: cover !important;
+        width: 100% !important;
+        height: 100% !important;
+        }
+
+        /* Overlay */
+        .scanner-focus-mark {
+        position: absolute;
+        width: 560px;
+        height: 560px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 99;
+        }
+
+        .corner {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        border: 5px solid #ffffff;
+        }
+
+        .top-left { top: 0; left: 0; border-right: none; border-bottom: none; }
+        .top-right { top: 0; right: 0; border-left: none; border-bottom: none; }
+        .bottom-left { bottom: 0; left: 0; border-right: none; border-top: none; }
+        .bottom-right { bottom: 0; right: 0; border-left: none; border-top: none; }
+
+
     .btn-manual-fixo {
         position: fixed;
         bottom: 60px;
@@ -29,7 +62,7 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-        z-index: 2000;
+       /* z-index: 2000;*/
         box-shadow: 0 -4px 10px rgba(0,0,0,0.2);
     }
 
@@ -37,14 +70,14 @@
 
     /* Modal de Busca Manual Fullscreen */
     #modal-busca-manual {
-        display: none; 
-        position: fixed; 
-        top: 0; 
-        left: 0; 
-        width: 100%; 
-        height: 100%; 
-        background: rgba(0,0,0,0.95); 
-        z-index: 3000; 
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 3000;
         padding: 20px;
     }
 </style>
@@ -53,12 +86,12 @@
     <h3 class="fw-bold text-primary mb-3">
         <i class="bi bi-qr-code-scan me-2"></i>Conferência PSA
     </h3>
-    
+
     <div id="control-area">
         <button id="btn-conferir" class="btn btn-primary w-100 py-4 shadow fw-bold fs-5" onclick="startScanner()">
             <i class="bi bi-camera-video me-2"></i> INICIAR LEITURA
         </button>
-        
+
         <button id="btn-parar" class="btn btn-outline-danger w-100 py-3 mt-3 fw-bold" onclick="stopScanner()" style="display:none;">
             <i class="bi bi-stop-circle me-2"></i> CANCELAR CÂMERA
         </button>
@@ -66,23 +99,24 @@
 
     <div id="reader" class="mt-3 shadow" style="display:none;"></div>
     <div id="last-result" class="mt-3 text-muted small fw-bold">Aguardando leitura...</div>
-    
+
     <button class="btn-manual-fixo" onclick="abrirBuscaManual()">
         <i class="bi bi-keyboard-fill"></i> DIGITAR UD MANUALMENTE
     </button>
 </div>
 
+<!-- MODAL RESULTADO -->
 <div class="modal fade" id="modalResultado" tabindex="-1" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg">
-      <div class="modal-header" style="background-color: #007bff; color: white; padding: 12px 15px; border: none;">
+      <div class="modal-header" style="background-color: #0d6efd; color: white; padding: 12px 15px; border: none;">
         <h6 class="m-0 fw-bold">Detalhes da Unidade (UD)</h6>
         <button type="button" class="btn-close btn-close-white" onclick="fecharModal()"></button>
       </div>
-      
+
       <div class="modal-body p-0 text-center">
         <input type="hidden" id="mat-id">
-        
+
         <div class="py-3">
             <div class="text-muted small fw-bold">Unidade Depósito</div>
             <div id="res-ud" class="text-primary fw-bold fs-2"></div>
@@ -104,14 +138,14 @@
                     <span id="res-lote" class="fw-bold fs-5"></span>
                 </div>
             </div>
-            
+
             <div class="row mb-3">
                 <div class="col-6">
                     <span class="text-muted small d-block fw-bold">Vencimento</span>
                     <span id="res-venc" class="fw-bold fs-5 text-danger"></span>
                 </div>
                 <div class="col-6">
-                    <span class="text-muted small d-block fw-bold">Ultima Movimentação</span>
+                    <span class="text-muted small d-block fw-bold">Última Movimentação</span>
                     <span id="res-ult-mov" class="fw-bold fs-5"></span>
                 </div>
             </div>
@@ -145,22 +179,41 @@
   </div>
 </div>
 
+<!-- MODAL BUSCA MANUAL -->
 <div id="modal-busca-manual">
     <div class="d-flex justify-content-between align-items-center mb-3 text-white">
         <h5 class="m-0"><i class="bi bi-search me-2"></i>Pesquisa Manual</h5>
         <button class="btn btn-close btn-close-white" onclick="fecharBuscaManual()"></button>
     </div>
-    <input type="number" id="input-ud-manual" class="form-control form-control-lg mb-3 shadow" placeholder="Digite a UD..." autocomplete="off">
+
+    <!-- IMPORTANTE: UD é identificador => input text (evita perder dígitos) -->
+    <input
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        id="input-ud-manual"
+        class="form-control form-control-lg mb-3 shadow"
+        placeholder="Digite a UD..."
+        autocomplete="off"
+    >
+
     <div id="lista-resultados" class="list-group" style="max-height: 70vh; overflow-y: auto;"></div>
 </div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+{% if habilitar_scanner %}
+  <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
+{% endif %}
 
 <script>
-    let html5QrCode;
+    let html5QrCode = null;
     const readerElement = "reader";
 
-    // --- INTERFACE (POKA-YOKE) ---
+    function setStatus(texto) {
+        const el = document.getElementById('last-result');
+        if (el) el.textContent = texto;
+    }
+
+    // --- INTERFACE ---
     function toggleObservacaoConferencia() {
         const checked = document.getElementById('checkDivergenciaConferencia').checked;
         const campo = document.getElementById('campoObservacaoConferencia');
@@ -169,82 +222,166 @@
 
     function fecharModal() {
         const modalEl = document.getElementById('modalResultado');
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if(modal) modal.hide();
-        if(html5QrCode && html5QrCode.getState() === 3) html5QrCode.resume();
-        
-        // Reset dos campos de divergência
+
+        if (window.bootstrap && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+        }
+
+        // retoma scanner se estava pausado
+        try {
+            if (html5QrCode && html5QrCode.getState && html5QrCode.getState() === 3) {
+                html5QrCode.resume();
+            }
+        } catch(e) {}
+
         document.getElementById('checkDivergenciaConferencia').checked = false;
         document.getElementById('campoObservacaoConferencia').classList.add('d-none');
         document.getElementById('txtObservacaoConferencia').value = '';
     }
 
     // --- MOTOR DO SCANNER ---
-    function startScanner() {
+    async function startScanner() {
         document.getElementById('btn-conferir').style.display = 'none';
         document.getElementById('reader').style.display = 'block';
         document.getElementById('btn-parar').style.display = 'block';
-        html5QrCode = new Html5Qrcode(readerElement);
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            { fps: 15, qrbox: 250 }, 
-            onScanSuccess
-        ).catch(err => alert("Erro ao abrir câmera: " + err));
-    }
 
-    function stopScanner() {
-        if (html5QrCode && html5QrCode.getState() > 1) {
-            html5QrCode.stop().then(() => {
-                document.getElementById('reader').style.display = 'none';
-                document.getElementById('btn-conferir').style.display = 'block';
-                document.getElementById('btn-parar').style.display = 'none';
-            });
+        setStatus("Abrindo câmera...");
+
+        try {
+            html5QrCode = new Html5Qrcode(readerElement);
+
+            await html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 15,
+
+                    // Retângulo é MUITO melhor para código de barras 1D
+                    qrbox: { width: 320, height: 160 }, // 1D friendly
+
+                    // Habilita leitura de 1D + QR
+                    formatsToSupport: [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                    ],
+
+                    // Ajuda bastante em ambientes com baixa luz / movimento
+                    disableFlip: true
+                },
+                onScanSuccess,
+                () => {} // onScanFailure (opcional)               
+            );
+
+            setStatus("Câmera ativa. Aguardando leitura...");
+        } catch (err) {
+            console.error("Erro ao abrir câmera:", err);
+            alert("Erro ao abrir câmera: " + err);
+            stopScanner();
         }
     }
 
-    function onScanSuccess(decodedText) {
-        let pos = decodedText.indexOf("376");
-        if (pos === -1) return;
-        html5QrCode.pause();
-        consultarUD(decodedText.substring(pos));
+    async function stopScanner() {
+        try {
+            if (html5QrCode && html5QrCode.getState && html5QrCode.getState() > 1) {
+                await html5QrCode.stop();
+            }
+        } catch(e) {}
+
+        document.getElementById('reader').style.display = 'none';
+        document.getElementById('btn-conferir').style.display = 'block';
+        document.getElementById('btn-parar').style.display = 'none';
+        setStatus("Leitura parada.");
     }
 
-    // --- BUSCA E PREENCHIMENTO (SINCRONIZADO COM TO_DICT) ---
+    function extrairUD(decodedText) {
+        // Extrai a UD como string numérica. Se o QR trouxer outras infos, pega o primeiro "bloco" longo.
+        // 1) tenta achar '376...' (se isso for padrão da sua UD)
+        const pos = decodedText.indexOf("376");
+        if (pos !== -1) {
+            return decodedText.substring(pos).replace(/\D/g, "");
+        }
+        // 2) fallback: pega o maior grupo numérico com 10+ dígitos
+        const matches = decodedText.match(/\d{10,}/g);
+        if (matches && matches.length) return matches.sort((a,b)=>b.length-a.length)[0];
+        return decodedText.replace(/\D/g, "").trim();
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        console.log("FORMATO:", decodedResult?.result?.format?.formatName, "TEXTO:", decodedText);
+
+        const ud = extrairUD(decodedText);
+        if (!ud || ud.length < 3) return;
+
+        setStatus("Lido: " + ud);
+
+        try { html5QrCode.pause(); } catch(e) {}
+
+        consultarUD(ud);
+    }
+
+    // --- BUSCA E PREENCHIMENTO ---
     function consultarUD(ud) {
-        const udLimpa = ud.trim();
+        const udLimpa = String(ud || "").trim();
+        if (!udLimpa) return;
+
         const udParaBusca = encodeURIComponent(udLimpa);
 
-        console.log(">>> Buscando UD na base PSA: " + udLimpa);
-
-        // Chamando a rota de detalhes que retorna o seu to_dict()
         fetch(`/get_detalhes_ud/${udParaBusca}`)
-            .then(response => {
-                if (!response.ok) throw new Error('UD_NAO_ENCONTRADA');
+            .then(async (response) => {
+                if (response.status === 404) throw new Error('UD_NAO_ENCONTRADA');
+
+                if (!response.ok) {
+                    const txt = await response.text();
+                    throw new Error(`HTTP_${response.status}: ${txt.slice(0,160)}`);
+                }
+
+                const ct = response.headers.get("content-type") || "";
+                if (!ct.includes("application/json")) {
+                    const txt = await response.text();
+                    throw new Error("Resposta não é JSON: " + txt.slice(0,160));
+                }
+
                 return response.json();
             })
             .then(data => {
-                // MAPEAMENTO: IDs do HTML vs Chaves do seu to_dict()
-                document.getElementById('mat-id').value = data.id;
-                document.getElementById('res-ud').innerText = data.ud;
-                document.getElementById('res-nome').innerText = data.descricao || "Sem descrição"; // Fix: desc_material
-                document.getElementById('res-qtd').innerText = data.qtd + " " + (data.unidade || "UNI");
+                document.getElementById('mat-id').value = data.id ?? "";
+                document.getElementById('res-ud').innerText = data.ud ?? udLimpa;
+                document.getElementById('res-nome').innerText = data.descricao || "Sem descrição";
+                document.getElementById('res-qtd').innerText = (data.qtd ?? "-") + " " + (data.unidade || "UNI");
                 document.getElementById('res-lote').innerText = data.lote || "S/L";
                 document.getElementById('res-venc').innerText = data.vencimento || "S/V";
                 document.getElementById('res-ult-mov').innerText = data.ult_mov || "---";
 
-                // Status Visual
                 const badge = document.getElementById('status-conferido');
                 if (badge) {
                     badge.style.display = (data.status === 'CONFERIDO') ? 'block' : 'none';
                 }
 
                 const modalEl = document.getElementById('modalResultado');
+                if (!window.bootstrap || !bootstrap.Modal) {
+                    console.error("Bootstrap Modal não carregado");
+                    alert("Erro: Bootstrap Modal não carregado");
+                    return;
+                }
                 bootstrap.Modal.getOrCreateInstance(modalEl).show();
             })
             .catch(err => {
                 console.error("Erro PSA:", err);
-                alert(`Erro: A UD "${udLimpa}" não foi localizada.`);
-                if(html5QrCode) html5QrCode.resume();
+                const msg = String(err).includes('UD_NAO_ENCONTRADA')
+                    ? `A UD "${udLimpa}" não foi localizada.`
+                    : `Falha ao consultar UD. (${err})`;
+                alert("Erro: " + msg);
+
+                try {
+                    if (html5QrCode && html5QrCode.getState && html5QrCode.getState() === 3) {
+                        html5QrCode.resume();
+                    }
+                } catch(e) {}
             });
     }
 
@@ -254,19 +391,26 @@
             possui_divergencia: document.getElementById('checkDivergenciaConferencia').checked,
             observacao: document.getElementById('txtObservacaoConferencia').value
         };
-        fetch('/api/confirmar', {
+
+        fetch('/confirmar', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         }).then(() => {
             fecharModal();
-            location.reload(); // Atualiza os cards estáticos
-        });
+            location.reload();
+        }).catch(err => alert("Erro ao confirmar: " + err));
     }
 
     // --- BUSCA MANUAL ---
     function abrirBuscaManual() {
-        if(html5QrCode) stopScanner();
+        // se scanner está rodando, para para liberar a câmera
+        try {
+            if (html5QrCode && html5QrCode.getState && html5QrCode.getState() === 2) {
+                stopScanner();
+            }
+        } catch(e) {}
+
         document.getElementById('modal-busca-manual').style.display = 'block';
         setTimeout(() => document.getElementById('input-ud-manual').focus(), 200);
     }
@@ -277,22 +421,56 @@
         document.getElementById('lista-resultados').innerHTML = '';
     }
 
+    // ENTER para consultar direto
+    document.getElementById('input-ud-manual').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            const termo = this.value.trim();
+            if (termo.length >= 3) {
+                fecharBuscaManual();
+                consultarUD(termo);
+            }
+        }
+    });
+
+    // Autocomplete (precisa da rota /search_manual no backend)
+    let _buscaTimer = null;
     document.getElementById('input-ud-manual').addEventListener('input', function() {
-        let termo = this.value;
-        if (termo.length < 3) return;
-        fetch(`/search_manual?q=${termo}`)
-            .then(res => res.json())
-            .then(data => {
-                let lista = document.getElementById('lista-resultados');
-                lista.innerHTML = '';
-                data.forEach(item => {
-                    let btn = document.createElement('button');
-                    btn.className = 'list-group-item list-group-item-action bg-dark text-white border-secondary p-3 text-start';
-                    btn.innerHTML = `<strong>UD: ${item.ud}</strong><br><small class="text-warning">${item.texto}</small>`;
-                    btn.onclick = () => { fecharBuscaManual(); consultarUD(item.ud); };
-                    lista.appendChild(btn);
-                });
-            });
+        const termo = this.value.trim();
+        clearTimeout(_buscaTimer);
+
+        if (termo.length < 3) {
+            document.getElementById('lista-resultados').innerHTML = '';
+            return;
+        }
+
+        _buscaTimer = setTimeout(() => {
+            fetch(`/search_manual?q=${encodeURIComponent(termo)}`)
+                .then(async (res) => {
+                    if (!res.ok) {
+                        const txt = await res.text();
+                        throw new Error(`HTTP_${res.status}: ${txt.slice(0,120)}`);
+                    }
+                    const ct = res.headers.get("content-type") || "";
+                    if (!ct.includes("application/json")) {
+                        const txt = await res.text();
+                        throw new Error("Resposta não é JSON: " + txt.slice(0,120));
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    const lista = document.getElementById('lista-resultados');
+                    lista.innerHTML = '';
+                    (data || []).forEach(item => {
+                        const btn = document.createElement('button');
+                        btn.type = "button";
+                        btn.className = 'list-group-item list-group-item-action bg-dark text-white border-secondary p-3 text-start';
+                        btn.innerHTML = `<strong>UD: ${item.ud}</strong><br><small class="text-warning">${item.texto || ""}</small>`;
+                        btn.onclick = () => { fecharBuscaManual(); consultarUD(item.ud); };
+                        lista.appendChild(btn);
+                    });
+                })
+                .catch(err => console.error("Busca manual falhou:", err));
+        }, 180);
     });
 </script>
 {% endblock %}
