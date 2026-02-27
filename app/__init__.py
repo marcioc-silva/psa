@@ -4,33 +4,40 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from config import Config
 from datetime import datetime
+import os
 
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 login_manager.login_view = 'main.login'
 
-
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Garante que a pasta instance existe (onde fica o SQLite)
-    import os
-    os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'instance'), exist_ok=True)
+    # Garante que a pasta instance existe (caso use SQLite localmente)
+    instance_path = os.path.join(os.path.dirname(__file__), '..', 'instance')
+    if not os.path.exists(instance_path):
+        os.makedirs(instance_path)
 
+    # Inicializa as extensões
     db.init_app(app)
     migrate.init_app(app, db, render_as_batch=True)
     login_manager.init_app(app)
 
-    # Importa models
-    from app.models.usuario import Usuario
-    from app.models.material import MaterialPSA, HistoricoPSA
-    from app.models.configuracao import ConfiguracaoSistema
+    # CRÍTICO: Criação das tabelas no banco de dados
+    with app.app_context():
+        # Importa os modelos para que o SQLAlchemy os reconheça
+        from app.models.usuario import Usuario
+        from app.models.material import MaterialPSA, HistoricoPSA
+        from app.models.configuracao import ConfiguracaoSistema
+        
+        # Cria as tabelas se elas não existirem
+        db.create_all()
 
-    
     @login_manager.user_loader
     def load_user(user_id):
+        from app.models.usuario import Usuario
         return Usuario.query.get(int(user_id))
 
     # Login obrigatório global (exceto login/registro/static)
@@ -47,7 +54,7 @@ def create_app(config_class=Config):
         if not current_user.is_authenticated:
             return redirect(url_for('main.login'))
 
-    # Blueprints
+    # Registro de Blueprints
     from app.routes.main import bp as main_bp
     app.register_blueprint(main_bp)
 
@@ -75,7 +82,7 @@ def create_app(config_class=Config):
             return {
                 'now': datetime.now(),
                 'data_atual': None,
-                'datas': [],
+                'datas': []
             }
 
         kpis = calcular_kpis(data_atual)
