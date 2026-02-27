@@ -1,10 +1,13 @@
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, render_template, request, current_app, redirect, url_for, flash
 from flask_login import login_required
 from app.models.material import MaterialPSA
 from datetime import datetime, timedelta
 from app import db
 from collections import Counter
 from sqlalchemy import func
+
+from app.services.authz import admin_required
+from app.services.email_report import enviar_reporte_por_email
 
 from app.services.scoping import scoped_material_query
 
@@ -112,7 +115,7 @@ def kpis():
 
     # --- 4. Aging ---
     pendentes_lista = scoped_material_query().filter_by(conferido=False).all()
-    vencimentos = [p.data_vencimento.strftime('%m-%Y') for p in pendentes_lista if p.data_vencimento]
+    vencimentos = [p.data_vencimento.strftime('%Y-%m') for p in pendentes_lista if p.data_vencimento]
     aging_counts = Counter(vencimentos)
     labels_venc = sorted(aging_counts.keys())
     valores_venc = [aging_counts[l] for l in labels_venc]
@@ -183,3 +186,14 @@ def pareto_retencao():
                            labels=labels, 
                            valores=valores, 
                            data_atual=data_filtro)
+
+
+@bp.route('/enviar_reporte', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def enviar_reporte():
+    """Envia o reporte por e-mail usando as configurações do Admin."""
+    data_filtro = request.args.get('data_filtro')
+    ok, msg = enviar_reporte_por_email(data_filtro=data_filtro)
+    flash(msg, 'success' if ok else 'danger')
+    return redirect(url_for('admin.config'))

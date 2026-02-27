@@ -3,7 +3,7 @@ from flask_login import login_user, login_required, logout_user
 from app.models.material import MaterialPSA
 from app.models.usuario import Usuario
 from app import db
-from datetime import datetime, timedelta  # Adicionado timedelta
+from datetime import datetime
 from sqlalchemy import func
 
 from app.services.scoping import scoped_material_query
@@ -14,51 +14,53 @@ bp = Blueprint('main', __name__)
 @bp.route("/")
 @login_required
 def dashboard():
-    data_filtro = request.args.get("data_filtro")  # esperado: DD-MM-YYYY
+    data_filtro = request.args.get("data_filtro")  # esperado: YYYY-MM-DD ou None
 
-    # 1) Query base
+    # 1) Query base (mesmo universo para tabela e cards)
     base_q = scoped_material_query()
 
-    # 2) Aplica filtro de data
+    # 2) Aplica filtro apenas se o usuário filtrou
     data_dt = None
     if data_filtro:
         try:
-            data_dt = datetime.strptime(data_filtro, "%d-%m-%Y").date()
+            data_dt = datetime.strptime(data_filtro, "%Y-%m-%d").date()
             base_q = base_q.filter(func.date(MaterialPSA.data_importacao) == data_dt)
         except ValueError:
+            # se veio formato errado, ignora filtro
             data_filtro = None
             data_dt = None
 
-    # 3) Tabela
+    # 3) Tabela (recarrega sempre do banco)
     materiais = base_q.order_by(MaterialPSA.data_importacao.desc()).all()
 
-    # 4) Cards
+    # 4) Cards (mesma base_q, mas contagens via SQL)
     total = base_q.count()
+
     conferidos = base_q.filter(MaterialPSA.conferido.is_(True)).count()
     pendentes = base_q.filter(MaterialPSA.conferido.is_(False)).count()
+
     itens_com_divergencia = base_q.filter(MaterialPSA.possui_divergencia.is_(True)).count()
 
     acuracidade = round((conferidos / total * 100), 1) if total else 0
     taxa_qualidade = round(((total - itens_com_divergencia) / total * 100), 1) if total else 0
 
-    # --- CORREÇÃO DO ERRO JULIANDAY AQUI ---
-    # Calculamos a data de corte (3 dias atrás) no Python
-    data_corte = datetime.now() - timedelta(days=3)
-    
-    # Filtramos materiais onde a data de importação é anterior à data de corte
+    hoje = datetime.now()
+    # Retenção: itens com data_importacao > 30 dias
+    # Aqui é melhor calcular em SQL também
     total_retencao = base_q.filter(
         MaterialPSA.data_importacao.isnot(None),
-        MaterialPSA.data_importacao < data_corte
+        (func.julianday(hoje) - func.julianday(MaterialPSA.data_importacao)) > 30
     ).count()
-    # ---------------------------------------
 
-    # 5) Datas disponíveis no seletor
+    # 5) Datas disponíveis no seletor (do universo completo, SEM filtro de data)
+    #    e respeitando o scopo (usuário) — usa scoped_material_query novamente.
     datas_q = scoped_material_query().with_entities(func.date(MaterialPSA.data_importacao)).filter(
         MaterialPSA.data_importacao.isnot(None)
     ).distinct().order_by(func.date(MaterialPSA.data_importacao).desc())
 
+    # transforma em lista "YYYY-MM-DD"
     datas = [
-        d[0].strftime("%d-%m-%Y") if hasattr(d[0], "strftime") else str(d[0])
+        d[0].strftime("%Y-%m-%d") if hasattr(d[0], "strftime") else str(d[0])
         for d in datas_q.all()
     ]
 
@@ -108,6 +110,7 @@ def registrar():
         novo_usuario = Usuario(sap=sap, nome_completo=nome)
         novo_usuario.set_senha(senha)
 
+        # Regra simples: o primeiro usuário criado vira admin.
         if Usuario.query.count() == 0:
             novo_usuario.cargo = 'admin'
 
@@ -129,8 +132,27 @@ def logout():
 @bp.route('/relatorio_divergencias')
 @login_required
 def relatorio_divergencias():
-    divergencias = MaterialPSA.query.filter(MaterialPSA.possui_divergencia == True).all()
-    return render_template('relatorio_lista.html', materiais=divergencias)
+    # Mostra apenas itens marcados com divergência.
+    # Mantém o mesmo padrão de filtro por data (data_importacao) usado no dashboard.
+    from flask import request
+    from datetime import datetime
+    from sqlalchemy import func
+
+    data_filtro = request.args.get('data_filtro')
+
+    query = scoped_material_query().filter(MaterialPSA.possui_divergencia.is_(True))
+
+    if data_filtro:
+        # data_filtro vem como YYYY-MM-DD
+        try:
+            data_dt = datetime.strptime(data_filtro, '%Y-%m-%d').date()
+            query = query.filter(func.date(MaterialPSA.data_importacao) == data_dt)
+        except ValueError:
+            pass
+
+    materiais = query.order_by(MaterialPSA.data_importacao.desc(), MaterialPSA.unidade_deposito.asc()).all()
+
+    return render_template('relatorio_lista.html', materiais=materiais)
 
 @bp.route('/scanner')
 def scanner():
