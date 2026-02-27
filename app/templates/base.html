@@ -8,11 +8,10 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/dataTables.bootstrap5.min.css')}}">
         <!-- DataTables (local) -->
         <link rel="stylesheet" href="{{ url_for('static', filename='css/datatables.min.css') }}">
         <link rel="icon" href="{{ url_for('static', filename='icon-192.png') }}">
-
+        <link rel="icon" href="{{ url_for('static', filename='icon-512.png') }}"> 
 <style>
             :root { --nestle-red: #D51C29; --nestle-blue: #0056b3; }
             body { background-color: #353736; padding-bottom: 110px !important; font-family: 'Segoe UI', sans-serif; }
@@ -65,14 +64,6 @@
                 font-weight: 400;
             }
         </style>
-        <div id="reader" class="mt-3 shadow" style="display:none;">
-            <div class="scanner-focus-mark">
-                <div class="corner top-left"></div>
-                <div class="corner top-right"></div>
-                <div class="corner bottom-left"></div>
-                <div class="corner bottom-right"></div>
-            </div>
-        </div>
     </head>
     <body>
 
@@ -97,6 +88,11 @@
                     <li class="nav-item"><a class="nav-link" href="/importer/exportar">Exportar Excel</a></li>                    
                     {% if current_user.is_authenticated and current_user.is_admin %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('admin.config') }}">Configurações</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link text-warning fw-bold" href="{{ url_for('reports.enviar_reporte') }}" title="Enviar reporte por e-mail">
+                            <i class="bi bi-send-fill"></i> ENVIAR REPORTE
+                        </a>
+                    </li>
                     {% endif %}
                 </ul>
                 
@@ -170,15 +166,12 @@
         <!-- Bootstrap 5 (JS) -->
         <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 
+
         <!-- DataTables (jQuery) + integração Bootstrap 5 (VERSÕES COMPATÍVEIS) -->
         <!-- DataTables (local) -->
         <script src="{{ url_for('static', filename='js/datatables.min.js') }}"></script>
         <!-- Responsivo via Bootstrap (sem extensão Responsive do DataTables) -->
-        <!-- QRCode Scanner -->        
-        <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
-        <script src="{{ url_for('static', filename='js/jquery.dataTables.min.js') }}"></script>
-        <script src="{{ url_for('static', filename='js/dataTables.bootstrap5.min.js') }}"></script>
-        
+<!-- QRCode Scanner -->        <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
 
             <script>
                 // Função global para visualização de detalhes na Dashboard
@@ -210,7 +203,7 @@
                             document.getElementById('det-qtd').innerText = data.qtd + " " + (data.unidade || "UNI");
                             document.getElementById('det-lote').innerText = data.lote;
                             document.getElementById('det-venc').innerText = data.vencimento;
-                            document.getElementById('det-data_import').innerText = data.data_importacao || "---";
+                            document.getElementById('det-data_import').innerText = data.data_importacao || "###";
                             document.getElementById('det-ult_mov').innerText = data.ult_mov;
 
                             const statusElement = document.getElementById('det-status');
@@ -228,43 +221,20 @@
                         });
                 }                                           
                         
-               document.addEventListener("DOMContentLoaded", function () {
-                    const tables = document.querySelectorAll("table.tabela-dinamica");
-                    if (!tables.length) return;
-
-                    // Config comum
-                    const dtOptions = {
-                        pageLength: 10,
-                        order: [[1, "asc"]],
-                        responsive: false,
-                        dom: '<"d-flex justify-content-end mb-3"f>t<"d-flex justify-content-between mt-3"ip>',
-                        columnDefs: [{ targets: "no-sort", orderable: false, searchable: false }],
-                        language: { url: "{{ url_for('static', filename='js/i18n/pt-BR.json') }}" }
-                    };
-
-                    // 1) Se existir DataTables integrado ao jQuery (DataTables clássico)
-                    if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
-                        tables.forEach(function (tbl) {
-                        // NOTE: usa dataTable (d minúsculo) pra garantir o isDataTable
-                        if (jQuery.fn.dataTable.isDataTable(tbl)) return;
-                        jQuery(tbl).DataTable(dtOptions);
+                // Inicialização das Tabelas Dinâmicas (DataTables)
+                $(document).ready(function() {
+                    if ($('.tabela-dinamica').length > 0) {
+                        $('.tabela-dinamica').DataTable({
+                            "language": {
+                                "url": "{{ url_for('static', filename='js/i18n/pt-BR.json') }}"
+                            },
+                            "pageLength": 10,
+                            "order": [[1, "asc"]],
+                            "responsive": false,
+                            "dom": '<"d-flex justify-content-end mb-3"f>t<"d-flex justify-content-between mt-3"ip>'
                         });
-                        return;
                     }
-
-                    // 2) Se for DataTables 2 “sem jQuery”
-                    if (window.DataTable) {
-                        tables.forEach(function (tbl) {
-                        // evita dupla inicialização
-                        if (tbl.classList.contains("dt-initialized")) return;
-                        new DataTable(tbl, dtOptions);
-                        tbl.classList.add("dt-initialized");
-                        });
-                        return;
-                    }
-
-                    console.error("DataTables não carregou: nem jQuery DataTables nem window.DataTable estão disponíveis.");
-                    });
+                });
             </script>
     </body>
 </html>
