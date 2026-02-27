@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="alert alert-danger border-0 shadow-sm mb-4">
         <h5 class="fw-bold mb-1"><i class="bi bi-shield-lock-fill"></i> Alerta de Consumo Crítico (Retenção)</h5>
-        <small>Materiais importados do SAP há mais de 1 hora que ainda não foram localizados fisicamente.</small>
+        <small>Materiais importados do SAP há mais de 72 hora que ainda não foram localizados fisicamente.</small>
     </div>
 
     <div class="card shadow border-0">
@@ -73,6 +73,7 @@
             document.getElementById('res-lote').innerText = dados.lote || "S/L";
             document.getElementById('res-venc').innerText = dados.vencimento || "S/V";
             document.getElementById('res-ult-mov').innerText = dados.ult_mov || "---";
+            document.getElementById('res-data_import').innerText = dados.ult_mov || "---";
 
             // Abre o modal de forma segura
             var modalElement = document.getElementById('modalResultado');
