@@ -10,7 +10,7 @@ def parse_data_filtro(data_filtro: str | None):
     if not data_filtro:
         return None
     try:
-        return datetime.strptime(data_filtro, '%d-%m-%Y').date()
+        return datetime.strptime(data_filtro, '%Y-%m-%d').date()
     except Exception:
         return None
 
@@ -53,7 +53,7 @@ def listar_datas_importacao():
     # Lista de datas (YYYY-MM-DD) disponíveis para o usuário atual
     datas = sorted(
         {
-            m.data_importacao.strftime('%m-%Y-%d')
+            m.data_importacao.strftime('%Y-%m-%d')
             for m in scoped_material_query().all()
             if m.data_importacao
         },
