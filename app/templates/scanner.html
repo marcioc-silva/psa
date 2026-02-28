@@ -186,7 +186,6 @@
         <button class="btn btn-close btn-close-white" onclick="fecharBuscaManual()"></button>
     </div>
 
-    <!-- IMPORTANTE: UD é identificador => input text (evita perder dígitos) -->
     <input
         type="text"
         inputmode="numeric"
@@ -200,11 +199,23 @@
     <div id="lista-resultados" class="list-group" style="max-height: 70vh; overflow-y: auto;"></div>
 </div>
 
-{% if habilitar_scanner %}
+{# Carrega scanner por padrão; evita depender do backend passar habilitar_scanner #}
+{% if habilitar_scanner is not defined or habilitar_scanner %}
   <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
 {% endif %}
 
 <script>
+    // =========================
+    // URLs (anti-regressão)
+    // =========================
+    const URL_SEARCH = "{{ url_for('main.search_manual') }}";               // /api/search_manual
+    const URL_CONFIRMAR = "{{ url_for('main.confirmar_leitura') }}";        // /api/confirmar
+    const URL_DETALHES_BASE = "{{ url_for('main.get_detalhes_ud', ud_numero='__UD__') }}"; // /get_detalhes_ud/<ud>
+
+    function urlDetalhes(ud) {
+        return URL_DETALHES_BASE.replace('__UD__', encodeURIComponent(String(ud || '').trim()));
+    }
+
     let html5QrCode = null;
     const readerElement = "reader";
 
@@ -213,7 +224,6 @@
         if (el) el.textContent = texto;
     }
 
-    // --- INTERFACE ---
     function toggleObservacaoConferencia() {
         const checked = document.getElementById('checkDivergenciaConferencia').checked;
         const campo = document.getElementById('campoObservacaoConferencia');
@@ -228,7 +238,6 @@
             if (modal) modal.hide();
         }
 
-        // retoma scanner se estava pausado
         try {
             if (html5QrCode && html5QrCode.getState && html5QrCode.getState() === 3) {
                 html5QrCode.resume();
@@ -240,7 +249,9 @@
         document.getElementById('txtObservacaoConferencia').value = '';
     }
 
-    // --- MOTOR DO SCANNER ---
+    // =========================
+    // MOTOR DO SCANNER
+    // =========================
     async function startScanner() {
         document.getElementById('btn-conferir').style.display = 'none';
         document.getElementById('reader').style.display = 'block';
@@ -249,32 +260,32 @@
         setStatus("Abrindo câmera...");
 
         try {
+            if (typeof Html5Qrcode === "undefined") {
+                alert("Biblioteca do scanner não carregou (html5-qrcode). Verifique o arquivo em /static/js/html5-qrcode.min.js");
+                stopScanner();
+                return;
+            }
+
             html5QrCode = new Html5Qrcode(readerElement);
 
             await html5QrCode.start(
                 { facingMode: "environment" },
                 {
                     fps: 15,
-
-                    // Retângulo é MUITO melhor para código de barras 1D
-                    qrbox: { width: 320, height: 160 }, // 1D friendly
-
-                    // Habilita leitura de 1D + QR
+                    qrbox: { width: 320, height: 160 },
                     formatsToSupport: [
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.QR_CODE
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E,
+                        Html5QrcodeSupportedFormats.QR_CODE
                     ],
-
-                    // Ajuda bastante em ambientes com baixa luz / movimento
                     disableFlip: true
                 },
                 onScanSuccess,
-                () => {} // onScanFailure (opcional)               
+                () => {}
             );
 
             setStatus("Câmera ativa. Aguardando leitura...");
@@ -299,16 +310,17 @@
     }
 
     function extrairUD(decodedText) {
-        // Extrai a UD como string numérica. Se o QR trouxer outras infos, pega o primeiro "bloco" longo.
-        // 1) tenta achar '376...' (se isso for padrão da sua UD)
-        const pos = decodedText.indexOf("376");
-        if (pos !== -1) {
-            return decodedText.substring(pos).replace(/\D/g, "");
+        const raw = String(decodedText || '').trim();
+
+        // tenta pegar um bloco numérico "grande" (UD geralmente tem muitos dígitos)
+        const matches = raw.match(/\d{6,}/g);
+        if (matches && matches.length) {
+            // pega o maior bloco numérico
+            return matches.sort((a,b)=>b.length-a.length)[0];
         }
-        // 2) fallback: pega o maior grupo numérico com 10+ dígitos
-        const matches = decodedText.match(/\d{10,}/g);
-        if (matches && matches.length) return matches.sort((a,b)=>b.length-a.length)[0];
-        return decodedText.replace(/\D/g, "").trim();
+
+        // fallback: remove não-dígitos
+        return raw.replace(/\D/g, "").trim();
     }
 
     function onScanSuccess(decodedText, decodedResult) {
@@ -324,14 +336,14 @@
         consultarUD(ud);
     }
 
-    // --- BUSCA E PREENCHIMENTO ---
+    // =========================
+    // BUSCA E PREENCHIMENTO
+    // =========================
     function consultarUD(ud) {
         const udLimpa = String(ud || "").trim();
         if (!udLimpa) return;
 
-        const udParaBusca = encodeURIComponent(udLimpa);
-
-        fetch(`/api/get_detalhes_ud/${udParaBusca}`)
+        fetch(urlDetalhes(udLimpa))
             .then(async (response) => {
                 if (response.status === 404) throw new Error('UD_NAO_ENCONTRADA');
 
@@ -392,19 +404,24 @@
             observacao: document.getElementById('txtObservacaoConferencia').value
         };
 
-        fetch('/api/confirmar', {
+        fetch(URL_CONFIRMAR, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
-        }).then(() => {
+        }).then(async (res) => {
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(`HTTP_${res.status}: ${txt.slice(0,160)}`);
+            }
             fecharModal();
             location.reload();
         }).catch(err => alert("Erro ao confirmar: " + err));
     }
 
-    // --- BUSCA MANUAL ---
+    // =========================
+    // BUSCA MANUAL
+    // =========================
     function abrirBuscaManual() {
-        // se scanner está rodando, para para liberar a câmera
         try {
             if (html5QrCode && html5QrCode.getState && html5QrCode.getState() === 2) {
                 stopScanner();
@@ -421,7 +438,6 @@
         document.getElementById('lista-resultados').innerHTML = '';
     }
 
-    // ENTER para consultar direto
     document.getElementById('input-ud-manual').addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             const termo = this.value.trim();
@@ -432,7 +448,6 @@
         }
     });
 
-    // Autocomplete (precisa da rota /search_manual no backend)
     let _buscaTimer = null;
     document.getElementById('input-ud-manual').addEventListener('input', function() {
         const termo = this.value.trim();
@@ -444,7 +459,7 @@
         }
 
         _buscaTimer = setTimeout(() => {
-            fetch(`/api/search_manual?q=${encodeURIComponent(termo)}`)
+            fetch(`${URL_SEARCH}?q=${encodeURIComponent(termo)}`)
                 .then(async (res) => {
                     if (!res.ok) {
                         const txt = await res.text();
@@ -469,7 +484,7 @@
                         lista.appendChild(btn);
                     });
                 })
-                
+                .catch(err => console.error("Erro autocomplete:", err));
         }, 180);
     });
 </script>
