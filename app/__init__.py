@@ -60,6 +60,11 @@ def create_app(config_object=None):
     from app.routes.main import bp as main_bp
     app.register_blueprint(main_bp)
 
+    # Poka-yoke: se rotas críticas não forem carregadas, falha no boot (evita regressões em deploy)
+    missing = [ep for ep in ("main.login", "main.registrar") if ep not in app.view_functions]
+    if missing:
+        raise RuntimeError(f"Endpoints ausentes: {missing}. Rotas do blueprint 'main' não foram carregadas.")
+
     from app.routes.api import bp as api_bp
     app.register_blueprint(api_bp)
 
