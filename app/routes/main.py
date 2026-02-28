@@ -114,7 +114,6 @@ def confirmar_leitura():
     return jsonify({'success': False, 'message': 'Material não encontrado'})
 
 @bp.route('/search_manual', methods=['GET'])
-@login_required
 def search_manual():
     try:
         termo = request.args.get('q', '').strip()
@@ -137,12 +136,10 @@ def search_manual():
         return jsonify([]), 500
 
 @bp.route('/scanner')
-@login_required
 def scanner_page():
     return render_template('scanner.html')
 
 @bp.route('/relatorios/divergencias')
-@login_required
 def relatorio_divergencias():
     # Pega a data que vem do clique no card
     data_filtro = request.args.get('data_filtro')
@@ -165,7 +162,6 @@ def relatorio_divergencias():
     return render_template('relatorio_lista.html', materiais=materiais_filtrados, data_atual=data_filtro)
 
 @bp.route('/resetar-testes')
-@login_required
 def resetar_testes():
     try:
         db.session.query(MaterialPSA).update({MaterialPSA.conferido: False, MaterialPSA.data_conferencia: None})
@@ -200,13 +196,11 @@ def login():
     return render_template('login.html')
 
 @bp.route('/logout')
-@login_required
 def logout():
     logout_user()
     return redirect(url_for('main.login'))
 
-@bp.route('/conferencia')
-@login_required # Isso impede o acesso de quem não logou
+@bp.route('/conferencia')# Isso impede o acesso de quem não logou
 def conferencia():
     return render_template('conferencia.html', nome=current_user.nome_completo)
 
