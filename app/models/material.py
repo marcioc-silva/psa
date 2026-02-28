@@ -11,7 +11,16 @@ class Usuario(db.Model, UserMixin):
     # O campo SAP será o identificador único para login (ex: 12345678)
     sap = db.Column(db.String(20), unique=True, nullable=False)
     nome_completo = db.Column(db.String(100), nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
+    senha_hash = db.Column(db.String(255), nullable=False)
+
+    # Compatibilidade: código antigo pode referenciar password_hash
+    @property
+    def password_hash(self):
+        return self.senha_hash
+
+    @password_hash.setter
+    def password_hash(self, value):
+        self.senha_hash = value
     # Níveis: 'admin' ou 'operador'
     cargo = db.Column(db.String(20), nullable=False, default='operador')
 
