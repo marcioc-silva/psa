@@ -113,7 +113,7 @@ def confirmar_leitura():
     
     return jsonify({'success': False, 'message': 'Material não encontrado'})
 
-@bp.route('/search_manual', methods=['GET'])
+@bp.route('/api/search_manual', methods=['GET'])
 def search_manual():
     try:
         termo = request.args.get('q', '').strip()
@@ -135,7 +135,7 @@ def search_manual():
         print(f"Erro na busca manual: {e}")
         return jsonify([]), 500
 
-@bp.route('/scanner')
+@bp.route('/api/scanner')
 def scanner_page():
     return render_template('scanner.html')
 
