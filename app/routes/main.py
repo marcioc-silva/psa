@@ -1,5 +1,5 @@
 from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_user, login_required, logout_user
+from flask_login import login_user, login_required, logout_user, current_user
 from app.models.material import Usuario
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from app.models.material import MaterialPSA
@@ -204,7 +204,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('main.login'))
 
 @bp.route('/conferencia')
 @login_required # Isso impede o acesso de quem não logou
