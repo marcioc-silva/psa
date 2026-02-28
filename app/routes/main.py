@@ -9,6 +9,7 @@ from sqlalchemy import String, cast
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
+@login_required
 def dashboard():
     # 1. PEGAR TUDO DO BANCO (Ordenado pela importação mais recente)
     todos_materiais = MaterialPSA.query.order_by(MaterialPSA.data_importacao.desc()).all()
@@ -91,6 +92,7 @@ def get_detalhes_ud(ud_numero):
     })
 
 @bp.route('/api/confirmar', methods=['POST'])
+@login_required
 def confirmar_leitura():
     data = request.get_json()
     material = MaterialPSA.query.get(data.get('id'))
@@ -114,6 +116,7 @@ def confirmar_leitura():
     return jsonify({'success': False, 'message': 'Material não encontrado'})
 
 @bp.route('/api/search_manual', methods=['GET'])
+@login_required
 def search_manual():
     try:
         termo = request.args.get('q', '').strip()
@@ -135,11 +138,13 @@ def search_manual():
         print(f"Erro na busca manual: {e}")
         return jsonify([]), 500
 
-@bp.route('/api/scanner')
+@bp.route('/scanner')
+@login_required
 def scanner_page():
     return render_template('scanner.html')
 
 @bp.route('/relatorios/divergencias')
+@login_required
 def relatorio_divergencias():
     # Pega a data que vem do clique no card
     data_filtro = request.args.get('data_filtro')
@@ -201,6 +206,7 @@ def logout():
     return redirect(url_for('main.login'))
 
 @bp.route('/conferencia')# Isso impede o acesso de quem não logou
+@login_required
 def conferencia():
     return render_template('conferencia.html', nome=current_user.nome_completo)
 
