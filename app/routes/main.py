@@ -210,3 +210,7 @@ def logout():
 @login_required # Isso impede o acesso de quem não logou
 def conferencia():
     return render_template('conferencia.html', nome=current_user.nome_completo)
+
+@bp.route('/registrar', methods=['GET', 'POST'])
+def registrar():
+    return render_template('registrar.html')
