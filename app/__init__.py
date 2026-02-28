@@ -28,7 +28,12 @@ def create_app(config_class=Config):
     # CRÍTICO: Criação das tabelas no banco de dados
     with app.app_context():
         # Importa os modelos para que o SQLAlchemy os reconheça
-        from app.models.usuario import Usuario
+        # POKA-YOKE de import: em versões antigas do projeto o model
+        # vinha como app.models.user.User. No projeto atual é app.models.usuario.Usuario.
+        try:
+            from app.models.usuario import Usuario  # type: ignore
+        except ModuleNotFoundError:  # fallback legado
+            from app.models.user import User as Usuario  # type: ignore
         from app.models.material import MaterialPSA, HistoricoPSA
         from app.models.configuracao import ConfiguracaoSistema
         
@@ -46,7 +51,10 @@ def create_app(config_class=Config):
 
     @login_manager.user_loader
     def load_user(user_id):
-        from app.models.usuario import Usuario
+        try:
+            from app.models.usuario import Usuario  # type: ignore
+        except ModuleNotFoundError:
+            from app.models.user import User as Usuario  # type: ignore
         return Usuario.query.get(int(user_id))
 
     # Login obrigatório global (exceto login/registro/static)
