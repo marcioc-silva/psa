@@ -1,4 +1,4 @@
-2﻿# Core
+﻿# Core
 Flask==3.1.2
 Flask-Login==0.6.3
 Flask-SQLAlchemy==3.1.1
@@ -22,5 +22,6 @@ Pillow==10.4.0
 gunicorn==23.0.0
 
 python-dotenv==1.2.1
+
 Flask-Migrate==4.0.7
 alembic==1.13.2
