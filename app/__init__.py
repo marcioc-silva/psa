@@ -35,6 +35,15 @@ def create_app(config_class=Config):
         # Cria as tabelas se elas não existirem
         db.create_all()
 
+        # POKA-YOKE: create_all() não cria colunas novas em tabelas já existentes.
+        # Isso evita o 500 em produção quando o model evolui (ex.: email_remetente).
+        try:
+            from app.services.schema import ensure_schema
+            ensure_schema(db)
+        except Exception:
+            # Nunca derruba o app por causa de verificação/ajuste de schema.
+            app.logger.exception("Falha ao executar ensure_schema (continuando mesmo assim)")
+
     @login_manager.user_loader
     def load_user(user_id):
         from app.models.usuario import Usuario
@@ -69,6 +78,19 @@ def create_app(config_class=Config):
 
     from app.routes.api import bp as api_bp
     app.register_blueprint(api_bp)
+
+    # Rotas do scanner/conferência (sem prefixo) para compatibilidade com o frontend
+    try:
+        from app.routes.routes_scanner_api import bp_scanner_api
+        app.register_blueprint(bp_scanner_api)
+    except Exception:
+        app.logger.exception("Falha ao registrar bp_scanner_api")
+
+    try:
+        from app.routes.routes_conferencia import bp_conf
+        app.register_blueprint(bp_conf)
+    except Exception:
+        app.logger.exception("Falha ao registrar bp_conf")
 
     @app.context_processor
     def inject_now():
