@@ -49,9 +49,11 @@ def dashboard():
     taxa_qualidade = round(((total - itens_com_divergencia) / total * 100), 1) if total else 0
 
     # Retenção: use "agora" do banco (mais estável)
+    limite = datetime.now(timezone.utc) - timedelta(days=30)
+
     total_retencao = base_q.filter(
         MaterialPSA.data_importacao.isnot(None),
-        (func.julianday(func.current_timestamp()) - func.julianday(MaterialPSA.data_importacao)) > 30
+        MaterialPSA.data_importacao < limite
     ).count()
 
     # Datas do seletor (sem filtro, mas com escopo)
