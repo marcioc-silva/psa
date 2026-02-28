@@ -83,12 +83,12 @@ def create_app(config_object=None):
     except Exception:
         User = None
 
+   from app.models.material import Usuario
+
     @login_manager.user_loader
     def load_user(user_id):
-        if User is None:
-            return None
         try:
-            return db.session.get(User, int(user_id))
+            return db.session.get(Usuario, int(user_id))
         except (TypeError, ValueError):
             return None
 
