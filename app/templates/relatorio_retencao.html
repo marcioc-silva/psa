@@ -63,7 +63,7 @@
 
 <script>
    function verDetalhes(ud) {
-    fetch(`/get_detalhes_ud/${ud}`)
+    fetch(`/api/get_detalhes_ud/${ud}`)
         .then(res => res.json())
         .then(dados => {
             // Mapeamento direto com o seu to_dict() do material.py

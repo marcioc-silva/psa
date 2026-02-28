@@ -331,7 +331,7 @@
 
         const udParaBusca = encodeURIComponent(udLimpa);
 
-        fetch(`/get_detalhes_ud/${udParaBusca}`)
+        fetch(`/api/get_detalhes_ud/${udParaBusca}`)
             .then(async (response) => {
                 if (response.status === 404) throw new Error('UD_NAO_ENCONTRADA');
 
@@ -392,7 +392,7 @@
             observacao: document.getElementById('txtObservacaoConferencia').value
         };
 
-        fetch('/confirmar', {
+        fetch('/api/confirmar', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
@@ -444,7 +444,7 @@
         }
 
         _buscaTimer = setTimeout(() => {
-            fetch(`/search_manual?q=${encodeURIComponent(termo)}`)
+            fetch(`/api/search_manual?q=${encodeURIComponent(termo)}`)
                 .then(async (res) => {
                     if (!res.ok) {
                         const txt = await res.text();

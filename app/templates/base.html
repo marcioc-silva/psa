@@ -184,7 +184,7 @@
                     if (!modalEl) return;
 
                     const udStr = String(ud); // garante string (JS perde precisão com números grandes)
-                    fetch(`/get_detalhes_ud/${encodeURIComponent(udStr)}`)
+                    fetch(`/api/get_detalhes_ud/${encodeURIComponent(udStr)}`)
                         .then(async (response) => {
                             // tenta ler JSON quando disponível
                             let data = null;
