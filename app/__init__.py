@@ -1,10 +1,12 @@
 import os
 from datetime import datetime, timezone
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 
+# Extensões (criadas fora da factory)
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
@@ -17,14 +19,10 @@ def create_app(config_object=None):
     basedir = os.path.abspath(os.path.dirname(__file__))
 
     # =========================
-    # Config (Poka-Yoke de Prod)
+    # Configuração
     # =========================
-
-    # 1) SECRET_KEY via ambiente (evita vazar segredo no Git/Render)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
 
-    # 2) DATABASE_URL via ambiente (Render/Postgres/Neon) com fallback para sqlite local
-    #    e correção do esquema postgres:// -> postgresql:// (alguns provedores ainda entregam "postgres://")
     db_url = os.getenv("DATABASE_URL")
     if db_url:
         if db_url.startswith("postgres://"):
@@ -32,13 +30,11 @@ def create_app(config_object=None):
         app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     else:
         instance_dir = os.path.join(basedir, "..", "instance")
-        os.makedirs(instance_dir, exist_ok=True)  # garante a pasta instance em deploy/local
+        os.makedirs(instance_dir, exist_ok=True)
         sqlite_path = os.path.join(instance_dir, "psa_storage.db")
         app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-    # (Opcional, mas recomendável) evita overhead e warnings em SQLAlchemy 2.x
     app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {"pool_pre_ping": True})
 
     # =========================
@@ -56,7 +52,6 @@ def create_app(config_object=None):
     # =========================
     @app.context_processor
     def inject_now():
-        # UTC consciente (timezone-aware) pra não dar confusão em comparações
         return {"now": datetime.now(timezone.utc)}
 
     # =========================
@@ -77,23 +72,24 @@ def create_app(config_object=None):
     # =========================
     # Flask-Login user_loader
     # =========================
-    from app.models.user import User
+    try:
+        # Agora o contrato é: app.models exporta User (via app/models/__init__.py)
+        from app.models import User
+    except Exception:
+        User = None
 
     @login_manager.user_loader
     def load_user(user_id):
-        # get() do Session é o caminho moderno (evita warning do Query.get)
+        if User is None:
+            return None
         try:
             return db.session.get(User, int(user_id))
         except (TypeError, ValueError):
             return None
 
     # =========================
-    # Banco: migrations > create_all
+    # Banco: create_all apenas em DEV
     # =========================
-    # Em apps com Flask-Migrate, create_all() costuma causar "drift" de schema.
-    # Deixe migrations cuidarem do schema.
-    #
-    # Se você quer manter um fallback só pra DEV, deixe assim:
     if app.debug or os.getenv("FLASK_ENV") == "development":
         with app.app_context():
             db.create_all()
