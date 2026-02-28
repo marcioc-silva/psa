@@ -140,7 +140,7 @@
      * Mapeada para o to_dict() do seu material.py
      */
     function verDetalhes(ud) {
-        fetch(`/get_detalhes_ud/${ud}`)
+        fetch(`/api/get_detalhes_ud/${ud}`)
             .then(res => res.json())
             .then(dados => {
                 if (dados.error) {
