@@ -121,10 +121,11 @@
             {% endfor %}{% endif %}
         {% endwith %}
 
-        {% if current_user.is_authenticated and request.endpoint not in ['importer.scanner', 'reports.kpis', 'login', 'registrar'] %}
-            <div class="dashboard-header-static">
-                {% include 'partials/_dashboard_header.html' %}
-            </div>
+      {% set ocultar = ['importer.scanner', 'reports.kpis', 'main.login', 'main.registrar'] %}
+        {% if current_user.is_authenticated and request.endpoint not in ocultar %}
+          <div class="dashboard-header-static">
+            {% include 'partials/_dashboard_header.html' %}
+          </div>
         {% endif %}
 
         <div class="main-content">
