@@ -83,7 +83,7 @@ def create_app(config_object=None):
     except Exception:
         User = None
 
-   from app.models.material import Usuario
+    from app.models.material import Usuario
 
     @login_manager.user_loader
     def load_user(user_id):
