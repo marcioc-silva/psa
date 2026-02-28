@@ -9,7 +9,6 @@ from sqlalchemy import String, cast
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
-@login_required
 def dashboard():
     # 1. PEGAR TUDO DO BANCO (Ordenado pela importação mais recente)
     todos_materiais = MaterialPSA.query.order_by(MaterialPSA.data_importacao.desc()).all()
