@@ -8,6 +8,7 @@ from app import db
 from app.models.configuracao import ConfiguracaoSistema, EmailDestinatario
 from app.models.material import MaterialPSA
 from app.services.mailer import send_email
+from app.services.kpis import calcular_kpis
 
 
 def _fmt_data(d: datetime | None) -> str:
@@ -29,9 +30,14 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
 
     k = calcular_kpis(data_filtro)
 
+    data_dt = k.get("data_filtro_date")
+
     q = MaterialPSA.query
+    if data_dt:
+        from sqlalchemy import func
+        q = q.filter(func.date(MaterialPSA.data_importacao) == data_dt)
+
     if data_filtro:
-        q = q.filter(MaterialPSA.data_importacao == data_filtro)
         assunto = f"{assunto} | Importação {data_filtro}"
 
     divergencias = (
@@ -44,7 +50,7 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
     # links úteis
     try:
         link_dashboard = url_for('main.dashboard', _external=True, data_filtro=data_filtro) if data_filtro else url_for('main.dashboard', _external=True)
-        link_div = url_for('reports.relatorio_divergencias', _external=True, data_filtro=data_filtro) if data_filtro else url_for('reports.relatorio_divergencias', _external=True)
+        link_div = url_for('main.relatorio_divergencias', _external=True, data_filtro=data_filtro) if data_filtro else url_for('main.relatorio_divergencias', _external=True)
     except Exception:
         # em caso de chamada fora de request context
         link_dashboard = ""
