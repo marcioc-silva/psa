@@ -17,6 +17,17 @@ class Usuario(UserMixin, db.Model):
     def is_admin(self) -> bool:
         return (self.cargo or '').lower() == 'admin'
 
+    @property
+    def password_hash(self):
+        return self.senha_hash
+
+    @password_hash.setter
+    def password_hash(self, value):
+        self.senha_hash = value
+        
+    # Níveis: 'admin' ou 'operador'
+    cargo = db.Column(db.String(20), nullable=False, default='operador')
+    
     def set_senha(self, senha):
         self.senha_hash = generate_password_hash(senha)
 
