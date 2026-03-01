@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import func
 
-from app.models import MaterialPSA  # ajuste se seu model estiver em outro módulo
+from app.models.material import MaterialPSA  # ajuste se seu model estiver em outro módulo
 
 
 def scoped_material_query(db_session, data_filtro: str | None):
