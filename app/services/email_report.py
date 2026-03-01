@@ -149,31 +149,59 @@ def enviar_reporte_por_email(*, data_filtro: str | None = None) -> tuple[bool, s
     """Envia o reporte. Retorna (ok, mensagem)."""
     cfg = ConfiguracaoSistema.get_singleton()
 
+    # --- Normalização (poka-yoke contra espaços/quebra de linha) ---
+    smtp_host = (cfg.smtp_host or "").strip()
+    smtp_port = int(cfg.smtp_port or 0)
+
+    smtp_usuario = (cfg.smtp_usuario or "").strip()
+    smtp_senha = (cfg.smtp_senha or "").strip()
+
+    email_remetente = (cfg.email_remetente or "").strip()
+    nome_remetente = (cfg.nome_remetente or "").strip() or None
+
+    use_tls = bool(cfg.smtp_tls)
+    use_ssl = bool(cfg.smtp_ssl)
+
     # validação mínima
-    if not cfg.email_remetente:
+    if not email_remetente:
         return False, "Configure o e-mail do remetente (Admin > Configurações)."
-    if not cfg.smtp_host or not cfg.smtp_port:
+    if not smtp_host or not smtp_port:
         return False, "Configure servidor/porta SMTP (Admin > Configurações)."
 
-    destinatarios = [d.email for d in EmailDestinatario.query.filter_by(ativo=True).all()]
+    # ✅ se smtp_usuario não foi preenchido, assume o remetente
+    # (evita login com None/vazio)
+    if not smtp_usuario:
+        smtp_usuario = email_remetente
+
+    if not smtp_senha:
+        return False, "Configure a senha SMTP (Admin > Configurações)."
+
+    # ✅ Gmail costuma ser mais feliz quando o From == usuário autenticado
+    # Se você quer manter um 'remetente' diferente, recomendo usar Reply-To no mailer.
+    sender_email = smtp_usuario
+
+    destinatarios = [(d.email or "").strip() for d in EmailDestinatario.query.filter_by(ativo=True).all()]
+    destinatarios = [e for e in destinatarios if e]  # remove vazios
+
     if not destinatarios:
-        return False, "Cadastre pelo menos 1 destinatário (Admin > Configurações)."
+        return False, "Cadastre pelo menos 1 destinatário ativo (Admin > Configurações)."
 
     assunto, html = montar_reporte_html(data_filtro=data_filtro)
 
     try:
         send_email(
-            smtp_host=cfg.smtp_host,
-            smtp_port=int(cfg.smtp_port),
-            smtp_usuario=cfg.smtp_usuario,
-            smtp_senha=cfg.smtp_senha,
-            use_tls=bool(cfg.smtp_tls),
-            use_ssl=bool(cfg.smtp_ssl),
-            sender_email=cfg.email_remetente,
-            sender_name=cfg.nome_remetente,
+            smtp_host=smtp_host,
+            smtp_port=smtp_port,
+            smtp_usuario=smtp_usuario,
+            smtp_senha=smtp_senha,
+            use_tls=use_tls,
+            use_ssl=use_ssl,
+            sender_email=sender_email,          # ✅ alinhado com login
+            sender_name=nome_remetente,
             to_emails=destinatarios,
             subject=assunto,
             html_body=html,
+            # ✅ opcional (se seu send_email suportar): reply_to=email_remetente
         )
         return True, f"Reporte enviado para: {', '.join(destinatarios)}"
     except Exception as e:
