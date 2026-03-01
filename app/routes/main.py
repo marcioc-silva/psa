@@ -66,6 +66,24 @@ def dashboard():
         and (m.data_ultimo_mov <= limite_critico_data)
     )
 
+    # ✅ Retenção baseada na entrada real no PSA (data_ultimo_mov)
+    # Como data_ultimo_mov é DATE, usamos "2 dias fechados"
+    limite_critico_data = (datetime.now().date() - timedelta(days=2))
+
+    # Retidos (geral): conferidos + não conferidos
+    itens_retidos_geral = sum(
+        1 for m in materiais_exibidos
+        if (m.data_ultimo_mov is not None)
+        and (m.data_ultimo_mov <= limite_critico_data)
+    )
+
+    # Retidos pendentes: só os não conferidos
+    itens_retidos_pendentes = sum(
+        1 for m in materiais_exibidos
+        if (not m.conferido)
+        and (m.data_ultimo_mov is not None)
+        and (m.data_ultimo_mov <= limite_critico_data)
+    )
     taxa_qualidade = round(
         ((conferidos - itens_com_divergencia) / conferidos * 100), 1
     ) if conferidos > 0 else 100.0
@@ -74,7 +92,7 @@ def dashboard():
         (conferidos / total_itens * 100), 1
     ) if total_itens > 0 else 0.0
 
-    return render_template(
+        return render_template(
         'index.html',
         datas=datas_formatadas,
         data_atual=data_filtro,
@@ -84,7 +102,8 @@ def dashboard():
         acuracidade=acuracidade,
         taxa_qualidade=taxa_qualidade,
         itens_com_divergencia=itens_com_divergencia,
-        total_retencao=itens_criticos,
+        total_retencao=itens_retidos_geral,
+        retencao_pendente=itens_retidos_pendentes,
         materiais=materiais_exibidos
     )
 
