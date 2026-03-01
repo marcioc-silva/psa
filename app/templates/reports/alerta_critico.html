@@ -68,7 +68,7 @@
                             <td>
                                 {% if item.data_importacao %}
                                     {# today vem do backend como date: hoje.date() #}
-                                    {% set dias = (today - item.data_importacao).days %}
+                                    {% set dias = (today - item.data_ultimo_mov).days %}
                                     {% set horas = dias * 24 %}
                                     <span class="badge {% if horas >= 24 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
                                         <i class="bi bi-clock-history"></i> {{ horas }}h parado
