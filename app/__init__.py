@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from flask import Flask, current_app
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -50,14 +50,20 @@ def create_app(config_object=None):
     login_manager.login_message_category = "warning"
 
     # =========================
-    # Context Processor
-    # =========================
-    @app.context_processor
-    def inject_now():
-        return {"now": datetime.now(timezone.utc), "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions}
+# Context Processor
+# =========================
+@app.context_processor
+def inject_globals():
+    # Variáveis globais usadas nos templates
+    from flask import current_app
+    return {
+        "now": datetime.now(timezone.utc),
+        # Poka-yoke: evita quebrar o template se a rota não existir em algum ambiente
+        "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions,
+    }
 
-    # =========================
-    # Blueprints
+# =========================
+# Blueprints
     # =========================
     from app.routes.main import bp as main_bp
     app.register_blueprint(main_bp)
