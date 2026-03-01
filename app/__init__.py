@@ -13,19 +13,22 @@ login_manager = LoginManager()
 
 
 def create_app(config_object=None):
-    # 1. Descobre o caminho absoluto da pasta onde este arquivo está (pasta /app)
+    # 1. Localiza o caminho absoluto da pasta /app (onde este arquivo está)
     basedir = os.path.abspath(os.path.dirname(__file__))
     
-    # 2. Define o caminho para a pasta static (que está na raiz, um nível acima de /app)
-    # Se a sua pasta 'static' estiver DENTRO de /app, remova o '..'
-    static_path = os.path.join(basedir, "..", "static") 
+    # 2. Sobe um nível para encontrar a pasta 'static' na raiz do projeto
+    # Isso é essencial para o Render localizar os arquivos
+    root_path = os.path.abspath(os.path.join(basedir, ".."))
+    static_path = os.path.join(root_path, "static")
 
     app = Flask(
         __name__, 
         template_folder="templates", 
-        static_folder=static_path,     # Caminho absoluto para evitar erro 404
-        static_url_path="/static"      # Garante que a URL comece com /static/
+        static_folder=static_path,     # Define o local físico real
+        static_url_path="/static"      # Define o prefixo da URL no navegador
     )
+    
+    # ... restante do seu código (configurações de DB, Blueprints, etc)
 
     # =========================
     # Configuração
