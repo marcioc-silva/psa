@@ -3,12 +3,13 @@ from __future__ import annotations
 from datetime import datetime
 
 from flask import url_for
+from sqlalchemy import func
 
 from app import db
 from app.models.configuracao import ConfiguracaoSistema, EmailDestinatario
 from app.models.material import MaterialPSA
-from app.services.mailer import send_email
 from app.services.kpis import calcular_kpis
+from app.services.mailer import send_email
 
 
 def _fmt_data(d: datetime | None) -> str:
@@ -30,15 +31,19 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
 
     k = calcular_kpis(data_filtro)
 
-    data_dt = k.get("data_filtro_date")
-
     q = MaterialPSA.query
-    if data_dt:
-        from sqlalchemy import func
-        q = q.filter(func.date(MaterialPSA.data_importacao) == data_dt)
-
     if data_filtro:
+        dt = None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(str(data_filtro), fmt).date()
+                break
+            except ValueError:
+                continue
+        if dt:
+            q = q.filter(func.date(MaterialPSA.data_importacao) == dt)
         assunto = f"{assunto} | Importação {data_filtro}"
+
 
     divergencias = (
         q.filter(MaterialPSA.possui_divergencia.is_(True))
