@@ -10,6 +10,8 @@ from app.models.material import MaterialPSA
 from app.services.kpis import calcular_kpis
 from app.services.mailer import send_email
 
+from sqlalchemy import func
+
 
 def _fmt_data(d: datetime | None) -> str:
     if not d:
@@ -32,8 +34,17 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
 
     q = MaterialPSA.query
     if data_filtro:
-        q = q.filter(MaterialPSA.data_importacao == data_filtro)
-        assunto = f"{assunto} | Importação {data_filtro}"
+        # aceita DD/MM/YYYY ou YYYY-MM-DD (mesma regra do dashboard)
+        dt = None
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(data_filtro, fmt).date()
+                break
+            except ValueError:
+                continue
+        if dt:
+            q = q.filter(func.date(MaterialPSA.data_importacao) == dt)
+            assunto = f"{assunto} | Importação {data_filtro}"
 
     divergencias = (
         q.filter(MaterialPSA.possui_divergencia.is_(True))
@@ -45,7 +56,8 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
     # links úteis
     try:
         link_dashboard = url_for('main.dashboard', _external=True, data_filtro=data_filtro) if data_filtro else url_for('main.dashboard', _external=True)
-        link_div = url_for('reports.relatorio_divergencias', _external=True, data_filtro=data_filtro) if data_filtro else url_for('reports.relatorio_divergencias', _external=True)
+        # divergências é rota do blueprint main no seu projeto
+        link_div = url_for('main.relatorio_divergencias', _external=True, data_filtro=data_filtro) if data_filtro else url_for('main.relatorio_divergencias', _external=True)
     except Exception:
         # em caso de chamada fora de request context
         link_dashboard = ""
