@@ -261,3 +261,8 @@ def pendentes():
     query = scoped_material_query(db.session, data_filtro)
     materiais = query.filter(MaterialPSA.conferido == False).all()
     return render_template("pendentes.html", materiais=materiais)
+
+@bp.route("/__diag/routes")
+def diag_routes():
+    from flask import current_app
+    return {"has_reports_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions}
