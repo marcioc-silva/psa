@@ -85,6 +85,10 @@ def create_app(config_object=None):
 
     from app.models.material import Usuario
 
+    # ✅ admin
+    from app.routes.admin import bp as admin_bp
+    app.register_blueprint(admin_bp)
+    
     @login_manager.user_loader
     def load_user(user_id):
         try:
