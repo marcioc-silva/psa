@@ -92,20 +92,20 @@ def dashboard():
         (conferidos / total_itens * 100), 1
     ) if total_itens > 0 else 0.0
 
-        return render_template(
-        'index.html',
-        datas=datas_formatadas,
-        data_atual=data_filtro,
-        total=total_itens,
-        conferidos=conferidos,
-        pendentes=pendentes,
-        acuracidade=acuracidade,
-        taxa_qualidade=taxa_qualidade,
-        itens_com_divergencia=itens_com_divergencia,
-        total_retencao=itens_retidos_geral,
-        retencao_pendente=itens_retidos_pendentes,
-        materiais=materiais_exibidos
-    )
+    return render_template(
+    'index.html',
+    datas=datas_formatadas,
+    data_atual=data_filtro,
+    total=total_itens,
+    conferidos=conferidos,
+    pendentes=pendentes,
+    acuracidade=acuracidade,
+    taxa_qualidade=taxa_qualidade,
+    itens_com_divergencia=itens_com_divergencia,
+    total_retencao=itens_retidos_geral,
+    retencao_pendente=itens_retidos_pendentes,
+    materiais=materiais_exibidos
+)
 
 
 # =========================
