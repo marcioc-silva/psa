@@ -41,6 +41,9 @@ def create_app(config_object=None):
     # =========================
     db.init_app(app)
     migrate.init_app(app, db)
+    # após db.init_app(app)
+    from app.models.usuario import Usuario  # noqa: F401
+    from app.models.material import MaterialPSA  # noqa: F401
 
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
