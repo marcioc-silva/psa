@@ -101,28 +101,34 @@ def create_app(config_class=Config):
         app.logger.exception("Falha ao registrar bp_conf")
 
     @app.context_processor
-    def inject_now():
-        from flask import request
-        from flask_login import current_user
-        from app.services.kpis import calcular_kpis, listar_datas_importacao
+def inject_now():
+    from flask import request, session
+    from flask_login import current_user
+    from app.services.kpis import calcular_kpis, listar_datas_importacao
 
-        data_atual = request.args.get('data_filtro')
+    # 1) Se veio na URL, atualiza a session (inclusive permitir limpar com "")
+    if 'data_filtro' in request.args:
+        valor = request.args.get('data_filtro')
+        session['data_filtro'] = valor if valor else None
 
-        if not current_user.is_authenticated:
-            return {
-                'now': datetime.now(),
-                'data_atual': None,
-                'datas': []
-            }
+    # 2) Fallback: se não veio na URL, usa o que estiver salvo
+    data_atual = session.get('data_filtro')
 
-        kpis = calcular_kpis(data_atual)
-        datas = listar_datas_importacao()
-
+    if not current_user.is_authenticated:
         return {
             'now': datetime.now(),
-            'data_atual': data_atual,
-            'datas': datas,
-            **kpis,
+            'data_atual': None,
+            'datas': []
         }
+
+    kpis = calcular_kpis(data_atual)
+    datas = listar_datas_importacao()
+
+    return {
+        'now': datetime.now(),
+        'data_atual': data_atual,
+        'datas': datas,
+        **kpis,
+    }
 
     return app
