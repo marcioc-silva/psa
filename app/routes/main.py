@@ -250,3 +250,14 @@ def relatorio_divergencias():
     divergencias = MaterialPSA.query.filter(MaterialPSA.possui_divergencia == True).all()
     
     return render_template('relatorio_lista.html', materiais=divergencias)
+
+from flask import session
+from app.services.queries import scoped_material_query
+
+@bp.route("/pendentes")
+@login_required
+def pendentes():
+    data_filtro = session.get("data_filtro")
+    query = scoped_material_query(db.session, data_filtro)
+    materiais = query.filter(MaterialPSA.conferido == False).all()
+    return render_template("pendentes.html", materiais=materiais)
