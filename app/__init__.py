@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from flask import Flask
+from flask import Flask, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -54,7 +54,7 @@ def create_app(config_object=None):
     # =========================
     @app.context_processor
     def inject_now():
-        return {"now": datetime.now(timezone.utc)}
+        return {"now": datetime.now(timezone.utc), "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions}
 
     # =========================
     # Blueprints
