@@ -48,9 +48,10 @@ def alerta_critico():
     ).all()
     
     # IMPORTANTE: O nome da variável enviada DEVE ser 'alertas'
-    return render_template('reports/alerta_critico.html', 
-                           alertas=materiais_em_atraso, 
-                           now=hoje)
+    return render_template('reports/alerta_critico.html',
+                       alertas=materiais_em_atraso,
+                       now=hoje,
+                       today=hoje.date())
 
 @bp.route('/kpis')
 def kpis():
