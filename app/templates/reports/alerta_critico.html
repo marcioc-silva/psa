@@ -48,41 +48,69 @@
                             <th class="text-center">Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% for item in alertas %}
-                        <tr>
-                            <td class="fw-bold font-monospace text-primary">{{ item.unidade_deposito }}</td>
-                            <td class="small">{{ item.cod_material }}</td>
-                            <td class="small">{{ item.desc_material or '---' }}</td>
-                            <td>
-                                <span class="badge bg-light text-dark border">
-                                    {{ item.quantidade_estoque|int }} {{ item.unidade_medida }}
-                                </span>
-                            </td>
-
-                            <td>
-                                {{ item.data_importacao.strftime('%d/%m/%Y') if item.data_importacao }}
-                            </td>
-
-                            <!-- ✅ CORREÇÃO: date - date (sem datetime - date) -->
-                            <td>
-                                {% if item.data_importacao %}
-                                    {# today vem do backend como date: hoje.date() #}
-                                    {% set dias = (today - item.data_ultimo_mov).days %}
-                                    {% set horas = dias * 24 %}
-                                    <span class="badge {% if horas >= 24 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                                        <i class="bi bi-clock-history"></i> {{ horas }}h parado
-                                    </span>
-                                {% endif %}
-                            </td>
-
-                            <td class="text-center">
-                                <button class="btn-lupa" onclick="verDetalhes('{{ item.unidade_deposito }}')" title="Visualizar Detalhes">
-                                    <i class="bi bi-search fs-5"></i>
-                                </button>
-                            </td>
+                   <tbody>
+                      {# Ordena por data_ultimo_mov (mais antigo primeiro => mais crítico em cima) #}
+                      {% for item in alertas|sort(attribute='data_ultimo_mov') %}
+                        {# Poka-yoke: se não tiver data_ultimo_mov, joga dias=0 #}
+                        {% if item.data_ultimo_mov %}
+                          {% set dias = (today - item.data_ultimo_mov).days %}
+                        {% else %}
+                          {% set dias = 0 %}
+                        {% endif %}
+                    
+                        {# Níveis (dias fechados) #}
+                        {% if dias >= 4 %}
+                          {% set row_class = "table-danger" %}
+                          {% set badge_class = "bg-danger" %}
+                          {% set icon = "🚨" %}
+                          {% set nivel = "Vermelho" %}
+                        {% elif dias == 3 %}
+                          {% set row_class = "table-warning" %}
+                          {% set badge_class = "bg-warning text-dark" %}
+                          {% set icon = "⚠️" %}
+                          {% set nivel = "Amarelo" %}
+                        {% else %}
+                          {% set row_class = "" %}
+                          {% set badge_class = "bg-success" %}
+                          {% set icon = "✅" %}
+                          {% set nivel = "Verde" %}
+                        {% endif %}
+                    
+                        <tr class="{{ row_class }}">
+                          <td class="fw-bold font-monospace text-primary">{{ item.unidade_deposito }}</td>
+                          <td class="small">{{ item.cod_material }}</td>
+                          <td class="small">{{ item.desc_material or '---' }}</td>
+                    
+                          <td>
+                            <span class="badge bg-light text-dark border">
+                              {{ item.quantidade_estoque|int }} {{ item.unidade_medida }}
+                            </span>
+                          </td>
+                    
+                          {# ✅ Entrada REAL no PSA #}
+                          <td>
+                            {{ item.data_ultimo_mov.strftime('%d/%m/%Y') if item.data_ultimo_mov else '---' }}
+                          </td>
+                    
+                          {# ✅ Retenção por nível #}
+                          <td>
+                            <span class="badge {{ badge_class }}">
+                              {{ icon }} {{ dias }}d
+                              <span class="opacity-75">({{ nivel }})</span>
+                            </span>
+                            {# opcional: mostrar horas estimadas sem mudar regra #}
+                            <span class="small text-muted ms-2">
+                              ~{{ dias * 24 }}h
+                            </span>
+                          </td>
+                    
+                          <td class="text-center">
+                            <button class="btn-lupa" onclick="verDetalhes('{{ item.unidade_deposito }}')" title="Visualizar Detalhes">
+                              <i class="bi bi-search fs-5"></i>
+                            </button>
+                          </td>
                         </tr>
-                        {% endfor %}
+                      {% endfor %}
                     </tbody>
                 </table>
             </div>
