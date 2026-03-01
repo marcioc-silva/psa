@@ -76,10 +76,31 @@
     <div class="col">
         <a href="{{ url_for('reports.alerta_critico', data_filtro=(data_atual|default(None))) }}"
            class="text-decoration-none h-100 d-block card-hover">
-            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #212529 !important;">
-                <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Retenção</div>
-                <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">{{ total_retencao|default(0) }}</div>
-                <div class="small text-muted" style="font-size: 0.7rem;">Itens parados</div>
+            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center"
+                 style="border-left-color: #212529 !important;">
+    
+                <div class="text-uppercase fw-bold text-muted mb-1"
+                     style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    Retenção
+                </div>
+    
+                <div class="h3 fw-bold m-0 text-dark"
+                     style="font-size: 1.6rem;">
+                    {{ total_retencao|default(0) }}
+                </div>
+    
+                {% if retencao_pendente and retencao_pendente > 0 %}
+                    <div class="small text-danger fw-bold"
+                         style="font-size: 0.7rem;">
+                        🚨 {{ retencao_pendente }} pendentes de conferência
+                    </div>
+                {% else %}
+                    <div class="small text-muted"
+                         style="font-size: 0.7rem;">
+                        Itens parados
+                    </div>
+                {% endif %}
+    
             </div>
         </a>
     </div>
@@ -96,4 +117,5 @@
     </div>
 
 </div>
+
 
