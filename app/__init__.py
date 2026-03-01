@@ -5,6 +5,10 @@ from flask_login import LoginManager
 from config import Config
 from datetime import datetime
 import os
+from datetime import datetime
+from flask import request, session
+from flask_login import current_user
+from app.services.kpis import calcular_kpis, listar_datas_importacao
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -100,7 +104,7 @@ def create_app(config_class=Config):
     except Exception:
         app.logger.exception("Falha ao registrar bp_conf")
 
-    from datetime import datetime
+from datetime import datetime
 from flask import request, session
 from flask_login import current_user
 from app.services.kpis import calcular_kpis, listar_datas_importacao
