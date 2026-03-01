@@ -1,6 +1,5 @@
 import os
 from datetime import datetime, timezone
-
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -83,7 +82,7 @@ def create_app(config_object=None):
     except Exception:
         User = None
 
-    from app.models.material import Usuario
+    from app.models.usuario import Usuario
 
     # ✅ admin
     from app.routes.admin import bp as admin_bp
