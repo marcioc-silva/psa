@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_user, login_required, logout_user, current_user
@@ -48,15 +48,22 @@ def dashboard():
         if getattr(m, 'possui_divergencia', False)
     )
 
+    def date_to_dt(d):
+    """Aceita date/datetime/None e devolve datetime (00:00 do dia)."""
+    if d is None:
+        return None
+    if isinstance(d, datetime):
+        return d
+    return datetime.combine(d, time.min)
+    
     limite_critico = datetime.now() - timedelta(hours=48)
 
     itens_criticos = sum(
         1 for m in materiais_exibidos
-        if not m.conferido and
-           m.data_importacao and
-           m.data_importacao <= limite_critico
+        if (not m.conferido)
+        and (date_to_dt(m.data_importacao) is not None)
+        and (date_to_dt(m.data_importacao) <= limite_critico)
     )
-
     taxa_qualidade = round(
         ((conferidos - itens_com_divergencia) / conferidos * 100), 1
     ) if conferidos > 0 else 100.0
