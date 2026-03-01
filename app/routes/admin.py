@@ -1,6 +1,6 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
-
+from sqlalchemy.exc import SQLAlchemyError
 from app import db
 from app.models.configuracao import ConfiguracaoSistema, EmailDestinatario
 from app.services.authz import admin_required
@@ -18,29 +18,44 @@ def config():
     if request.method == 'POST':
         acao = request.form.get('acao')
 
-        if acao == 'salvar_config':
-            cfg.email_remetente = (request.form.get('email_remetente') or '').strip() or None
-            cfg.nome_remetente = (request.form.get('nome_remetente') or '').strip() or None
-
-            cfg.smtp_host = (request.form.get('smtp_host') or '').strip() or None
-
-            smtp_port = (request.form.get('smtp_port') or '').strip()
-            cfg.smtp_port = int(smtp_port) if smtp_port.isdigit() else None
-
-            cfg.smtp_usuario = (request.form.get('smtp_usuario') or '').strip() or None
-
-            senha = (request.form.get('smtp_senha') or '').strip()
-            if senha:
-                cfg.smtp_senha = senha
-
-            cfg.smtp_tls = bool(request.form.get('smtp_tls'))
-            cfg.smtp_ssl = bool(request.form.get('smtp_ssl'))
-
-            cfg.assunto_padrao = (request.form.get('assunto_padrao') or '').strip() or cfg.assunto_padrao
-
-            db.session.commit()
-            flash('Configuração de e-mail salva com sucesso!', 'success')
-            return redirect(url_for('admin.config'))
+                if acao == 'salvar_config':
+                    try:
+                        cfg.email_remetente = (request.form.get('email_remetente') or '').strip() or None
+        
+                        # nome_remetente pode não existir no banco; tentar setar sem derrubar tudo
+                        nome_rem = (request.form.get('nome_remetente') or '').strip() or None
+                        if hasattr(cfg, 'nome_remetente'):
+                            try:
+                                cfg.nome_remetente = nome_rem
+                            except Exception:
+                                # não quebra a tela; você ajusta o schema depois
+                                flash("Campo 'nome_remetente' ainda não existe no banco. Crie a coluna no Postgres para habilitar.", "warning")
+        
+                        cfg.smtp_host = (request.form.get('smtp_host') or '').strip() or None
+        
+                        smtp_port = (request.form.get('smtp_port') or '').strip()
+                        cfg.smtp_port = int(smtp_port) if smtp_port.isdigit() else None
+        
+                        cfg.smtp_usuario = (request.form.get('smtp_usuario') or '').strip() or None
+        
+                        senha = (request.form.get('smtp_senha') or '').strip()
+                        if senha:
+                            cfg.smtp_senha = senha
+        
+                        # checkboxes: presença no form = marcado
+                        cfg.smtp_tls = 'smtp_tls' in request.form
+                        cfg.smtp_ssl = 'smtp_ssl' in request.form
+        
+                        # permite limpar
+                        cfg.assunto_padrao = (request.form.get('assunto_padrao') or '').strip() or None
+        
+                        db.session.commit()
+                        flash('Configuração de e-mail salva com sucesso!', 'success')
+                    except SQLAlchemyError as e:
+                        db.session.rollback()
+                        flash(f'Falha ao salvar configuração: {e}', 'danger')
+        
+                    return redirect(url_for('admin.config'))
 
         if acao == 'add_destinatario':
             email = (request.form.get('dest_email') or '').strip().lower()
