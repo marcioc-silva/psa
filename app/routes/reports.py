@@ -1,12 +1,14 @@
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, render_template, request, current_app, flash, redirect, request, url_for
 from app.models.material import MaterialPSA
 from datetime import datetime, timedelta
 from app import db
 from collections import Counter
 from sqlalchemy import func
+from __future__ import annotations
+from flask_login import login_required
+from app.services.reporte import enviar_reporte_por_email
 
 bp = Blueprint('reports', __name__, url_prefix='/reports')
-
 
 @bp.route('/')
 def index():
@@ -159,3 +161,23 @@ def pareto_retencao():
                            labels=labels, 
                            valores=valores, 
                            data_atual=data_filtro)
+
+
+bp = Blueprint("reports", __name__, url_prefix="/reports")
+@bp.route("/enviar-reporte", methods=["POST", "GET"])
+@login_required
+def enviar_reporte():
+    """
+    Envia o reporte por e-mail.
+    - GET: envia também (pra funcionar com link), mas ideal é usar POST no botão/menu.
+    """
+    data_filtro = request.args.get("data_filtro") or request.form.get("data_filtro")
+
+    ok, msg = enviar_reporte_por_email(data_filtro=data_filtro)
+
+    flash(msg, "success" if ok else "danger")
+
+    # volta pro dashboard mantendo o filtro (poka-yoke de UX)
+    if data_filtro:
+        return redirect(url_for("main.dashboard", data_filtro=data_filtro))
+    return redirect(url_for("main.dashboard"))
