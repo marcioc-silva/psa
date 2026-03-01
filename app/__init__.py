@@ -10,14 +10,11 @@ from flask_login import LoginManager, current_user
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-
 def create_app(config_object=None):
-    # 1. Localiza o caminho absoluto da pasta /app (onde este arquivo __init__.py está)
-    # No Render, isso será algo como /opt/render/project/src/app
+    
     basedir = os.path.abspath(os.path.dirname(__file__))
     
-    # 2. Define a pasta 'static' como subdiretório de /app
-    # O shell confirmou que ela está dentro de /app, então não usamos ".."
+    
     static_path = os.path.join(basedir, "static")
 
     app = Flask(
@@ -26,8 +23,6 @@ def create_app(config_object=None):
         static_folder=static_path,     # Agora aponta para /app/static
         static_url_path="/static"      # Mantém a URL como /static/ no navegador
     )        
-
-    # ... restante do seu código (configurações de DB, Blueprints, etc)
 
     # =========================
     # Configuração
