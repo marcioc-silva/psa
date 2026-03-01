@@ -92,6 +92,14 @@
                     <li class="nav-item"><a class="nav-link" href="/importer/">Importar SAP</a></li>
                     <li class="nav-item"><a class="nav-link" href="/importer/exportar">Exportar Excel</a></li>
 
+{% if current_user.is_authenticated and current_user.is_admin %}
+<li class="nav-item">
+    <a class="nav-link text-info fw-bold" href="{{ url_for('admin.config') }}" title="Configurar e-mail e destinatários">
+        <i class="bi bi-gear-fill"></i> Config. E-mail
+    </a>
+</li>
+{% endif %}
+
                    {% if has_enviar_reporte %}
                       <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="d-inline">
                         {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
