@@ -1,10 +1,9 @@
+from __future__ import annotations
 from flask import Blueprint, render_template, request, current_app, flash, redirect, request, url_for
 from app.models.material import MaterialPSA
 from datetime import datetime, timedelta
 from app import db
 from collections import Counter
-from sqlalchemy import func
-from __future__ import annotations
 from flask_login import login_required
 from app.services.reporte import enviar_reporte_por_email
 
