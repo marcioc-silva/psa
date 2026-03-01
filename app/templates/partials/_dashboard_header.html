@@ -41,7 +41,7 @@
     </div>
 
     <div class="col">
-        <a href="{{ url_for('reports.lista_materiais', tipo='conferidos', data_filtro=(data_atual|default(None))) }}"
+        <a href="{{ url_for('reports.lista_materiais', tipo='conferidos', data_filtro=data_atual) if data_atual else url_for('reports.lista_materiais', tipo='conferidos') }}"
            class="text-decoration-none h-100 d-block card-hover">
             <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #198754 !important;">
                 <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Conferidos</div>
@@ -96,3 +96,4 @@
     </div>
 
 </div>
+
