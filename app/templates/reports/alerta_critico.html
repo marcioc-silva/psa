@@ -59,16 +59,23 @@
                                     {{ item.quantidade_estoque|int }} {{ item.unidade_medida }}
                                 </span>
                             </td>
-                            <td>{{ item.data_importacao.strftime('%d/%m/%Y %H:%M') if item.data_importacao }}</td>
+
+                            <td>
+                                {{ item.data_importacao.strftime('%d/%m/%Y') if item.data_importacao }}
+                            </td>
+
+                            <!-- ✅ CORREÇÃO: date - date (sem datetime - date) -->
                             <td>
                                 {% if item.data_importacao %}
-                                    {% set diff = now - item.data_importacao %}
-                                    {% set horas = (diff.total_seconds() / 3600) | int %}
+                                    {# today vem do backend como date: hoje.date() #}
+                                    {% set dias = (today - item.data_importacao).days %}
+                                    {% set horas = dias * 24 %}
                                     <span class="badge {% if horas >= 24 %}bg-danger{% else %}bg-warning text-dark{% endif %}">
                                         <i class="bi bi-clock-history"></i> {{ horas }}h parado
                                     </span>
                                 {% endif %}
                             </td>
+
                             <td class="text-center">
                                 <button class="btn-lupa" onclick="verDetalhes('{{ item.unidade_deposito }}')" title="Visualizar Detalhes">
                                     <i class="bi bi-search fs-5"></i>
@@ -137,10 +144,11 @@
 <script>
     /**
      * Função para buscar e exibir detalhes da UD
-     * Mapeada para o to_dict() do seu material.py
+     * ✅ Corrigido: rota correta e encodeURIComponent para UD grande
      */
     function verDetalhes(ud) {
-        fetch(`/api/get_detalhes_ud/${ud}`)
+        const udStr = String(ud || "").trim();
+        fetch(`/get_detalhes_ud/${encodeURIComponent(udStr)}`)
             .then(res => res.json())
             .then(dados => {
                 if (dados.error) {
@@ -148,7 +156,6 @@
                     return;
                 }
                 
-                // Preenchimento do Modal com chaves do material.py
                 document.getElementById('res-ud').innerText = dados.ud || "---";
                 document.getElementById('res-nome').innerText = dados.descricao || "---";
                 document.getElementById('res-qtd').innerText = (dados.qtd || "0") + " " + (dados.unidade || "");
@@ -156,7 +163,6 @@
                 document.getElementById('res-venc').innerText = dados.vencimento || "S/V";
                 document.getElementById('res-ult-mov').innerText = dados.ult_mov || "---";
 
-                // Abre o modal via Bootstrap 5
                 var modalElement = document.getElementById('modalResultado');
                 var instance = bootstrap.Modal.getOrCreateInstance(modalElement);
                 instance.show();
