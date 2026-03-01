@@ -25,8 +25,8 @@ def config():
     # daqui pra baixo é POST
         acao = request.form.get('acao')
         if acao == 'salvar_config':
-            print(">>> salvar_config acionado", flush=True)
-            print(">>> form:", dict(request.form), flush=True)
+                print(">>> salvar_config acionado", flush=True)
+                print(">>> form:", dict(request.form), flush=True)
                 try:
                     cfg.email_remetente = (request.form.get('email_remetente') or '').strip() or None
         
