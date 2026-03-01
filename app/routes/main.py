@@ -9,7 +9,14 @@ from app.models.material import MaterialPSA, Usuario
 
 bp = Blueprint('main', __name__)
 
-
+def date_to_dt(d):
+    """Aceita date/datetime/None e devolve datetime (00:00 do dia)."""
+    if d is None:
+        return None
+    if isinstance(d, datetime):
+        return d
+    # se for date
+    return datetime.combine(d, time.min)
 # =========================
 # DASHBOARD
 # =========================
@@ -46,15 +53,7 @@ def dashboard():
     itens_com_divergencia = sum(
         1 for m in materiais_exibidos
         if getattr(m, 'possui_divergencia', False)
-    )
-
-    def date_to_dt(d):
-    """Aceita date/datetime/None e devolve datetime (00:00 do dia)."""
-    if d is None:
-        return None
-    if isinstance(d, datetime):
-        return d
-    return datetime.combine(d, time.min)
+    )    
     
     limite_critico = datetime.now() - timedelta(hours=48)
 
