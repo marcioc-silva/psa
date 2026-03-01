@@ -92,15 +92,13 @@
                     <li class="nav-item"><a class="nav-link" href="/importer/">Importar SAP</a></li>
                     <li class="nav-item"><a class="nav-link" href="/importer/exportar">Exportar Excel</a></li>
 
-                    {% if current_user.is_authenticated and current_user.cargo == 'admin' %}
-                   <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="d-inline">
-                      {% if data_atual %}
-                        <input type="hidden" name="data_filtro" value="{{ data_atual }}">
-                      {% endif %}
-                      <button type="submit" class="nav-link text-warning fw-bold btn btn-link p-0" title="Enviar reporte por e-mail">
-                        <i class="bi bi-envelope-fill"></i> Enviar reporte
-                      </button>
-                    </form>
+                   {% if 'reports.enviar_reporte' in current_app.view_functions %}
+                      <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="d-inline">
+                        {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
+                        <button type="submit" class="nav-link text-warning fw-bold btn btn-link p-0" title="Enviar reporte por e-mail">
+                          <i class="bi bi-envelope-fill"></i> Enviar reporte
+                        </button>
+                      </form>
                     {% endif %}
                 </ul>
 
