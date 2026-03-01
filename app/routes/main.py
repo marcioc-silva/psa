@@ -235,3 +235,12 @@ def logout():
 @bp.route('/registrar', methods=['GET', 'POST'])
 def registrar():
     return render_template('registrar.html')
+
+@bp.route('/relatorio_divergencias')
+@login_required
+def relatorio_divergencias():
+    # Filtra onde a quantidade_estoque é diferente da quantidade_contada
+    # Ajuste os nomes dos campos conforme seu modelo no SQLAlchemy
+    divergencias = MaterialPSA.query.filter(MaterialPSA.possui_divergencia == True).all()
+    
+    return render_template('relatorio_lista.html', materiais=divergencias)
