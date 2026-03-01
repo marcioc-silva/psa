@@ -7,7 +7,6 @@ from flask import url_for
 from app import db
 from app.models.configuracao import ConfiguracaoSistema, EmailDestinatario
 from app.models.material import MaterialPSA
-from app.services.kpis import calcular_kpis
 from app.services.mailer import send_email
 
 
