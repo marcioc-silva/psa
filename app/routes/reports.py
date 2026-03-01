@@ -44,13 +44,27 @@ def lista_materiais(tipo: str):
 @login_required
 def alerta_critico():
     hoje = datetime.now()
-    limite = hoje - timedelta(hours=48)
+
+    # Como data_ultimo_mov é DATE, trabalhamos por dias fechados.
+    # Limite: entrou há mais de 2 dias (equivalente gerencial a "48h / 2 dias")
+    limite_data = (hoje.date() - timedelta(days=2))
 
     materiais_em_atraso = (
-        MaterialPSA.query.filter(MaterialPSA.data_importacao <= limite, MaterialPSA.conferido.is_(False)).all()
+        MaterialPSA.query
+        .filter(
+            MaterialPSA.data_ultimo_mov.isnot(None),
+            MaterialPSA.data_ultimo_mov <= limite_data,
+            MaterialPSA.conferido.is_(False),
+        )
+        .all()
     )
 
-    return render_template("reports/alerta_critico.html", alertas=materiais_em_atraso, now=hoje, today=hoje.date())
+    return render_template(
+        "reports/alerta_critico.html",
+        alertas=materiais_em_atraso,
+        now=hoje,
+        today=hoje.date()
+    )
 
 
 @bp.route("/kpis")
@@ -131,17 +145,21 @@ def pareto_retencao():
 
     query = MaterialPSA.query.filter_by(conferido=False)
 
+    # Mantive sua lógica de filtro, mas trocando a coluna para data_ultimo_mov.
     if data_filtro and data_filtro not in ("None", ""):
-        materiais = [m for m in query.all() if m.data_importacao and m.data_importacao.strftime("%d/%m/%Y") == data_filtro]
+        materiais = [
+            m for m in query.all()
+            if m.data_ultimo_mov and m.data_ultimo_mov.strftime("%d/%m/%Y") == data_filtro
+        ]
     else:
         materiais = query.all()
 
-    hoje = datetime.now()
+    hoje = datetime.now().date()
     retencao_por_material: dict[str, int] = {}
 
     for m in materiais:
-        if m.data_importacao:
-            dias = max(0, (hoje - m.data_importacao).days)
+        if m.data_ultimo_mov:
+            dias = max(0, (hoje - m.data_ultimo_mov).days)
             desc = (m.desc_material or "Sem Descrição")[:15]
             retencao_por_material[desc] = retencao_por_material.get(desc, 0) + dias
 
