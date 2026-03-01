@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from app.models.material import MaterialPSA
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
