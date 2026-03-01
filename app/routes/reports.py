@@ -9,6 +9,7 @@ from flask_login import login_required
 from app.models.material import MaterialPSA
 from app.services.email_report import enviar_reporte_por_email
 
+
 bp = Blueprint("reports", __name__, url_prefix="/reports")
 
 
@@ -31,18 +32,12 @@ def lista_materiais(tipo: str):
     else:
         query = MaterialPSA.query
 
-    if data_filtro and data_filtro not in ("None", ""):
-        materiais = [
-            m
-            for m in query.all()
-            if m.data_importacao and m.data_importacao.strftime("%d/%m/%Y") == data_filtro
-        ]
+    if data_filtro and data_filtro != "None":
+        materiais = [m for m in query.all() if m.data_importacao and m.data_importacao.strftime("%d/%m/%Y") == data_filtro]
     else:
         materiais = query.all()
 
-    return render_template(
-        "reports/lista.html", materiais=materiais, tipo=tipo, data_atual=data_filtro
-    )
+    return render_template("reports/lista.html", materiais=materiais, tipo=tipo, data_atual=data_filtro)
 
 
 @bp.route("/alerta-critico")
@@ -52,15 +47,10 @@ def alerta_critico():
     limite = hoje - timedelta(hours=48)
 
     materiais_em_atraso = (
-        MaterialPSA.query.filter(
-            MaterialPSA.data_importacao <= limite, MaterialPSA.conferido.is_(False)
-        )
-        .all()
+        MaterialPSA.query.filter(MaterialPSA.data_importacao <= limite, MaterialPSA.conferido.is_(False)).all()
     )
 
-    return render_template(
-        "reports/alerta_critico.html", alertas=materiais_em_atraso, now=hoje, today=hoje.date()
-    )
+    return render_template("reports/alerta_critico.html", alertas=materiais_em_atraso, now=hoje, today=hoje.date())
 
 
 @bp.route("/kpis")
@@ -73,11 +63,10 @@ def kpis():
     encontrados = MaterialPSA.query.filter_by(conferido=True).count()
     pendentes = MaterialPSA.query.filter_by(conferido=False).count()
     total = encontrados + pendentes
-    ira = round((encontrados / total * 100), 1) if total > 0 else 0.0
+    ira = round((encontrados / total * 100), 1) if total > 0 else 0
 
     dados_pareto: dict[str, float] = {}
     desc_regra = "Carga de Trabalho (UDs)"
-
     for m in materiais:
         nome = (m.desc_material or "N/D")[:20]
 
@@ -96,12 +85,12 @@ def kpis():
     labels = [x[0] for x in ordenado]
     valores = [x[1] for x in ordenado]
 
-    soma_total = sum(dados_pareto.values()) or 0
+    soma_total = sum(dados_pareto.values())
     acumulado = []
-    soma_temp = 0.0
+    soma_temp = 0
     for v in valores:
-        soma_temp += float(v)
-        perc = (soma_temp / soma_total * 100) if soma_total > 0 else 0.0
+        soma_temp += v
+        perc = (soma_temp / soma_total * 100) if soma_total > 0 else 0
         acumulado.append(round(perc, 1))
 
     pendentes_lista = MaterialPSA.query.filter_by(conferido=False).all()
@@ -130,9 +119,7 @@ def kpis():
 def risco():
     pendentes = MaterialPSA.query.filter_by(conferido=False).all()
     conferidos = (
-        MaterialPSA.query.filter_by(conferido=True)
-        .order_by(MaterialPSA.data_conferencia.desc())
-        .all()
+        MaterialPSA.query.filter_by(conferido=True).order_by(MaterialPSA.data_conferencia.desc()).all()
     )
     return render_template("reports/risco.html", pendentes=pendentes, conferidos=conferidos)
 
@@ -145,11 +132,7 @@ def pareto_retencao():
     query = MaterialPSA.query.filter_by(conferido=False)
 
     if data_filtro and data_filtro not in ("None", ""):
-        materiais = [
-            m
-            for m in query.all()
-            if m.data_importacao and m.data_importacao.strftime("%d/%m/%Y") == data_filtro
-        ]
+        materiais = [m for m in query.all() if m.data_importacao and m.data_importacao.strftime("%d/%m/%Y") == data_filtro]
     else:
         materiais = query.all()
 
@@ -171,10 +154,8 @@ def pareto_retencao():
 
 @bp.route("/enviar-reporte", methods=["POST", "GET"], endpoint="enviar_reporte")
 @login_required
-def enviar_reporte():
+def _enviar_reporte_route():
     data_filtro = request.args.get("data_filtro") or request.form.get("data_filtro")
-
     ok, msg = enviar_reporte_por_email(data_filtro=data_filtro)
     flash(msg, "success" if ok else "danger")
-
     return redirect(url_for("main.dashboard", data_filtro=data_filtro) if data_filtro else url_for("main.dashboard"))
