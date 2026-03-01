@@ -53,16 +53,19 @@ def dashboard():
     itens_com_divergencia = sum(
         1 for m in materiais_exibidos
         if getattr(m, 'possui_divergencia', False)
-    )    
-    
-    limite_critico = datetime.now() - timedelta(hours=48)
+    )
+
+    # ✅ Retenção baseada na entrada real no PSA (data_ultimo_mov)
+    # Como data_ultimo_mov é DATE, usamos "2 dias fechados"
+    limite_critico_data = (datetime.now().date() - timedelta(days=2))
 
     itens_criticos = sum(
         1 for m in materiais_exibidos
         if (not m.conferido)
-        and (date_to_dt(m.data_importacao) is not None)
-        and (date_to_dt(m.data_importacao) <= limite_critico)
+        and (m.data_ultimo_mov is not None)
+        and (m.data_ultimo_mov <= limite_critico_data)
     )
+
     taxa_qualidade = round(
         ((conferidos - itens_com_divergencia) / conferidos * 100), 1
     ) if conferidos > 0 else 100.0
