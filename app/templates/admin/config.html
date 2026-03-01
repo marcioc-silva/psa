@@ -1,123 +1,131 @@
 {% extends "base.html" %}
 
-{% block title %}Configuração de E-mail{% endblock %}
+{% block title %}Configurações de E-mail{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white fw-bold">
-            Configuração do Servidor SMTP
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="m-0">Configurações de E-mail</h4>
+    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('main.dashboard') }}">Voltar</a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else ('danger' if category in ['danger','error'] else category) }} mb-3" role="alert">
+          {{ message }}
         </div>
-        <div class="card-body">
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
 
-            <form method="post">
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">E-mail Remetente</label>
-                        <input type="email" name="email_remetente" class="form-control"
-                               value="{{ cfg.email_remetente if cfg else '' }}">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Nome do Remetente</label>
-                        <input type="text" name="nome_remetente" class="form-control"
-                               value="{{ cfg.nome_remetente if cfg else '' }}">
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">SMTP Host</label>
-                        <input type="text" name="smtp_host" class="form-control"
-                               value="{{ cfg.smtp_host if cfg else '' }}">
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label">Porta</label>
-                        <input type="number" name="smtp_port" class="form-control"
-                               value="{{ cfg.smtp_port if cfg else '' }}">
-                    </div>
-
-                    <div class="col-md-3 d-flex align-items-end">
-                        <div class="form-check me-3">
-                            <input type="checkbox" name="smtp_tls" class="form-check-input"
-                                   {% if cfg and cfg.smtp_tls %}checked{% endif %}>
-                            <label class="form-check-label">TLS</label>
-                        </div>
-
-                        <div class="form-check">
-                            <input type="checkbox" name="smtp_ssl" class="form-check-input"
-                                   {% if cfg and cfg.smtp_ssl %}checked{% endif %}>
-                            <label class="form-check-label">SSL</label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Usuário SMTP</label>
-                        <input type="text" name="smtp_usuario" class="form-control"
-                               value="{{ cfg.smtp_usuario if cfg else '' }}">
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Senha SMTP</label>
-                        <input type="password" name="smtp_senha" class="form-control"
-                               value="{{ cfg.smtp_senha if cfg else '' }}">
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Assunto Padrão do Relatório</label>
-                    <input type="text" name="assunto_padrao" class="form-control"
-                           value="{{ cfg.assunto_padrao if cfg else '' }}">
-                </div>
-
-                <button type="submit" class="btn btn-success">
-                    Salvar Configuração
-                </button>
-
-            </form>
-        </div>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white fw-bold">
+      SMTP / Remetente
     </div>
 
-    <!-- Destinatários -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-secondary text-white fw-bold">
-            Destinatários do Relatório
+    <div class="card-body">
+      <form method="post" action="">
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label">E-mail do remetente</label>
+            <input type="email" name="email_remetente" class="form-control"
+                   value="{{ cfg.email_remetente if cfg and cfg.email_remetente else '' }}"
+                   placeholder="ex: psa@empresa.com">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Nome do remetente</label>
+            <input type="text" name="nome_remetente" class="form-control"
+                   value="{{ cfg.nome_remetente if cfg and cfg.nome_remetente else '' }}"
+                   placeholder="ex: Controle PSA">
+            <div class="form-text">Se não estiver disponível no banco ainda, vamos ajustar na próxima etapa.</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">SMTP host</label>
+            <input type="text" name="smtp_host" class="form-control"
+                   value="{{ cfg.smtp_host if cfg and cfg.smtp_host else '' }}"
+                   placeholder="ex: smtp.office365.com">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Porta</label>
+            <input type="number" name="smtp_port" class="form-control"
+                   value="{{ cfg.smtp_port if cfg and cfg.smtp_port else '' }}"
+                   placeholder="587">
+          </div>
+
+          <div class="col-md-3 d-flex align-items-end gap-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="smtp_tls" id="smtp_tls"
+                     {% if cfg and cfg.smtp_tls %}checked{% endif %}>
+              <label class="form-check-label" for="smtp_tls">TLS</label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="smtp_ssl" id="smtp_ssl"
+                     {% if cfg and cfg.smtp_ssl %}checked{% endif %}>
+              <label class="form-check-label" for="smtp_ssl">SSL</label>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Usuário SMTP</label>
+            <input type="text" name="smtp_usuario" class="form-control"
+                   value="{{ cfg.smtp_usuario if cfg and cfg.smtp_usuario else '' }}">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Senha SMTP</label>
+            <input type="password" name="smtp_senha" class="form-control"
+                   value="{{ cfg.smtp_senha if cfg and cfg.smtp_senha else '' }}">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Assunto padrão do reporte</label>
+            <input type="text" name="assunto_padrao" class="form-control"
+                   value="{{ cfg.assunto_padrao if cfg and cfg.assunto_padrao else '' }}"
+                   placeholder="ex: Reporte PSA - Nestlé Araçatuba">
+          </div>
+
         </div>
-        <div class="card-body">
 
-            <form method="post" action="{{ url_for('admin.adicionar_destinatario') }}" class="row g-2 mb-3">
-                <div class="col-md-10">
-                    <input type="email" name="email" class="form-control"
-                           placeholder="Digite o e-mail do destinatário" required>
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary w-100">Adicionar</button>
-                </div>
-            </form>
-
-            {% if destinatarios %}
-                <ul class="list-group">
-                    {% for d in destinatarios %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ d.email }}
-                            <a href="{{ url_for('admin.remover_destinatario', id=d.id) }}"
-                               class="btn btn-sm btn-danger">
-                                Remover
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p class="text-muted">Nenhum destinatário cadastrado.</p>
-            {% endif %}
-
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">
+            Salvar
+          </button>
         </div>
+      </form>
     </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-secondary text-white fw-bold">
+      Destinatários (visualização)
+    </div>
+    <div class="card-body">
+      {% if destinatarios %}
+        <ul class="list-group">
+          {% for d in destinatarios %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <span>{{ d.email }}</span>
+              <span class="badge bg-{{ 'success' if d.ativo else 'secondary' }}">
+                {{ 'Ativo' if d.ativo else 'Inativo' }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="text-muted">Nenhum destinatário cadastrado.</div>
+      {% endif %}
+      <div class="form-text mt-2">
+        Cadastro/remoção a gente adiciona depois, quando a página estiver abrindo estável.
+      </div>
+    </div>
+  </div>
 
 </div>
 {% endblock %}
