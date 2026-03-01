@@ -102,12 +102,6 @@ def create_app(config_class=Config):
         from app.routes.routes_conferencia import bp_conf
         app.register_blueprint(bp_conf)
     except Exception:
-        app.logger.exception("Falha ao registrar bp_conf")
-
-from datetime import datetime
-from flask import request, session
-from flask_login import current_user
-from app.services.kpis import calcular_kpis, listar_datas_importacao
 
 @app.context_processor
 def inject_now():
