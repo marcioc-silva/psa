@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from app import db
 from collections import Counter
 from flask_login import login_required
-from app.services.reporte import enviar_reporte_por_email
+from app.services.email_report import enviar_reporte_por_email
 
 bp = Blueprint('reports', __name__, url_prefix='/reports')
 
