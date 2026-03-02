@@ -7,19 +7,20 @@ from app import db
 from datetime import datetime, timedelta, time
 
 bp = Blueprint('importer', __name__, url_prefix='/importer')
+
  def _norm_posicao(v):
-        return (v or "").strip().upper()
-    
-    def _norm_tipo(v):
-        s = str(v).strip()
-        if s.endswith(".0"):
-            s = s[:-2]
-        return s
-    
-    def make_psa_key(tipo, posicao):
-        t = _norm_tipo(tipo)
-        p = _norm_posicao(posicao)
-        return t, p, f"{t}:{p}"
+    return (v or "").strip().upper()
+
+def _norm_tipo(v):
+    s = str(v).strip()
+    if s.endswith(".0"):
+        s = s[:-2]
+    return s
+
+def make_psa_fields(tipo, posicao):
+    t = _norm_tipo(tipo)
+    p = _norm_posicao(posicao)
+    return t, p, f"{t}:{p}"
 @bp.route('/')
 @login_required
 def index():
