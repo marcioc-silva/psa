@@ -68,16 +68,17 @@
     </head>
     <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+        <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
         <div class="container-fluid px-4">
             <a class="navbar-brand fw-bold" href="{{ url_for('main.dashboard') }}">
                 <i class="bi bi-box-seam me-2"></i>Controle PSA
             </a>
-
+    
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            {% if (current_user.is_authenticated) %}
+    
+            {% if current_user.is_authenticated %}
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
@@ -90,22 +91,19 @@
                     
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-info fw-bold" href="#" id="navbarDropdownConfig" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-tools"></i> Configuração
-                        </a>
-                        {% if current_user.is_authenticated and current_user.is_admin %}
-                        <a class="nav-link dropdown-toggle text-info fw-bold" href="#" id="navbarDropdownConfig" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-tools"></i> Ações & Config
                         </a>
-                       
+                        
                         <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="navbarDropdownConfig">
-                             
+                            {% if current_user.is_admin %}
                             <li>
                                 <a class="dropdown-item text-info fw-bold" href="{{ url_for('admin.config') }}">
                                     <i class="bi bi-gear-fill me-2"></i> Config. E-mail
                                 </a>
                             </li>
-                             {% endif %}
                             <li><hr class="dropdown-divider border-secondary"></li>
+                            {% endif %}
+    
                             <li>
                                 <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="m-0 p-0 d-block">
                                     {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
@@ -114,21 +112,18 @@
                                     </button>
                                 </form>
                             </li>
-                            
                         </ul>
                     </li>
-                    {% endif %}
                 </ul>
-
+    
                 <div class="d-flex text-white align-items-center mt-3 mt-lg-0">
-                    {% if current_user.is_authenticated %}
                     <span class="small me-3 border-end pe-3 border-secondary d-none d-md-inline">
                         <i class="bi bi-person-circle me-1"></i> {{ current_user.nome_completo }} ({{ current_user.cargo }})
                     </span>
                     <a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger btn-sm">Sair</a>
-                    {% endif %}
                 </div>
             </div>
+            {% endif %}
         </div>
     </nav>
 
