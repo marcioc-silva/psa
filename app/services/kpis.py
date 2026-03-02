@@ -59,6 +59,7 @@ def calcular_kpis(data_filtro: str | None = None) -> Dict[str, Any]:
         "taxa_qualidade": taxa_qualidade,
         "acuracidade": acuracidade,
         "total_retencao": total_retencao,
+        "retencao_pendente": retidos_pendentes,
     }
 
 def listar_datas_importacao():
