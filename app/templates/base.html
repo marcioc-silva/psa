@@ -87,18 +87,20 @@
                     </li>
                     <li class="nav-item"><a class="nav-link" href="/importer/">Importar SAP</a></li>
                     <li class="nav-item"><a class="nav-link" href="/importer/exportar">Exportar Excel</a></li>
-
-                    {% if current_user.is_authenticated and current_user.is_admin %}
+                    
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-info fw-bold" href="#" id="navbarDropdownConfig" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-tools"></i> Ações & Config
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="navbarDropdownConfig">                                                     
+                       
+                        <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="navbarDropdownConfig">
+                             {% if current_user.is_authenticated and current_user.is_admin %}
                             <li>
                                 <a class="dropdown-item text-info fw-bold" href="{{ url_for('admin.config') }}">
                                     <i class="bi bi-gear-fill me-2"></i> Config. E-mail
                                 </a>
                             </li>
+                             {% endif %}
                             <li><hr class="dropdown-divider border-secondary"></li>
                             <li>
                                 <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="m-0 p-0 d-block">
@@ -108,7 +110,7 @@
                                     </button>
                                 </form>
                             </li>
-                            {% endif %}
+                            
                         </ul>
                     </li>
                     {% endif %}
