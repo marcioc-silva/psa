@@ -83,7 +83,7 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+               <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link fw-bold text-warning" href="{{ url_for('main.scanner_page') }}">
                             <i class="bi bi-qr-code-scan"></i> SCANNER
@@ -92,21 +92,37 @@
                     <li class="nav-item"><a class="nav-link" href="/importer/">Importar SAP</a></li>
                     <li class="nav-item"><a class="nav-link" href="/importer/exportar">Exportar Excel</a></li>
 
-{% if current_user.is_authenticated and current_user.is_admin %}
-<li class="nav-item">
-    <a class="nav-link text-info fw-bold" href="{{ url_for('admin.config') }}" title="Configurar e-mail e destinatários">
-        <i class="bi bi-gear-fill"></i> Config. E-mail
-    </a>
-</li>
-{% endif %}
+                    {% if (current_user.is_authenticated and current_user.is_admin) or has_enviar_reporte %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-info fw-bold" href="#" id="navbarDropdownConfig" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-tools"></i> Ações & Config
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark shadow" aria-labelledby="navbarDropdownConfig">
+                            
+                            {% if current_user.is_authenticated and current_user.is_admin %}
+                            <li>
+                                <a class="dropdown-item text-info fw-bold" href="{{ url_for('admin.config') }}">
+                                    <i class="bi bi-gear-fill me-2"></i> Config. E-mail
+                                </a>
+                            </li>
+                            {% endif %}
 
-                   {% if has_enviar_reporte %}
-                      <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="d-inline">
-                        {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
-                        <button type="submit" class="nav-link text-warning fw-bold btn btn-link p-0" title="Enviar reporte por e-mail">
-                          <i class="bi bi-envelope-fill"></i> Enviar reporte
-                        </button>
-                      </form>
+                            {% if current_user.is_authenticated and current_user.is_admin and has_enviar_reporte %}
+                            <li><hr class="dropdown-divider border-secondary"></li>
+                            {% endif %}
+
+                            {% if has_enviar_reporte %}
+                            <li>
+                                <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="m-0 p-0 d-block">
+                                    {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
+                                    <button type="submit" class="dropdown-item text-warning fw-bold text-start w-100 bg-transparent border-0">
+                                        <i class="bi bi-envelope-fill me-2"></i> Enviar reporte
+                                    </button>
+                                </form>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </li>
                     {% endif %}
                 </ul>
 
