@@ -82,6 +82,7 @@ def create_app(config_object=None):
     
             ctx["data_atual"] = data_filtro
             ctx["datas"] = listar_datas_importacao()
+            ctx["ctx_version"] = "CTX-2026-03-01-01"
     
             k = calcular_kpis(data_filtro)
             ctx.update(
