@@ -13,7 +13,9 @@ login_manager = LoginManager()
 def create_app(config_object=None):
     
     basedir = os.path.abspath(os.path.dirname(__file__))
-    
+    # garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
+    from app.models.usuario import Usuario  # noqa: F401
+    from app.models.material import MaterialPSA  # noqa: F401
     
     static_path = os.path.join(basedir, "static")
 
@@ -98,11 +100,7 @@ def create_app(config_object=None):
     # Extensões
     # =========================
     db.init_app(app)
-    migrate.init_app(app, db)
-
-    # garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
-    from app.models.usuario import Usuario  # noqa: F401
-    from app.models.material import MaterialPSA  # noqa: F401
+    migrate.init_app(app, db)    
 
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
