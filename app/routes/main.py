@@ -10,17 +10,19 @@ from app.models.usuario import Usuario
 
 bp = Blueprint('main', __name__)
 
-def verificar_manutencao():
-    # Pega a variável do Render. Se não achar, considera False.
-    modo_ativa = os.getenv('MANUTENCAO', 'False').lower() == 'true'
-    
-    # Se NÃO tiver o ?admin=marcio123 na URL e a manutenção estiver ON
-    if modo_ativa and request.args.get('admin') != "marcio123":
-        # Não bloqueia arquivos de estilo (CSS)
-        if request.path.startswith('/static'):
-            return None
-        # Retorna o HTML de manutenção
-        return render_template('manutencao.html'), 503
+def validar_acesso(chave_fornecida):
+    # 1. Definimos a chave correta e o status da manutenção
+    # Dica: Use variáveis de ambiente do Render para isso!
+    CHAVE_MESTRA = "oxala" 
+    MODO_MANUTENCAO = os.getenv('MANUTENCAO', 'False') == 'True'
+
+    # 2. Lógica de decisão
+    if MODO_MANUTENCAO:
+        if chave_fornecida == CHAVE_MESTRA:
+            return "autorizado"
+        else:
+            return "manutencao"
+    return "liberado"
         
 def date_to_dt(d):
     """Aceita date/datetime/None e devolve datetime (00:00 do dia)."""
@@ -37,7 +39,16 @@ def date_to_dt(d):
 @login_required
 def dashboard():
 
-    verificar_manutencao()
+  # Pega o valor do parâmetro 'admin' na URL (ex: /?admin=marcio123)
+    chave_url = request.args.get('segredo')
+    
+    # Chama a função de validação passando o valor da URL
+    status = validar_acesso(chave_url)
+
+    if status == "manutencao":
+        # Retorna a página que criamos, com status 503 (Serviço Indisponível)
+        return render_template('manutencao.html'), 503
+    
     todos_materiais = MaterialPSA.query.order_by(
         MaterialPSA.data_importacao.desc()
     ).all()
