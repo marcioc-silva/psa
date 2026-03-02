@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 class MaterialPSA(db.Model):
     __tablename__ = 'material_psa'
+    __table_args__ = (db.UniqueConstraint("psa_key", "unidade_deposito", name="uq_psa_ud"),)
     id = db.Column(db.Integer, primary_key=True)
     
     # --- Identificação ---
@@ -33,6 +34,11 @@ class MaterialPSA(db.Model):
     # --- Gestão de Divergências ---
     possui_divergencia = db.Column(db.Boolean, default=False)
     observacao_conferente = db.Column(db.Text)
+
+    # novos campos de “partição” do PSA
+    psa_tipo = db.Column(db.String(10), index=True, nullable=True)      # ex: "145"
+    psa_posicao = db.Column(db.String(40), index=True, nullable=True)   # ex: "ACONDLIQ"
+    psa_key = db.Column(db.String(64), index=True, nullable=True)       # ex: "145:ACONDLIQ"
 
     def to_dict(self):
         """Retorno limpo para o Scanner e Dashboard (Sem definições de colunas aqui)"""
