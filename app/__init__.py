@@ -60,6 +60,7 @@ def create_app(config_object=None):
                 taxa_qualidade=k.get("taxa_qualidade", 100.0),
                 itens_com_divergencia=k.get("itens_com_divergencia", 0),
                 total_retencao=k.get("total_retencao", 0),
+                retencao_pendente=k.get("retencao_pendente", 0),
             )
         except Exception as e:
             current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
@@ -73,6 +74,7 @@ def create_app(config_object=None):
             ctx.setdefault("taxa_qualidade", 100.0)
             ctx.setdefault("itens_com_divergencia", 0)
             ctx.setdefault("total_retencao", 0)
+            ctx.setdefault("retencao_pendente", 0)
     
             # ✅ opcional (ajuda MUITO a debugar sem olhar log)
             ctx["ctx_error"] = str(e)[:120]
