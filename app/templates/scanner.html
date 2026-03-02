@@ -199,10 +199,12 @@
 
     <div id="lista-resultados" class="list-group" style="max-height: 70vh; overflow-y: auto;"></div>
 </div>
-
-{% if habilitar_scanner %}
-  <script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"></script>
-{% endif %}
+<script src="{{ url_for('static', filename='js/html5-qrcode.min.js') }}"
+        onerror="(function(){
+          var s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
+          document.head.appendChild(s);
+        })();"></script>
 
 <script>
     let html5QrCode = null;
