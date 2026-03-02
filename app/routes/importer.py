@@ -164,3 +164,17 @@ def exportar():
 
     # 5. Envia o arquivo para o navegador
     return send_file(output_path, as_attachment=True)
+
+    def _norm_posicao(v):
+        return (v or "").strip().upper()
+    
+    def _norm_tipo(v):
+        s = str(v).strip()
+        if s.endswith(".0"):
+            s = s[:-2]
+        return s
+    
+    def make_psa_key(tipo, posicao):
+        t = _norm_tipo(tipo)
+        p = _norm_posicao(posicao)
+        return t, p, f"{t}:{p}"
