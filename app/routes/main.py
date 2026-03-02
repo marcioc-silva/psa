@@ -260,9 +260,63 @@ def logout():
 # =========================
 # REGISTRAR
 # =========================
-@bp.route('/registrar', methods=['GET', 'POST'])
+@bp.route("/registrar", methods=["GET", "POST"])
 def registrar():
-    return render_template('registrar.html')
+    if request.method == "POST":
+        sap_raw = request.form.get("sap", "")
+        nome_raw = request.form.get("nome", "")
+        senha = request.form.get("password", "")
+
+        # Poka-yoke: normaliza e valida
+        sap = sap_raw.strip()
+        nome = nome_raw.strip()
+
+        if not sap or not nome or not senha:
+            flash("Preencha SAP, nome e senha.")
+            return redirect(url_for("main.registrar"))
+
+        # (Opcional) Poka-yoke: SAP só números (se isso fizer sentido no seu sistema)
+        # if not sap.isdigit():
+        #     flash("SAP inválido. Use apenas números.")
+        #     return redirect(url_for("main.registrar"))
+
+        # Poka-yoke: evita duplicidade por espaços/variações
+        if Usuario.query.filter(func.trim(Usuario.sap) == sap).first():
+            flash("Usuário já cadastrado.")
+            return redirect(url_for("main.registrar"))
+
+        novo_usuario = Usuario(sap=sap, nome_completo=nome)
+        novo_usuario.set_senha(senha)
+
+        try:
+            # Poka-yoke anti-concorrência:
+            # trava a tabela/linha de forma simples usando "FOR UPDATE" quando suportado
+            # (no SQLite pode não ter efeito forte, mas no Postgres ajuda bastante).
+            total_usuarios = (
+                db.session.query(func.count(Usuario.id))
+                .with_for_update()
+                .scalar()
+            )
+
+            if (total_usuarios or 0) == 0:
+                novo_usuario.cargo = "admin"
+
+            db.session.add(novo_usuario)
+            db.session.commit()
+
+        except IntegrityError:
+            db.session.rollback()
+            flash("Não foi possível cadastrar. SAP já existe ou dados inválidos.")
+            return redirect(url_for("main.registrar"))
+        except Exception:
+            db.session.rollback()
+            flash("Erro ao cadastrar usuário. Tente novamente.")
+            return redirect(url_for("main.registrar"))
+
+        flash("Usuário cadastrado com sucesso!")
+        return redirect(url_for("main.login"))
+
+    return render_template("registrar.html")
 
 @bp.route('/relatorio_divergencias')
 @login_required
