@@ -60,3 +60,17 @@ def calcular_kpis(data_filtro: str | None = None) -> Dict[str, Any]:
         "acuracidade": acuracidade,
         "total_retencao": total_retencao,
     }
+
+def listar_datas_importacao():
+    """Retorna uma lista com as datas únicas de importação formatadas para o filtro global."""
+    materiais = MaterialPSA.query.filter(MaterialPSA.data_importacao.isnot(None)).all()
+    
+    # Extrai as datas únicas no formato DD/MM/YYYY
+    datas_unicas = {
+        m.data_importacao.strftime('%d/%m/%Y') 
+        for m in materiais 
+        if m.data_importacao
+    }
+    
+    # Retorna a lista ordenada (da mais recente para a mais antiga)
+    return sorted(list(datas_unicas), reverse=True)
