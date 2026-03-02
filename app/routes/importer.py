@@ -21,99 +21,176 @@ def upload():
     if 'file' not in request.files:
         flash('Nenhum arquivo enviado.', 'danger')
         return redirect(url_for('importer.index'))
-    
+
     file = request.files['file']
     if file.filename == '':
         flash('Nenhum arquivo selecionado.', 'danger')
         return redirect(url_for('importer.index'))
 
     try:
-        # Lendo o Excel e tratando valores nulos
-        # Forçamos as colunas críticas a serem lidas como String logo de cara
-        df = pd.read_excel(file, dtype={'Unidade de depósito': str, 'Material': str, 'Lote': str})
+        df = pd.read_excel(
+            file,
+            dtype={'Unidade de depósito': str, 'Material': str, 'Lote': str}
+        )
         df = df.replace({np.nan: None})
-        
+
         data_atual = datetime.now()
 
-        # Função interna para limpar o ".0" de números longos (UD e Material)
         def limpar_numero(val):
             if val is None or str(val).strip() == "" or str(val).lower() == "none":
                 return None
             return str(val).split('.')[0].strip()
 
-        # --- NOVA LÓGICA DE LIMPEZA (Sincronização) ---
-        # 1. Mapeamos todas as UDs que vieram no Excel novo
-        uds_atuais_no_excel = []
+        # -----------------------------
+        # ✅ NOVO: separa sozinho por PSA
+        # -----------------------------
+        grupos = {}  # psa_key -> {"psa_tipo":..., "psa_posicao":..., "rows":[...], "uds":set()}
+        total_linhas_validas = 0
+
         for _, row in df.iterrows():
             ud = limpar_numero(row.get('Unidade de depósito'))
-            if ud:
-                uds_atuais_no_excel.append(ud)
-
-        # 2. EXCLUSÃO: Remove do banco tudo que NÃO está nessa lista do Excel
-        # Isso garante que se o item saiu do SAP, ele sai do sistema.
-        if uds_atuais_no_excel:
-            MaterialPSA.query.filter(MaterialPSA.unidade_deposito.notin_(uds_atuais_no_excel)).delete(synchronize_session=False)
-        # ----------------------------------------------
-
-        count_novos = 0
-        count_existentes = 0
-
-        for _, row in df.iterrows():
-            ud_codigo = limpar_numero(row.get('Unidade de depósito'))
-            
-            if not ud_codigo:
+            if not ud:
                 continue
 
-            # Verifica se a UD já existe
-            existente = MaterialPSA.query.filter_by(unidade_deposito=ud_codigo).first()
-            
-            if not existente:
-                # Tratamento de Data de Vencimento
+            tipo_dep = row.get('Tipo de depósito')
+            pos_dep = row.get('Posição no depósito')
+
+            psa_tipo, psa_posicao, psa_key = make_psa_fields(tipo_dep, pos_dep)
+            if not psa_tipo or not psa_posicao:
+                # se o excel vier sem essas colunas, melhor falhar cedo do que fazer limpeza errada
+                continue
+
+            if psa_key not in grupos:
+                grupos[psa_key] = {
+                    "psa_tipo": psa_tipo,
+                    "psa_posicao": psa_posicao,
+                    "rows": [],
+                    "uds": set(),
+                }
+
+            grupos[psa_key]["rows"].append(row)
+            grupos[psa_key]["uds"].add(ud)
+            total_linhas_validas += 1
+
+        if not grupos:
+            flash("Arquivo não contém UDs válidas com PSA (Tipo/Posição).", "warning")
+            return redirect(url_for('importer.index'))
+
+        count_novos = 0
+        count_atualizados = 0
+        count_deletados = 0
+
+        # -----------------------------
+        # ✅ Processa PSA por PSA
+        # -----------------------------
+        for psa_key, g in grupos.items():
+            psa_tipo = g["psa_tipo"]
+            psa_posicao = g["psa_posicao"]
+            uds_set = g["uds"]
+
+            # 1) Carrega existentes desse PSA (somente os que estão no excel)
+            existentes = (
+                MaterialPSA.query
+                .filter(MaterialPSA.psa_key == psa_key)
+                .filter(MaterialPSA.unidade_deposito.in_(list(uds_set)))
+                .all()
+            )
+            por_ud = {m.unidade_deposito: m for m in existentes}
+
+            # 2) Upsert
+            for row in g["rows"]:
+                ud_codigo = limpar_numero(row.get('Unidade de depósito'))
+                if not ud_codigo:
+                    continue
+
+                existente = por_ud.get(ud_codigo)
+
+                # Datas
                 raw_venc = row.get('Data do vencimento')
-                
-                # CORREÇÃO: Mapeando o nome exato da coluna que vem do SAP/Excel
-                # Verifique se no Excel a coluna chama 'Data do último mov.' ou 'data_ultimo_mov'
                 raw_ultmov = row.get('Último movimento') or row.get('data_ultimo_mov')
-                
+
                 data_venc = None
                 data_ultmov = None
 
                 if raw_venc:
                     try:
                         data_venc = pd.to_datetime(raw_venc).date()
-                    except:
+                    except Exception:
                         data_venc = None
 
                 if raw_ultmov:
                     try:
                         data_ultmov = pd.to_datetime(raw_ultmov).date()
-                    except:
-                        data_ultmov = None        
+                    except Exception:
+                        data_ultmov = None
 
-                novo_material = MaterialPSA(
-                    unidade_deposito=ud_codigo,
-                    cod_material=limpar_numero(row.get('Material')),
-                    desc_material=str(row.get('Texto breve material') or "SEM DESCRIÇÃO"),
-                    lote=limpar_numero(row.get('Lote')) or "S/L",
-                    posicao_deposito=str(row.get('Posição no depósito') or ""),
-                    tipo_deposito=str(row.get('Tipo de depósito') or ""),
-                    quantidade_estoque=float(row.get('Estoque total', 0) or row.get('Quantidade total', 0)),
-                    unidade_medida=str(row.get('UM básica', 'UN')),
-                    data_vencimento=data_venc,
-                    # CORREÇÃO: O nome do campo deve ser data_ultimo_mov (conforme seu modelo)
-                    data_ultimo_mov=data_ultmov,   
-                    conferido=False,
-                    data_importacao=data_atual
-                )
-                db.session.add(novo_material)
-                count_novos += 1
-            else:
-                count_existentes += 1
-        
-        db.session.commit()
-        
-        # MENSAGEM ÚNICA DE SUPERVISOR
-        flash(f'Sincronização concluída! {count_novos} novos itens importados e itens ausentes removidos.', 'success')
+                # Quantidade
+                qtd = row.get('Estoque total', 0) or row.get('Quantidade total', 0)
+                try:
+                    qtd = float(qtd or 0)
+                except Exception:
+                    qtd = 0.0
+
+                if not existente:
+                    novo_material = MaterialPSA(
+                        unidade_deposito=ud_codigo,
+                        cod_material=limpar_numero(row.get('Material')),
+                        desc_material=str(row.get('Texto breve material') or "SEM DESCRIÇÃO"),
+                        lote=limpar_numero(row.get('Lote')) or "S/L",
+                        posicao_deposito=str(row.get('Posição no depósito') or ""),
+                        tipo_deposito=str(row.get('Tipo de depósito') or ""),
+                        quantidade_estoque=qtd,
+                        unidade_medida=str(row.get('UM básica', 'UN')),
+                        data_vencimento=data_venc,
+                        data_ultimo_mov=data_ultmov,
+                        conferido=False,
+                        data_importacao=data_atual,
+
+                        # ✅ novos campos PSA
+                        psa_tipo=psa_tipo,
+                        psa_posicao=psa_posicao,
+                        psa_key=psa_key,
+                    )
+                    db.session.add(novo_material)
+                    count_novos += 1
+
+                else:
+                    # ✅ Atualiza dados vindos do SAP SEM resetar conferência/divergência
+                    existente.cod_material = limpar_numero(row.get('Material'))
+                    existente.desc_material = str(row.get('Texto breve material') or existente.desc_material or "SEM DESCRIÇÃO")
+                    existente.lote = limpar_numero(row.get('Lote')) or existente.lote or "S/L"
+                    existente.posicao_deposito = str(row.get('Posição no depósito') or existente.posicao_deposito or "")
+                    existente.tipo_deposito = str(row.get('Tipo de depósito') or existente.tipo_deposito or "")
+                    existente.quantidade_estoque = qtd
+                    existente.unidade_medida = str(row.get('UM básica', existente.unidade_medida or 'UN'))
+                    existente.data_vencimento = data_venc
+                    existente.data_ultimo_mov = data_ultmov
+                    existente.data_importacao = data_atual  # snapshot do “último import”
+
+                    # ✅ mantém alinhado (caso tenha sido nulo antes)
+                    existente.psa_tipo = psa_tipo
+                    existente.psa_posicao = psa_posicao
+                    existente.psa_key = psa_key
+
+                    count_atualizados += 1
+
+            db.session.flush()
+
+            # 3) Limpeza só desse PSA
+            deletados = (
+                MaterialPSA.query
+                .filter(MaterialPSA.psa_key == psa_key)
+                .filter(~MaterialPSA.unidade_deposito.in_(list(uds_set)))
+                .delete(synchronize_session=False)
+            )
+            count_deletados += int(deletados or 0)
+
+            db.session.commit()
+
+        flash(
+            f"Import concluído! PSAs: {len(grupos)} | Novos: {count_novos} | Atualizados: {count_atualizados} | Removidos: {count_deletados}",
+            "success"
+        )
 
     except Exception as e:
         db.session.rollback()
