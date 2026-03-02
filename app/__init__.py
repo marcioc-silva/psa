@@ -62,49 +62,51 @@ def create_app(config_object=None):
     # =========================
     @app.context_processor
     def inject_globals():
-        from flask import current_app
-
+        from datetime import datetime, timezone
+        from flask import current_app, request
+        from flask_login import current_user
+    
         ctx = {
             "now": datetime.now(timezone.utc),
-            # poka‑yoke do menu: não quebra template se rota não existir em algum ambiente
             "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions,
         }
-
-        # Só calcula KPIs/datas para usuário logado (evita custo e evita erro no login)
+    
+        # Só calcula KPIs/datas para usuário logado
         if not current_user.is_authenticated:
             return ctx
-
-        # Usa o mesmo parâmetro do dashboard
+    
         data_filtro = request.args.get("data_filtro")
-
+    
         try:
             from app.services.kpis import calcular_kpis, listar_datas_importacao
-
+    
             ctx["data_atual"] = data_filtro
             ctx["datas"] = listar_datas_importacao()
-
+    
             k = calcular_kpis(data_filtro)
             ctx.update(
-                total=k["total"],
-                conferidos=k["conferidos"],
-                pendentes=k["pendentes"],
-                acuracidade=k["acuracidade"],
-                taxa_qualidade=k["taxa_qualidade"],
-                itens_com_divergencia=k["itens_com_divergencia"],
-                total_retencao=k["total_retencao"],
+                total=k.get("total", 0),
+                conferidos=k.get("conferidos", 0),
+                pendentes=k.get("pendentes", 0),
+                acuracidade=k.get("acuracidade", 0.0),
+                taxa_qualidade=k.get("taxa_qualidade", 100.0),
+                itens_com_divergencia=k.get("itens_com_divergencia", 0),
+                total_retencao=k.get("total_retencao", 0),
             )
-        except Exception:
-            # Se algo falhar aqui, nunca derrube a renderização do template
+        except Exception as e:
+            # ✅ Loga o erro no Render, mas não derruba a página
+            current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
+    
             ctx.setdefault("data_atual", data_filtro)
             ctx.setdefault("datas", [])
             ctx.setdefault("total", 0)
             ctx.setdefault("conferidos", 0)
             ctx.setdefault("pendentes", 0)
-            ctx.setdefault("acuracidade", 0)
+            ctx.setdefault("acuracidade", 0.0)
             ctx.setdefault("taxa_qualidade", 100.0)
             ctx.setdefault("itens_com_divergencia", 0)
             ctx.setdefault("total_retencao", 0)
-
+    
         return ctx
 
     # =========================
