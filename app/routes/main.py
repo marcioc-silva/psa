@@ -194,8 +194,19 @@ def relatorio_divergencias():
         data_atual=data_filtro
     )
 
-
 @bp.route("/scanner")
 @login_required
 def scanner():
     return render_template("scanner.html")
+
+@app.before_request
+def check_maintenance():
+    # Busca a variável 'MANUTENCAO' no Render. Se não existir, assume 'False'.
+    modo_manutencao = os.getenv('MANUTENCAO', 'False') == 'True'
+    chave_mestre = "marcio123" # Sua chave para testar
+
+    # Se a manutenção estiver ativa E você não estiver usando a chave mestre
+    if modo_manutencao and request.args.get('admin') != chave_mestre:
+        # Libera apenas arquivos estáticos (CSS/JS) para a página carregar o visual
+        if request.endpoint != 'static':
+            return render_template('manutencao.html'), 503
