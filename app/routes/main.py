@@ -338,7 +338,7 @@ def pendentes():
     materiais = query.filter(MaterialPSA.conferido == False).all()
     return render_template("pendentes.html", materiais=materiais)
 
-@app.before_request
+@bp.before_app_request
 def check_maintenance():
     # Busca a variável 'MANUTENCAO' no Render. Se não existir, assume 'False'.
     modo_manutencao = os.getenv('MANUTENCAO', 'False') == 'True'
