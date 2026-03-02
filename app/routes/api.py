@@ -4,6 +4,7 @@ from sqlalchemy import String, cast
 from app.models.material import MaterialPSA
 from app import db
 from datetime import datetime
+from flask_login import login_required
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
