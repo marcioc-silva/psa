@@ -48,7 +48,7 @@ def dashboard():
     if status == "manutencao":
         # Retorna a página que criamos, com status 503 (Serviço Indisponível)
         return render_template('manutencao.html'), 503
-    else
+    else:
         todos_materiais = MaterialPSA.query.order_by(
             MaterialPSA.data_importacao.desc()
         ).all()
