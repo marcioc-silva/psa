@@ -48,91 +48,91 @@ def dashboard():
     if status == "manutencao":
         # Retorna a página que criamos, com status 503 (Serviço Indisponível)
         return render_template('manutencao.html'), 503
+    else
+        todos_materiais = MaterialPSA.query.order_by(
+            MaterialPSA.data_importacao.desc()
+        ).all()
     
-    todos_materiais = MaterialPSA.query.order_by(
-        MaterialPSA.data_importacao.desc()
-    ).all()
-
-    datas_unicas = {
-        m.data_importacao.strftime('%d/%m/%Y')
-        for m in todos_materiais
-        if m.data_importacao
-    }
-
-    datas_formatadas = sorted(list(datas_unicas), reverse=True)
-
-    data_filtro = request.args.get('data_filtro')
-
-    if data_filtro:
-        materiais_exibidos = [
-            m for m in todos_materiais
-            if m.data_importacao and
-               m.data_importacao.strftime('%d/%m/%Y') == data_filtro
-        ]
-    else:
-        materiais_exibidos = todos_materiais
-
-    total_itens = len(materiais_exibidos)
-    conferidos = sum(1 for m in materiais_exibidos if m.conferido)
-    pendentes = total_itens - conferidos
-
-    itens_com_divergencia = sum(
-        1 for m in materiais_exibidos
-        if getattr(m, 'possui_divergencia', False)
+        datas_unicas = {
+            m.data_importacao.strftime('%d/%m/%Y')
+            for m in todos_materiais
+            if m.data_importacao
+        }
+    
+        datas_formatadas = sorted(list(datas_unicas), reverse=True)
+    
+        data_filtro = request.args.get('data_filtro')
+    
+        if data_filtro:
+            materiais_exibidos = [
+                m for m in todos_materiais
+                if m.data_importacao and
+                   m.data_importacao.strftime('%d/%m/%Y') == data_filtro
+            ]
+        else:
+            materiais_exibidos = todos_materiais
+    
+        total_itens = len(materiais_exibidos)
+        conferidos = sum(1 for m in materiais_exibidos if m.conferido)
+        pendentes = total_itens - conferidos
+    
+        itens_com_divergencia = sum(
+            1 for m in materiais_exibidos
+            if getattr(m, 'possui_divergencia', False)
+        )
+    
+        # ✅ Retenção baseada na entrada real no PSA (data_ultimo_mov)
+        # Como data_ultimo_mov é DATE, usamos "2 dias fechados"
+        limite_critico_data = (datetime.now().date() - timedelta(days=2))
+    
+        itens_criticos = sum(
+            1 for m in materiais_exibidos
+            if (not m.conferido)
+            and (m.data_ultimo_mov is not None)
+            and (m.data_ultimo_mov <= limite_critico_data)
+        )
+    
+        # ✅ Retenção baseada na entrada real no PSA (data_ultimo_mov)
+        # Como data_ultimo_mov é DATE, usamos "2 dias fechados"
+        limite_critico_data = (datetime.now().date() - timedelta(days=2))
+    
+        # Retidos (geral): conferidos + não conferidos
+        itens_retidos_geral = sum(
+            1 for m in materiais_exibidos
+            if (m.data_ultimo_mov is not None)
+            and (m.data_ultimo_mov <= limite_critico_data)
+        )
+    
+        # Retidos pendentes: só os não conferidos
+        itens_retidos_pendentes = sum(
+            1 for m in materiais_exibidos
+            if (not m.conferido)
+            and (m.data_ultimo_mov is not None)
+            and (m.data_ultimo_mov <= limite_critico_data)
+        )
+        taxa_qualidade = round(
+            ((conferidos - itens_com_divergencia) / conferidos * 100), 1
+        ) if conferidos > 0 else 100.0
+    
+        acuracidade = round(
+            (conferidos / total_itens * 100), 1
+        ) if total_itens > 0 else 0.0
+    
+        return render_template(
+        'index.html',
+        datas=datas_formatadas,
+        data_atual=data_filtro,
+        total=total_itens,
+        conferidos=conferidos,
+        pendentes=pendentes,
+        acuracidade=acuracidade,
+        taxa_qualidade=taxa_qualidade,
+        itens_com_divergencia=itens_com_divergencia,
+        total_retencao=itens_retidos_geral,
+        retencao_pendente=itens_retidos_pendentes,
+        materiais=materiais_exibidos
     )
-
-    # ✅ Retenção baseada na entrada real no PSA (data_ultimo_mov)
-    # Como data_ultimo_mov é DATE, usamos "2 dias fechados"
-    limite_critico_data = (datetime.now().date() - timedelta(days=2))
-
-    itens_criticos = sum(
-        1 for m in materiais_exibidos
-        if (not m.conferido)
-        and (m.data_ultimo_mov is not None)
-        and (m.data_ultimo_mov <= limite_critico_data)
-    )
-
-    # ✅ Retenção baseada na entrada real no PSA (data_ultimo_mov)
-    # Como data_ultimo_mov é DATE, usamos "2 dias fechados"
-    limite_critico_data = (datetime.now().date() - timedelta(days=2))
-
-    # Retidos (geral): conferidos + não conferidos
-    itens_retidos_geral = sum(
-        1 for m in materiais_exibidos
-        if (m.data_ultimo_mov is not None)
-        and (m.data_ultimo_mov <= limite_critico_data)
-    )
-
-    # Retidos pendentes: só os não conferidos
-    itens_retidos_pendentes = sum(
-        1 for m in materiais_exibidos
-        if (not m.conferido)
-        and (m.data_ultimo_mov is not None)
-        and (m.data_ultimo_mov <= limite_critico_data)
-    )
-    taxa_qualidade = round(
-        ((conferidos - itens_com_divergencia) / conferidos * 100), 1
-    ) if conferidos > 0 else 100.0
-
-    acuracidade = round(
-        (conferidos / total_itens * 100), 1
-    ) if total_itens > 0 else 0.0
-
-    return render_template(
-    'index.html',
-    datas=datas_formatadas,
-    data_atual=data_filtro,
-    total=total_itens,
-    conferidos=conferidos,
-    pendentes=pendentes,
-    acuracidade=acuracidade,
-    taxa_qualidade=taxa_qualidade,
-    itens_com_divergencia=itens_com_divergencia,
-    total_retencao=itens_retidos_geral,
-    retencao_pendente=itens_retidos_pendentes,
-    materiais=materiais_exibidos
-)
-
+    
 
 # =========================
 # DETALHES UD (Scanner)
