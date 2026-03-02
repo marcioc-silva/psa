@@ -17,10 +17,11 @@ def _norm_tipo(v):
         s = s[:-2]
     return s
 
-def make_psa_fields(tipo, posicao):
+def make_psa_key(tipo, posicao):
     t = _norm_tipo(tipo)
     p = _norm_posicao(posicao)
     return t, p, f"{t}:{p}"
+ 
 @bp.route('/')
 @login_required
 def index():
