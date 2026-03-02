@@ -294,7 +294,6 @@ def registrar():
             # (no SQLite pode não ter efeito forte, mas no Postgres ajuda bastante).
             total_usuarios = (
                 db.session.query(func.count(Usuario.id))
-                .with_for_update()
                 .scalar()
             )
 
