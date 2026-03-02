@@ -37,9 +37,9 @@ def create_app(config_object=None):
         ctx = {
             "now": datetime.now(timezone.utc),
             "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions,
+            "ctx_version": "CTX-2026-03-01-01",  # ✅ sempre presente, mesmo se o try falhar
         }
     
-        # Só calcula KPIs/datas para usuário logado
         if not current_user.is_authenticated:
             return ctx
     
@@ -50,7 +50,6 @@ def create_app(config_object=None):
     
             ctx["data_atual"] = data_filtro
             ctx["datas"] = listar_datas_importacao()
-            ctx["ctx_version"] = "CTX-2026-03-01-01"
     
             k = calcular_kpis(data_filtro)
             ctx.update(
@@ -63,7 +62,6 @@ def create_app(config_object=None):
                 total_retencao=k.get("total_retencao", 0),
             )
         except Exception as e:
-            # ✅ Loga o erro no Render, mas não derruba a página
             current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
     
             ctx.setdefault("data_atual", data_filtro)
@@ -75,6 +73,9 @@ def create_app(config_object=None):
             ctx.setdefault("taxa_qualidade", 100.0)
             ctx.setdefault("itens_com_divergencia", 0)
             ctx.setdefault("total_retencao", 0)
+    
+            # ✅ opcional (ajuda MUITO a debugar sem olhar log)
+            ctx["ctx_error"] = str(e)[:120]
     
         return ctx
     # =========================
