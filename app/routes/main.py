@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from flask_login import login_user, login_required, logout_user, current_user
 from sqlalchemy import String, cast, func
 from app import db
+from sqlalchemy.exc import IntegrityError
 from app.models.material import MaterialPSA
 from app.models.usuario import Usuario
 
