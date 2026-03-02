@@ -35,7 +35,7 @@
             <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #0d6efd !important;">
                 <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total PSA</div>
                 <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
-                    <span id="kpi-total">—</span>
+                    <span id="kpi-total">{{ total | default(0) }}</span>
                 </div>
                 <div class="text-muted" style="font-size: 0.7rem;">Itens na Base</div>
             </div>
@@ -48,10 +48,10 @@
             <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #198754 !important;">
                 <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Conferidos</div>
                 <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
-                    <span id="kpi-conferidos">—</span>
+                    <span id="kpi-conferidos">{{ conferidos | default(0) }}</span>
                 </div>
                 <div class="text-muted" style="font-size: 0.7rem;">
-                    <span id="kpi-acuracidade">—</span> de IRA
+                    <span id="kpi-acuracidade">{{ acuracidade | default(0) }}%</span> de IRA
                 </div>
             </div>
         </a>
@@ -63,7 +63,7 @@
             <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #ffc107 !important;">
                 <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Pendentes</div>
                 <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
-                    <span id="kpi-pendentes">—</span>
+                    <span id="kpi-pendentes">{{ pendentes | default(0) }}</span>
                 </div>
                 <div class="text-muted" style="font-size: 0.7rem;">Aguardando bip</div>
             </div>
@@ -76,10 +76,10 @@
             <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #dc3545 !important;">
                 <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Qualidade</div>
                 <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
-                    <span id="kpi-taxaq">—</span>
+                    <span id="kpi-taxaq">{{ taxa_qualidade | default(100) }}%</span>
                 </div>
                 <div class="text-muted" style="font-size: 0.7rem;">
-                    <span id="kpi-div">—</span> Anomalias
+                    <span id="kpi-div">{{ itens_com_divergencia | default(0) }}</span> Anomalias
                 </div>
             </div>
         </a>
@@ -98,10 +98,9 @@
 
                 <div class="h3 fw-bold m-0 text-dark"
                      style="font-size: 1.6rem;">
-                    <span id="kpi-retencao">—</span>
+                    <span id="kpi-retencao">{{ total_retencao | default(0) }}</span>
                 </div>
 
-                <!-- Mantém sua regra visual, mas agora ela vem via JS -->
                 <div id="kpi-retencao-label" class="small text-muted" style="font-size: 0.7rem;">
                     Itens parados
                 </div>
@@ -121,4 +120,3 @@
         </a>
     </div>
 </div>
-
