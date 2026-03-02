@@ -1,1 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema em Manutenção</title>
+    <style>
+        :root {
+            --primary-color: #003366; /* Azul Corporativo */
+            --accent-color: #00a8e8;  /* Azul Tecnológico */
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+        }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text-color);
+            text-align: center;
+        }
+
+        .container {
+            max-width: 600px;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-top: 8px solid var(--primary-color);
+        }
+
+        .icon {
+            font-size: 64px;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        p {
+            line-height: 1.6;
+            margin-bottom: 25px;
+            color: #666;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--accent-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            font-size: 0.9em;
+            color: #999;
+            margin-top: 20px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #e1f5fe;
+            color: #01579b;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="loader"></div>
+        <div class="icon">⚙️</div>
+        <h1>Estamos em Manutenção</h1>
+        <p>Estamos realizando melhorias técnicas para garantir a qualidade e a segurança do seu sistema. Voltaremos a operar normalmente em breve.</p>
+        
+        <div class="status-badge">Previsão de retorno: Hoje</div>
+
+        <div class="footer">
+            &copy; 2026 - Gestão de Sistemas e Qualidade
+        </div>
+    </div>
+
+</body>
+</html>
