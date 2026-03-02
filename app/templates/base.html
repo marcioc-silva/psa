@@ -107,7 +107,7 @@
                             <li><hr class="dropdown-divider border-secondary"></li>
                             {% endif %}
 
-                            {% if urrent_user.is_authenticated and current_user.is_admin %}
+                            {% if current_user.is_authenticated and current_user.is_admin %}
                             <li>
                                 <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="m-0 p-0 d-block">
                                     {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
