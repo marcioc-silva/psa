@@ -10,6 +10,18 @@ from app.models.usuario import Usuario
 
 bp = Blueprint('main', __name__)
 
+def verificar_manutencao():
+    # Pega a variável do Render. Se não achar, considera False.
+    modo_ativa = os.getenv('MANUTENCAO', 'False').lower() == 'true'
+    
+    # Se NÃO tiver o ?admin=marcio123 na URL e a manutenção estiver ON
+    if modo_ativa and request.args.get('admin') != "marcio123":
+        # Não bloqueia arquivos de estilo (CSS)
+        if request.path.startswith('/static'):
+            return None
+        # Retorna o HTML de manutenção
+        return render_template('manutencao.html'), 503
+        
 def date_to_dt(d):
     """Aceita date/datetime/None e devolve datetime (00:00 do dia)."""
     if d is None:
@@ -24,6 +36,8 @@ def date_to_dt(d):
 @bp.route('/')
 @login_required
 def dashboard():
+
+    verificar_manutencao()
     todos_materiais = MaterialPSA.query.order_by(
         MaterialPSA.data_importacao.desc()
     ).all()
@@ -338,17 +352,7 @@ def pendentes():
     materiais = query.filter(MaterialPSA.conferido == False).all()
     return render_template("pendentes.html", materiais=materiais)
 
-@bp.before_app_request
-def check_maintenance():
-    # Busca a variável 'MANUTENCAO' no Render. Se não existir, assume 'False'.
-    modo_manutencao = os.getenv('MANUTENCAO', 'False') == 'True'
-    chave_mestre = "marcio123" # Sua chave para testar
 
-    # Se a manutenção estiver ativa E você não estiver usando a chave mestre
-    if modo_manutencao and request.args.get('admin') != chave_mestre:
-        # Libera apenas arquivos estáticos (CSS/JS) para a página carregar o visual
-        if request.endpoint != 'static':
-            return render_template('manutencao.html'), 503
 
 @bp.route("/__diag/routes")
 def diag_routes():
