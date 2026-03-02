@@ -67,8 +67,8 @@ def upload():
 
             tipo_dep = row.get('Tipo de depósito')
             pos_dep = row.get('Posição no depósito')
-
-            psa_tipo, psa_posicao, psa_key = make_psa_fields(tipo_dep, pos_dep)
+            psa_tipo, psa_posicao, psa_key = make_psa_key(tipo_dep, pos_dep)
+            
             if not psa_tipo or not psa_posicao:
                 # se o excel vier sem essas colunas, melhor falhar cedo do que fazer limpeza errada
                 continue
