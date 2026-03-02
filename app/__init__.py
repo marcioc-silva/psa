@@ -23,40 +23,6 @@ def create_app(config_object=None):
         static_folder=static_path,     # Agora aponta para /app/static
         static_url_path="/static"      # Mantém a URL como /static/ no navegador
     )        
-
-    # =========================
-    # Configuração
-    # =========================
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
-
-    db_url = os.getenv("DATABASE_URL")
-    if db_url:
-        if db_url.startswith("postgres://"):
-            db_url = db_url.replace("postgres://", "postgresql://", 1)
-        app.config["SQLALCHEMY_DATABASE_URI"] = db_url
-    else:
-        instance_dir = os.path.join(basedir, "..", "instance")
-        os.makedirs(instance_dir, exist_ok=True)
-        sqlite_path = os.path.join(instance_dir, "psa_storage.db")
-        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
-
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {"pool_pre_ping": True})
-
-    # =========================
-    # Extensões
-    # =========================
-    db.init_app(app)
-    migrate.init_app(app, db)
-
-    # garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
-    from app.models.usuario import Usuario  # noqa: F401
-    from app.models.material import MaterialPSA  # noqa: F401
-
-    login_manager.init_app(app)
-    login_manager.login_view = "main.login"
-    login_manager.login_message_category = "warning"
-
     # =========================
     # Context Processor (KPIs + Datas) — para os cards funcionarem em TODAS as páginas
     # =========================
@@ -109,6 +75,38 @@ def create_app(config_object=None):
             ctx.setdefault("total_retencao", 0)
     
         return ctx
+    # =========================
+    # Configuração
+    # =========================
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
+
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    else:
+        instance_dir = os.path.join(basedir, "..", "instance")
+        os.makedirs(instance_dir, exist_ok=True)
+        sqlite_path = os.path.join(instance_dir, "psa_storage.db")
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
+
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {"pool_pre_ping": True})
+
+    # =========================
+    # Extensões
+    # =========================
+    db.init_app(app)
+    migrate.init_app(app, db)
+
+    # garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
+    from app.models.usuario import Usuario  # noqa: F401
+    from app.models.material import MaterialPSA  # noqa: F401
+
+    login_manager.init_app(app)
+    login_manager.login_view = "main.login"
+    login_manager.login_message_category = "warning"    
 
     # =========================
     # Blueprints
