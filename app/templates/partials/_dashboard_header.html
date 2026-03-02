@@ -1,3 +1,4 @@
+
 <div class="card shadow-sm border-primary mb-4">
     <div class="card-body bg-light d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 py-2">
         <div class="d-flex align-items-center">
@@ -27,156 +28,130 @@
     </div>
 </div>
 
-{% set _dt  = data_atual if data_atual else None %}
-{% set _psa = psa_atual if psa_atual else None %}
-
 <div class="row row-cols-1 row-cols-md-3 row-cols-lg-6 g-2 mb-4">
 
-    <!-- TOTAL PSA -->
     <div class="col">
-        <a href="{{ url_for('reports.lista_materiais',
-                            tipo='geral',
-                            data_filtro=_dt,
-                            psa_key=_psa) }}"
+        <a href="{{ url_for('reports.lista_materiais', tipo='geral', data_filtro=(data_atual|default(None))) }}"
            class="text-decoration-none h-100 d-block card-hover">
-            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center"
-                 style="border-left-color: #0d6efd !important;">
-                <div class="text-uppercase fw-bold text-muted mb-1"
-                     style="font-size: 0.75rem;">Total PSA</div>
-                <div class="h3 fw-bold m-0 text-dark"
-                     style="font-size: 1.6rem;">
-                    {{ total | default(0) }}
+            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #0d6efd !important;">
+                <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total PSA</div>
+                <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
+                    <span id="kpi-total">—</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.7rem;">Itens na Base</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col">
+        <a href="{{ url_for('reports.lista_materiais', tipo='conferidos', data_filtro=data_atual) if data_atual else url_for('reports.lista_materiais', tipo='conferidos') }}"
+           class="text-decoration-none h-100 d-block card-hover">
+            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #198754 !important;">
+                <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Conferidos</div>
+                <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
+                    <span id="kpi-conferidos">—</span>
                 </div>
                 <div class="text-muted" style="font-size: 0.7rem;">
-                    Itens na Base
+                    <span id="kpi-acuracidade">—</span> de IRA
                 </div>
             </div>
         </a>
     </div>
 
-    <!-- CONFERIDOS -->
     <div class="col">
-        <a href="{{ url_for('reports.lista_materiais',
-                            tipo='conferidos',
-                            data_filtro=_dt,
-                            psa_key=_psa) }}"
+        <a href="{{ url_for('reports.lista_materiais', tipo='pendentes', data_filtro=(data_atual|default(None))) }}"
            class="text-decoration-none h-100 d-block card-hover">
-            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center"
-                 style="border-left-color: #198754 !important;">
-                <div class="text-uppercase fw-bold text-muted mb-1"
-                     style="font-size: 0.75rem;">Conferidos</div>
-                <div class="h3 fw-bold m-0 text-dark"
-                     style="font-size: 1.6rem;">
-                    {{ conferidos | default(0) }}
+            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #ffc107 !important;">
+                <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Pendentes</div>
+                <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
+                    <span id="kpi-pendentes">—</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.7rem;">Aguardando bip</div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col">
+        <a href="{{ url_for('main.relatorio_divergencias', data_filtro=(data_atual|default(None))) }}"
+           class="text-decoration-none h-100 d-block card-hover">
+            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #dc3545 !important;">
+                <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Qualidade</div>
+                <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
+                    <span id="kpi-taxaq">—</span>
                 </div>
                 <div class="text-muted" style="font-size: 0.7rem;">
-                    {{ acuracidade | default(0) }}% de IRA
+                    <span id="kpi-div">—</span> Anomalias
                 </div>
             </div>
         </a>
     </div>
 
-    <!-- PENDENTES -->
     <div class="col">
-        <a href="{{ url_for('reports.lista_materiais',
-                            tipo='pendentes',
-                            data_filtro=_dt,
-                            psa_key=_psa) }}"
-           class="text-decoration-none h-100 d-block card-hover">
-            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center"
-                 style="border-left-color: #ffc107 !important;">
-                <div class="text-uppercase fw-bold text-muted mb-1"
-                     style="font-size: 0.75rem;">Pendentes</div>
-                <div class="h3 fw-bold m-0 text-dark"
-                     style="font-size: 1.6rem;">
-                    {{ pendentes | default(0) }}
-                </div>
-                <div class="text-muted" style="font-size: 0.7rem;">
-                    Aguardando bip
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <!-- QUALIDADE -->
-    <div class="col">
-        <a href="{{ url_for('main.relatorio_divergencias',
-                            data_filtro=_dt,
-                            psa_key=_psa) }}"
-           class="text-decoration-none h-100 d-block card-hover">
-            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center"
-                 style="border-left-color: #dc3545 !important;">
-                <div class="text-uppercase fw-bold text-muted mb-1"
-                     style="font-size: 0.75rem;">Qualidade</div>
-                <div class="h3 fw-bold m-0 text-dark"
-                     style="font-size: 1.6rem;">
-                    {{ taxa_qualidade | default(100.0) }}%
-                </div>
-                <div class="text-muted" style="font-size: 0.7rem;">
-                    {{ itens_com_divergencia | default(0) }} Anomalias
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <!-- RETENÇÃO -->
-    <div class="col">
-        <a href="{{ url_for('reports.alerta_critico',
-                            data_filtro=_dt,
-                            psa_key=_psa) }}"
+        <a href="{{ url_for('reports.alerta_critico', data_filtro=(data_atual|default(None))) }}"
            class="text-decoration-none h-100 d-block card-hover">
             <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center"
                  style="border-left-color: #212529 !important;">
+
                 <div class="text-uppercase fw-bold text-muted mb-1"
-                     style="font-size: 0.75rem;">
+                     style="font-size: 0.75rem; letter-spacing: 0.5px;">
                     Retenção
                 </div>
 
                 <div class="h3 fw-bold m-0 text-dark"
                      style="font-size: 1.6rem;">
-                    {{ total_retencao | default(0) }}
+                    <span id="kpi-retencao">—</span>
                 </div>
 
-                {% if retencao_pendente and retencao_pendente > 0 %}
-                    <div class="small text-danger fw-bold"
-                         style="font-size: 0.7rem;">
-                        🚨 {{ retencao_pendente }} pendentes de conferência
-                    </div>
-                {% else %}
-                    <div class="small text-muted"
-                         style="font-size: 0.7rem;">
-                        Itens parados
-                    </div>
-                {% endif %}
+                <!-- Mantém sua regra visual, mas agora ela vem via JS -->
+                <div id="kpi-retencao-label" class="small text-muted" style="font-size: 0.7rem;">
+                    Itens parados
+                </div>
 
             </div>
         </a>
     </div>
 
-    <!-- RELATÓRIOS -->
     <div class="col">
-        <a href="{{ url_for('reports.kpis',
-                            data_filtro=_dt,
-                            psa_key=_psa) }}"
+        <a href="{{ url_for('reports.kpis', data_filtro=(data_atual|default(None))) }}"
            class="text-decoration-none h-100 d-block card-hover">
-            <div class="card card-indicator shadow-sm p-3 h-100 text-center"
-                 style="border-left-color: #0056b3 !important;">
-                <div class="text-uppercase fw-bold text-muted mb-1"
-                     style="font-size: 0.75rem;">
-                    Relatórios
-                </div>
-                <div class="h3 fw-bold m-0 text-primary"
-                     style="font-size: 1.6rem;">
-                    <i class="bi bi-graph-up"></i>
-                </div>
-                <div class="text-muted" style="font-size: 0.7rem;">
-                    Ver Gráficos
-                </div>
+            <div class="card card-indicator shadow-sm p-3 h-100 text-center" style="border-left-color: #0056b3 !important;">
+                <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Relatórios</div>
+                <div class="h3 fw-bold m-0 text-primary" style="font-size: 1.6rem;"><i class="bi bi-graph-up"></i></div>
+                <div class="text-muted" style="font-size: 0.7rem;">Ver Gráficos</div>
             </div>
         </a>
     </div>
 
 </div>
 
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const dataFiltro = params.get("data_filtro");
 
+  const url = new URL("/api/kpis", window.location.origin);
+  if (dataFiltro) url.searchParams.set("data_filtro", dataFiltro);
 
+  fetch(url, { credentials: "same-origin" })
+    .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
+    .then(k => {
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      set("kpi-total", k.total ?? 0);
+      set("kpi-conferidos", k.conferidos ?? 0);
+      set("kpi-pendentes", k.pendentes ?? 0);
+      set("kpi-retencao", k.total_retencao ?? 0);
+      set("kpi-acuracidade", ((k.acuracidade ?? 0) + "%"));
+      set("kpi-taxaq", ((k.taxa_qualidade ?? 100) + "%"));
+      set("kpi-div", (k.itens_com_divergencia ?? 0));
+
+      // Se quiser aquela linha “🚨 X pendentes de conferência”,
+      // aí precisamos retornar isso no JSON (retencao_pendente) e setar aqui.
+      // Por enquanto fica neutro.
+    })
+    .catch(err => console.error("Falha ao carregar KPIs:", err));
+})();
+</script>
