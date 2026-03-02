@@ -14,8 +14,8 @@ def validar_acesso(chave_fornecida):
     # 1. Definimos a chave correta e o status da manutenção
     # Dica: Use variáveis de ambiente do Render para isso!
     CHAVE_MESTRA = "oxala" 
-    MODO_MANUTENCAO = os.getenv('MANUTENCAO', 'False') == 'True'
-
+    MODO_MANUTENCAO = True
+    
     # 2. Lógica de decisão
     if MODO_MANUTENCAO:
         if chave_fornecida == CHAVE_MESTRA:
