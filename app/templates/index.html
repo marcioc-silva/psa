@@ -56,8 +56,8 @@
                                 <!-- FIX: passa UD como string JS segura (sem perder dígitos e sem quebrar com aspas) -->
                                 <button
                                     type="button"
-                                    class="btn btn-sm btn-outline-primary"
-                                    onclick="verDetalhes({{ item.unidade_deposito | tojson }})"
+                                    class='btn btn-sm btn-outline-primary"
+                                    onclick="verDetalhes({{ item.unidade_deposito | tojson }})'
                                     aria-label="Ver detalhes da UD"
                                     title="Ver detalhes">                                
                                     <i class="bi bi-search"></i>
@@ -131,4 +131,5 @@
         background-color: #5d5d61 !important;
     }
 </style>
+
 {% endblock %}
