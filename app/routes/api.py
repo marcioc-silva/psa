@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import String, cast
 from app.models.material import MaterialPSA
 from app import db
+from app.services.kpis import calcular_kpis
 from datetime import datetime
 from flask_login import login_required
 
