@@ -345,7 +345,7 @@ def check_maintenance():
     chave_mestre = "marcio123" # Sua chave para testar
 
     # Se a manutenção estiver ativa E você não estiver usando a chave mestre
-    if modo_manutencao and request.args.get('admin') != chave_mestre:
+    if modo_manutencao and request.args.get('admin') == chave_mestre:
         # Libera apenas arquivos estáticos (CSS/JS) para a página carregar o visual
         if request.endpoint != 'static':
             return render_template('manutencao.html'), 503
