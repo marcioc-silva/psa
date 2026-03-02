@@ -117,5 +117,33 @@
     </div>
 
 </div>
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const dataFiltro = params.get("data_filtro");
+
+  const url = new URL("/api/kpis", window.location.origin);
+  if (dataFiltro) url.searchParams.set("data_filtro", dataFiltro);
+
+  fetch(url, { credentials: "same-origin" })
+    .then(r => r.ok ? r.json() : Promise.reject(r))
+    .then(k => {
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      set("kpi-total", k.total ?? 0);
+      set("kpi-conferidos", k.conferidos ?? 0);
+      set("kpi-pendentes", k.pendentes ?? 0);
+      set("kpi-retencao", k.total_retencao ?? 0);
+      set("kpi-acuracidade", (k.acuracidade ?? 0) + "%");
+      set("kpi-taxaq", (k.taxa_qualidade ?? 100) + "%");
+      set("kpi-div", k.itens_com_divergencia ?? 0);
+    })
+    .catch(err => console.error("Falha ao carregar KPIs:", err));
+})();
+</script>
+
 
 
