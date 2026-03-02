@@ -63,3 +63,10 @@ def confirmar_conferencia_api():
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "erro", "mensagem": str(e)}), 500
+
+@bp.get("/kpis")
+@login_required
+def kpis():
+    data_filtro = request.args.get("data_filtro")
+    k = calcular_kpis(data_filtro)
+    return jsonify(k)
