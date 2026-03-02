@@ -338,6 +338,18 @@ def pendentes():
     materiais = query.filter(MaterialPSA.conferido == False).all()
     return render_template("pendentes.html", materiais=materiais)
 
+@app.before_request
+def check_maintenance():
+    # Busca a variável 'MANUTENCAO' no Render. Se não existir, assume 'False'.
+    modo_manutencao = os.getenv('MANUTENCAO', 'False') == 'True'
+    chave_mestre = "marcio123" # Sua chave para testar
+
+    # Se a manutenção estiver ativa E você não estiver usando a chave mestre
+    if modo_manutencao and request.args.get('admin') != chave_mestre:
+        # Libera apenas arquivos estáticos (CSS/JS) para a página carregar o visual
+        if request.endpoint != 'static':
+            return render_template('manutencao.html'), 503
+
 @bp.route("/__diag/routes")
 def diag_routes():
     from flask import current_app
