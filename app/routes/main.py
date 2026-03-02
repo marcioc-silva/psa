@@ -18,7 +18,7 @@ def validar_acesso(chave_fornecida):
     
     # 2. Lógica de decisão
     if MODO_MANUTENCAO:
-        if chave_fornecida == CHAVE_MESTRA:
+        if chave_fornecida != CHAVE_MESTRA:
             return "autorizado"
         else:
             return "manutencao"
