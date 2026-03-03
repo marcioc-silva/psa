@@ -70,6 +70,6 @@ def confirmar_conferencia_api():
 @login_required
 def kpis():
     data_filtro = request.args.get("data_filtro")
-    psa_key = request.args.get("psa_key")  # ou o nome do parâmetro que você decidir no filtro
+    psa_key = request.args.get("psa_key")
     k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
     return jsonify(k)
