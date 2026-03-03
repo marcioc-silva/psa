@@ -98,6 +98,8 @@ def create_app(config_object=None):
     app.register_blueprint(reports_bp)
     from app.routes.admin import bp as admin_bp
     app.register_blueprint(admin_bp)
+    from app.routes.dashboard import bp as dashboard_bp
+    app.register_blueprint(dashboard_bp)
 
     @login_manager.user_loader
     def load_user(user_id):
