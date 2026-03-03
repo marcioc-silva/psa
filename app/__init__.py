@@ -1,20 +1,19 @@
 import os
-
-from flask import current_app, request, has_request_context
-from flask_login import current_user
 from datetime import datetime, timezone
-from flask import Flask, request
+from flask import Flask, request, has_request_context, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
 
-# Extensões (criadas fora da factory)
+# Extensões (criadas fora da factory para evitar importação circular)
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
+
 def create_app(config_object=None):
     basedir = os.path.abspath(os.path.dirname(__file__))
     
+    # Garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
     from app.models.usuario import Usuario
     from app.models.material import MaterialPSA
     
@@ -25,157 +24,123 @@ def create_app(config_object=None):
         template_folder="templates", 
         static_folder=static_path, 
         static_url_path="/static"
-    )       
-    # =========================
-    # Context Processor (KPIs + Datas) — para os cards funcionarem em TODAS as páginas
-    # =========================
-    from flask import current_app, request, has_request_context
-    from flask_login import current_user
-    from datetime import datetime, timezone
-    
+    )
+
+    # ======================================================
+    # Context Processor (KPIs + Datas)
+    # ======================================================
     @app.context_processor
     def inject_globals():
-        ctx = {
-            "now": datetime.now(timezone.utc),
-            "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions,
-            "ctx_version": "CTX-2026-03-03-01",
-        }
-    
-        # ✅ POKA-YOKE: sem request (boot, cli, migrate, etc.)
-        if not has_request_context():
-            ctx.setdefault("data_atual", None)
-            ctx.setdefault("psa_key_atual", None)
-            ctx.setdefault("datas", [])
-            ctx.setdefault("psas", [])
-            return ctx
-    
-        # ✅ A partir daqui é seguro usar request.args
-        data_filtro = request.args.get("data_filtro")
-        psa_key = request.args.get("psa_key")
-    
-        ctx["data_atual"] = data_filtro
-        ctx["psa_key_atual"] = psa_key
-    
-        # ✅ Usuário não logado: não calcula KPI, mas mantém listas vazias (ou você pode preencher datas/psas mesmo sem login)
-        if not current_user.is_authenticated:
-            ctx.setdefault("datas", [])
-            ctx.setdefault("psas", [])
-            return ctx
-    
-        try:
-            from app.services.kpis import (
-                calcular_kpis,
-                listar_datas_importacao,
-                listar_psas,
-            )
-    
-            ctx["datas"] = listar_datas_importacao()
-            ctx["psas"] = listar_psas()
-    
-            k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
-    
-            ctx.update(
-                total=k.get("total", 0),
-                conferidos=k.get("conferidos", 0),
-                pendentes=k.get("pendentes", 0),
-                acuracidade=k.get("acuracidade", 0.0),
-                taxa_qualidade=k.get("taxa_qualidade", 100.0),
-                itens_com_divergencia=k.get("itens_com_divergencia", 0),
-                total_retencao=k.get("total_retencao", 0),
-                retencao_pendente=k.get("retencao_pendente", 0),
-            )
-        
-        except Exception as e:
-            # ✅ aqui current_app existe (estamos dentro do request/app context)
-            current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
-    
-            ctx.setdefault("datas", [])
-            ctx.setdefault("psas", [])
-    
-            ctx.setdefault("total", 0)
-            ctx.setdefault("conferidos", 0)
-            ctx.setdefault("pendentes", 0)
-            ctx.setdefault("acuracidade", 0.0)
-            ctx.setdefault("taxa_qualidade", 100.0)
-            ctx.setdefault("itens_com_divergencia", 0)
-            ctx.setdefault("total_retencao", 0)
-            ctx.setdefault("retencao_pendente", 0)
-    
-            ctx["ctx_error"] = str(e)[:120]
-    
-        return ctx
+        ctx = {
+            "now": datetime.now(timezone.utc),
+            "has_enviar_reporte": "reports.enviar_reporte" in app.view_functions,
+            "ctx_version": "CTX-2026-03-03-03",
+        }
+
+        # POKA-YOKE: sem request context (CLI, Migrate, etc.)
+        if not has_request_context():
+            ctx.update({
+                "data_atual": None,
+                "psa_key_atual": None,
+                "datas": [],
+                "psas": []
+            })
+            return ctx
+
+        # Captura filtros da URL
+        data_filtro = request.args.get("data_filtro")
+        psa_key = request.args.get("psa_key")
+        ctx["data_atual"] = data_filtro
+        ctx["psa_key_atual"] = psa_key
+
+        # Se não estiver logado, não tenta buscar KPIs
+        if not current_user.is_authenticated:
+            ctx.update({"datas": [], "psas": []})
+            return ctx
+
+        try:
+            from app.services.kpis import calcular_kpis, listar_datas_importacao, listar_psas
+            
+            ctx["datas"] = listar_datas_importacao()
+            ctx["psas"] = listar_psas()
+
+            k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
+            ctx.update(k)
+
+        except Exception as e:
+            app.logger.exception("Falha ao injetar KPIs: %s", e)
+            ctx.update({
+                "total": 0, "conferidos": 0, "pendentes": 0,
+                "acuracidade": 0.0, "taxa_qualidade": 100.0,
+                "ctx_error": str(e)[:120]
+            })
+
+        return ctx
+
     # =========================
-        # Configuração
-        # =========================
-        app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
-    
-        db_url = os.getenv("DATABASE_URL")
-        if db_url:
-            if db_url.startswith("postgres://"):
-                db_url = db_url.replace("postgres://", "postgresql://", 1)
-            app.config["SQLALCHEMY_DATABASE_URI"] = db_url
-        else:
-            instance_dir = os.path.join(basedir, "..", "instance")
-            os.makedirs(instance_dir, exist_ok=True)
-            sqlite_path = os.path.join(instance_dir, "psa_storage.db")
-            app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
-    
-        app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-        app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {"pool_pre_ping": True})
-    
-        # =========================
-        # Extensões
-        # =========================
-        db.init_app(app)
-        migrate.init_app(app, db)    
-    
-        login_manager.init_app(app)
-        login_manager.login_view = "main.login"
-        login_manager.login_message_category = "warning"    
-    
-        # =========================
-        # Blueprints
-        # =========================
-        from app.routes.main import bp as main_bp
-        app.register_blueprint(main_bp)
-    
-        # Poka-yoke: se rotas críticas não forem carregadas, falha no boot (evita regressões em deploy)
-        missing = [ep for ep in ("main.login", "main.registrar") if ep not in app.view_functions]
-        if missing:
-            raise RuntimeError(
-                f"Endpoints ausentes: {missing}. Rotas do blueprint 'main' não foram carregadas."
-            )
-    
-        from app.routes.api import bp as api_bp
-        app.register_blueprint(api_bp)
-    
-        from app.routes.importer import bp as importer_bp
-        app.register_blueprint(importer_bp)
-    
-        from app.routes.reports import bp as reports_bp
-        app.register_blueprint(reports_bp)
-    
-        # ✅ admin
-        from app.routes.admin import bp as admin_bp
-        app.register_blueprint(admin_bp)
-    
-        # =========================
-        # Flask-Login user_loader
-        # =========================
-        from app.models.usuario import Usuario
-    
-        @login_manager.user_loader
-        def load_user(user_id):
-            try:
-                return db.session.get(Usuario, int(user_id))
-            except (TypeError, ValueError):
-                return None
-    
-        # =========================
-        # Banco: create_all apenas em DEV
-        # =========================
-        if app.debug or os.getenv("FLASK_ENV") == "development":
-            with app.app_context():
-                db.create_all()
-    
-        return app
+    # Configuração de Ambiente
+    # =========================
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
+
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+    else:
+        instance_dir = os.path.join(basedir, "..", "instance")
+        os.makedirs(instance_dir, exist_ok=True)
+        sqlite_path = os.path.join(instance_dir, "psa_storage.db")
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{sqlite_path}"
+
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {"pool_pre_ping": True})
+
+    # =========================
+    # Inicialização de Extensões
+    # =========================
+    db.init_app(app)
+    migrate.init_app(app, db)
+    login_manager.init_app(app)
+    login_manager.login_view = "main.login"
+    login_manager.login_message_category = "warning"
+
+    # =========================
+    # Registro de Blueprints
+    # =========================
+    from app.routes.main import bp as main_bp
+    app.register_blueprint(main_bp)
+
+    from app.routes.api import bp as api_bp
+    app.register_blueprint(api_bp)
+
+    from app.routes.importer import bp as importer_bp
+    app.register_blueprint(importer_bp)
+
+    from app.routes.reports import bp as reports_bp
+    app.register_blueprint(reports_bp)
+
+    from app.routes.admin import bp as admin_bp
+    app.register_blueprint(admin_bp)
+
+    # Verificação de Rotas Críticas
+    missing = [ep for ep in ("main.login", "main.registrar") if ep not in app.view_functions]
+    if missing:
+        raise RuntimeError(f"Endpoints ausentes: {missing}. Verifique os Blueprints.")
+
+    # =========================
+    # Flask-Login Loader
+    # =========================
+    @login_manager.user_loader
+    def load_user(user_id):
+        try:
+            return db.session.get(Usuario, int(user_id))
+        except (TypeError, ValueError):
+            return None
+
+    # Banco: create_all apenas em desenvolvimento
+    if app.debug or os.getenv("FLASK_ENV") == "development":
+        with app.app_context():
+            db.create_all()
+
+    return app
