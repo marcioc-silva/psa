@@ -51,6 +51,8 @@ def create_app(config_object=None):
             ctx["data_atual"] = data_filtro
             ctx["datas"] = listar_datas_importacao()
             psa_key = request.args.get("psa_key")  # ou o nome do parâmetro que você decidir no filtro
+            ctx["psa_key_atual"] = psa_key
+            ctx["psas"] = listar_psas()
             k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
             ctx.update(
                 total=k.get("total", 0),
@@ -61,6 +63,8 @@ def create_app(config_object=None):
                 itens_com_divergencia=k.get("itens_com_divergencia", 0),
                 total_retencao=k.get("total_retencao", 0),
                 retencao_pendente=k.get("retencao_pendente", 0),
+                
+                
             )
         except Exception as e:
             current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
@@ -78,6 +82,8 @@ def create_app(config_object=None):
     
             # ✅ opcional (ajuda MUITO a debugar sem olhar log)
             ctx["ctx_error"] = str(e)[:120]
+            ctx.setdefault("psa_key_atual", psa_key)
+            ctx.setdefault("psas", [])
     
         return ctx
     # =========================
