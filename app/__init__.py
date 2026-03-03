@@ -47,44 +47,44 @@ def create_app(config_object=None):
     
     try:
         from app.services.kpis import (
-        calcular_kpis,
-        listar_datas_importacao,
-        listar_psas
-    )
+            calcular_kpis,
+            listar_datas_importacao,
+            listar_psas
+        )
+    
+        # =========================
+        # Filtros vindos da URL
+        # =========================
+        data_filtro = request.args.get("data_filtro")
+        psa_key = request.args.get("psa_key")
+    
+        ctx["data_atual"] = data_filtro
+        ctx["psa_key_atual"] = psa_key
+    
+        # =========================
+        # Listas para os selects
+        # =========================
+        ctx["datas"] = listar_datas_importacao()
+        ctx["psas"] = listar_psas()
+    
+        # =========================
+        # KPIs
+        # =========================
+        k = calcular_kpis(
+            data_filtro=data_filtro,
+            psa_key=psa_key
+        )
 
-    # =========================
-    # Filtros vindos da URL
-    # =========================
-    data_filtro = request.args.get("data_filtro")
-    psa_key = request.args.get("psa_key")
-
-    ctx["data_atual"] = data_filtro
-    ctx["psa_key_atual"] = psa_key
-
-    # =========================
-    # Listas para os selects
-    # =========================
-    ctx["datas"] = listar_datas_importacao()
-    ctx["psas"] = listar_psas()
-
-    # =========================
-    # KPIs
-    # =========================
-    k = calcular_kpis(
-        data_filtro=data_filtro,
-        psa_key=psa_key
-    )
-
-    ctx.update(
-        total=k.get("total", 0),
-        conferidos=k.get("conferidos", 0),
-        pendentes=k.get("pendentes", 0),
-        acuracidade=k.get("acuracidade", 0.0),
-        taxa_qualidade=k.get("taxa_qualidade", 100.0),
-        itens_com_divergencia=k.get("itens_com_divergencia", 0),
-        total_retencao=k.get("total_retencao", 0),
-        retencao_pendente=k.get("retencao_pendente", 0),
-    )
+        ctx.update(
+            total=k.get("total", 0),
+            conferidos=k.get("conferidos", 0),
+            pendentes=k.get("pendentes", 0),
+            acuracidade=k.get("acuracidade", 0.0),
+            taxa_qualidade=k.get("taxa_qualidade", 100.0),
+            itens_com_divergencia=k.get("itens_com_divergencia", 0),
+            total_retencao=k.get("total_retencao", 0),
+            retencao_pendente=k.get("retencao_pendente", 0),
+        )
         except Exception as e:
             current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
     
