@@ -14,18 +14,18 @@ migrate = Migrate()
 login_manager = LoginManager()
 def create_app(config_object=None):
     basedir = os.path.abspath(os.path.dirname(__file__))
-    # garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
-    from app.models.usuario import Usuario  # noqa: F401
-    from app.models.material import MaterialPSA  # noqa: F401
-    
-    static_path = os.path.join(basedir, "static")
+    
+    from app.models.usuario import Usuario
+    from app.models.material import MaterialPSA
+    
+    static_path = os.path.join(basedir, "static")
 
-    app = Flask(
-        __name__, 
-        template_folder="templates", 
-        static_folder=static_path,     # Agora aponta para /app/static
-        static_url_path="/static")      # Mantém a URL como /static/ no navegador
-    )        
+    app = Flask(
+        __name__, 
+        template_folder="templates", 
+        static_folder=static_path, 
+        static_url_path="/static"
+    )       
     # =========================
     # Context Processor (KPIs + Datas) — para os cards funcionarem em TODAS as páginas
     # =========================
