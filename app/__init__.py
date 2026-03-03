@@ -45,7 +45,7 @@ def create_app(config_object=None):
     
         data_filtro = request.args.get("data_filtro")
     
-        try:
+    try:
         from app.services.kpis import (
         calcular_kpis,
         listar_datas_importacao,
