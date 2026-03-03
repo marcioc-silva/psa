@@ -13,18 +13,25 @@
 
   <!-- ✅ NOVO: filtro de PSA -->
   <select name="psa_key"
-          class="form-select border-primary text-primary fw-bold me-2"
-          onchange="this.form.submit()"
-          style="min-width: 260px;">
-    <option value="">🏭 Todos os PSA (Geral)</option>
-    {% for p in (psas|default([])) %}
-      {# p pode ser string ou dict; abaixo funciona com dict #}
-      <option value="{{ p.key }}"
-              {% if (psa_key_atual|default('')) == p.key %}selected{% endif %}>
-        {{ p.label }}
+        class="form-select border-primary text-primary fw-bold me-2"
+        onchange="this.form.submit()"
+        style="min-width: 260px;">
+  <option value="">🏭 Todos os PSA (Geral)</option>
+
+  {% for p in (psas|default([])) %}
+    {% if p is string %}
+      <option value="{{ p }}"
+              {% if (psa_key_atual|default('')) == p %}selected{% endif %}>
+        {{ p }}
       </option>
-    {% endfor %}
-  </select>
+    {% else %}
+      <option value="{{ p['key'] }}"
+              {% if (psa_key_atual|default('')) == p['key'] %}selected{% endif %}>
+        {{ p['label'] }}
+      </option>
+    {% endif %}
+  {% endfor %}
+</select>
 
   <!-- seu filtro de data (igual) -->
   <select name="data_filtro"
@@ -163,4 +170,5 @@
     .catch(err => console.error("Falha ao carregar KPIs:", err));
 })();
 </script>
+
 
