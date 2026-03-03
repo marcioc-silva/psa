@@ -13,8 +13,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
 def create_app(config_object=None):
-    
-    basedir = os.path.abspath(os.path.dirname(__file__))
+    basedir = os.path.abspath(os.path.dirname(__file__))
     # garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
     from app.models.usuario import Usuario  # noqa: F401
     from app.models.material import MaterialPSA  # noqa: F401
@@ -85,7 +84,7 @@ def create_app(config_object=None):
                 total_retencao=k.get("total_retencao", 0),
                 retencao_pendente=k.get("retencao_pendente", 0),
             )
-    
+        
         except Exception as e:
             # ✅ aqui current_app existe (estamos dentro do request/app context)
             current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
