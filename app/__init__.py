@@ -85,29 +85,29 @@ def create_app(config_object=None):
             total_retencao=k.get("total_retencao", 0),
             retencao_pendente=k.get("retencao_pendente", 0),
         )
-        except Exception as e:
-            current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
-    
-            ctx.setdefault("data_atual", data_filtro)
-            ctx.setdefault("datas", [])
-            ctx.setdefault("total", 0)
-            ctx.setdefault("conferidos", 0)
-            ctx.setdefault("pendentes", 0)
-            ctx.setdefault("acuracidade", 0.0)
-            ctx.setdefault("taxa_qualidade", 100.0)
-            ctx.setdefault("itens_com_divergencia", 0)
-            ctx.setdefault("total_retencao", 0)
-            ctx.setdefault("retencao_pendente", 0)
-    
-            # ✅ opcional (ajuda MUITO a debugar sem olhar log)
-            ctx["ctx_error"] = str(e)[:120]
-            ctx.setdefault("psa_key_atual", psa_key)
-            ctx.setdefault("psas", [])
-            ctx.setdefault("psa_key_atual", request.args.get("psa_key"))
-            ctx.setdefault("psas", [])
-    
-        return ctx
-    # =========================
+    except Exception as e:
+        current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
+
+        ctx.setdefault("data_atual", data_filtro)
+        ctx.setdefault("datas", [])
+        ctx.setdefault("total", 0)
+        ctx.setdefault("conferidos", 0)
+        ctx.setdefault("pendentes", 0)
+        ctx.setdefault("acuracidade", 0.0)
+        ctx.setdefault("taxa_qualidade", 100.0)
+        ctx.setdefault("itens_com_divergencia", 0)
+        ctx.setdefault("total_retencao", 0)
+        ctx.setdefault("retencao_pendente", 0)
+
+        # ✅ opcional (ajuda MUITO a debugar sem olhar log)
+        ctx["ctx_error"] = str(e)[:120]
+        ctx.setdefault("psa_key_atual", psa_key)
+        ctx.setdefault("psas", [])
+        ctx.setdefault("psa_key_atual", request.args.get("psa_key"))
+        ctx.setdefault("psas", [])
+
+    return ctx
+# =========================
     # Configuração
     # =========================
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
