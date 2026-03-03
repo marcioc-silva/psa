@@ -1,57 +1,40 @@
-{# Poka-yoke: pega psa_key da URL (se existir) #}
+{# ✅ Poka-yoke: pega psa_key da URL (se existir) #}
 {% set psa_key = request.args.get("psa_key") %}
 
 <div class="card shadow-sm border-primary mb-4">
-    <div class="card-body bg-light d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 py-2">
-        <div class="d-flex align-items-center">
-            <i class="bi bi-funnel-fill text-primary fs-4 me-3"></i>
-            <div>
-                <h6 class="m-0 text-primary fw-bold">Filtrar por Importação</h6>
-                <small class="text-muted">Visualize os dados de um dia específico</small>
-            </div>
-        </div>
-
-        <form action="{{ url_for('main.dashboard') }}" method="GET" class="d-flex align-items-center w-100 w-md-auto">
-            {# ✅ mantém o PSA ao trocar data #}
-            {% if psa_key %}
-              <input type="hidden" name="psa_key" value="{{ psa_key }}">
-            {% endif %}
-
-            <select name="data_filtro" class="form-select border-primary text-primary fw-bold me-2"
-                    onchange="this.form.submit()" style="min-width: 250px;">
-                <option value="">📊 Todas as Importações (Geral)</option>
-                {% for data in (datas|default([])) %}
-                    <option value="{{ data }}" {% if (data_atual|default('')) == data %}selected{% endif %}>
-                        📅 Importação de {{ data }}
-                    </option>
-                {% endfor %}
-            </select>
-
-            {% if data_atual %}
-                {# ✅ limpar filtro preservando PSA #}
-                <a href="{{ url_for('main.dashboard', psa_key=psa_key) }}"
-                   class="btn btn-outline-danger" title="Limpar Filtro">
-                    <i class="bi bi-x-lg"></i>
-                </a>
-            {% endif %}
-        </form>
+  <div class="card-body bg-light d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 py-2">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-funnel-fill text-primary fs-4 me-3"></i>
+      <div>
+        <h6 class="m-0 text-primary fw-bold">Filtrar por Importação</h6>
+        <small class="text-muted">Visualize os dados de um dia específico</small>
+      </div>
     </div>
-</div>
 
-<div class="row row-cols-1 row-cols-md-3 row-cols-lg-6 g-2 mb-4">
+    <form action="{{ url_for('main.dashboard') }}" method="GET" class="d-flex align-items-center w-100 w-md-auto">
+      {% if psa_key %}
+        <input type="hidden" name="psa_key" value="{{ psa_key }}">
+      {% endif %}
 
-    <div class="col">
-        <a href="{{ url_for('reports.lista_materiais', tipo='geral', data_filtro=(data_atual|default(None)), psa_key=psa_key) }}"
-           class="text-decoration-none h-100 d-block card-hover">
-            <div class="card card-indicator shadow-sm border-0 p-3 h-100 text-center" style="border-left-color: #0d6efd !important;">
-                <div class="text-uppercase fw-bold text-muted mb-1" style="font-size: 0.75rem; letter-spacing: 0.5px;">Total PSA</div>
-                <div class="h3 fw-bold m-0 text-dark" style="font-size: 1.6rem;">
-                    <span id="kpi-total">—</span>
-                </div>
-                <div class="text-muted" style="font-size: 0.7rem;">Itens na Base</div>
-            </div>
+      <select name="data_filtro" class="form-select border-primary text-primary fw-bold me-2"
+              onchange="this.form.submit()" style="min-width: 250px;">
+        <option value="">📊 Todas as Importações (Geral)</option>
+        {% for data in (datas|default([])) %}
+          <option value="{{ data }}" {% if (data_atual|default('')) == data %}selected{% endif %}>
+            📅 Importação de {{ data }}
+          </option>
+        {% endfor %}
+      </select>
+
+      {% if data_atual %}
+        <a href="{{ url_for('main.dashboard', psa_key=psa_key) }}"
+           class="btn btn-outline-danger" title="Limpar Filtro">
+          <i class="bi bi-x-lg"></i>
         </a>
-    </div>
+      {% endif %}
+    </form>
+  </div>
+</div>
 
     <div class="col">
         <a href="{{ url_for('reports.lista_materiais', tipo='conferidos', data_filtro=(data_atual|default(None)), psa_key=psa_key) }}"
@@ -127,7 +110,6 @@
     </div>
 
 </div>
-
 <script>
 (function() {
   const params = new URLSearchParams(window.location.search);
@@ -136,7 +118,7 @@
 
   const url = new URL("/api/kpis", window.location.origin);
   if (dataFiltro) url.searchParams.set("data_filtro", dataFiltro);
-  if (psaKey) url.searchParams.set("psa_key", psaKey); // ✅ ESSENCIAL
+  if (psaKey) url.searchParams.set("psa_key", psaKey);
 
   fetch(url, { credentials: "same-origin" })
     .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
@@ -154,7 +136,6 @@
       set("kpi-taxaq", ((k.taxa_qualidade ?? 100) + "%"));
       set("kpi-div", (k.itens_com_divergencia ?? 0));
 
-      // opcional: label do card retenção com pendentes
       const lbl = document.getElementById("kpi-retencao-label");
       if (lbl) {
         const pend = k.retencao_pendente ?? 0;
@@ -171,4 +152,5 @@
     })
     .catch(err => console.error("Falha ao carregar KPIs:", err));
 })();
-               </script>
+</script>
+
