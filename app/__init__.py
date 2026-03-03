@@ -46,7 +46,7 @@ def create_app(config_object=None):
         data_filtro = request.args.get("data_filtro")
     
         try:
-            from app.services.kpis import calcular_kpis, listar_datas_importacao
+           from app.services.kpis import calcular_kpis, listar_datas_importacao
     
             ctx["data_atual"] = data_filtro
             ctx["datas"] = listar_datas_importacao()
@@ -54,6 +54,11 @@ def create_app(config_object=None):
             ctx["psa_key_atual"] = psa_key
             ctx["psas"] = listar_psas()
             k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
+            psa_key = request.args.get("psa_key")
+            ctx["psa_key_atual"] = psa_key
+
+            from app.services.kpis import listar_psas
+            ctx["psas"] = listar_psas()
             ctx.update(
                 total=k.get("total", 0),
                 conferidos=k.get("conferidos", 0),
@@ -83,6 +88,8 @@ def create_app(config_object=None):
             # ✅ opcional (ajuda MUITO a debugar sem olhar log)
             ctx["ctx_error"] = str(e)[:120]
             ctx.setdefault("psa_key_atual", psa_key)
+            ctx.setdefault("psas", [])
+            ctx.setdefault("psa_key_atual", request.args.get("psa_key"))
             ctx.setdefault("psas", [])
     
         return ctx
