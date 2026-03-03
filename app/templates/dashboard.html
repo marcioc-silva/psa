@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h4 class="m-0">Indicadores de Performance</h4>
+
+    <div class="d-flex gap-2">
+      <select id="psaSelect" class="form-select form-select-sm" style="min-width: 220px;">
+        <option value="">Todos os PSAs</option>
+        <!-- opcional: preencher via outro endpoint -->
+      </select>
+
+      <select id="diasSelect" class="form-select form-select-sm" style="width: 140px;">
+        <option value="7">7 dias</option>
+        <option value="30" selected>30 dias</option>
+        <option value="90">90 dias</option>
+      </select>
+
+      <button id="btnRefresh" class="btn btn-sm btn-primary">Atualizar</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">IRA</div>
+          <div class="d-flex align-items-end gap-2">
+            <div id="kpiIra" class="display-6 fw-bold">--</div>
+            <div class="text-muted mb-2">meta <span id="kpiMeta">--</span>%</div>
+          </div>
+          <div class="small text-muted">
+            Total: <span id="kpiTotal">--</span> •
+            Conferidas: <span id="kpiConf">--</span> •
+            Pendentes: <span id="kpiPend">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Divergências</div>
+          <div id="kpiDiv" class="display-6 fw-bold">--</div>
+          <div class="small text-muted">UDs com divergência</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Pendências</div>
+          <div id="kpiPend2" class="display-6 fw-bold">--</div>
+          <div class="small text-muted">UDs pendentes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Conferidas</div>
+          <div id="kpiConf2" class="display-6 fw-bold">--</div>
+          <div class="small text-muted">UDs conferidas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="row g-3">
+    <div class="col-12 col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white">
+          <strong>Status da Conferência</strong>
+        </div>
+        <div class="card-body">
+          <canvas id="chartStatus" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <strong>Pareto por Material</strong>
+          <span class="text-muted small">Top 10</span>
+        </div>
+        <div class="card-body">
+          <canvas id="chartPareto" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white">
+          <strong>Pendência por PSA</strong>
+        </div>
+        <div class="card-body">
+          <canvas id="chartPSA" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white">
+          <strong>Conferências por Dia</strong>
+        </div>
+        <div class="card-body">
+          <canvas id="chartTrend" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <strong>Vencimento (UDs por mês)</strong>
+        </div>
+        <div class="card-body">
+          <canvas id="chartVenc" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+  let charts = {};
+
+  function destroyChart(key) {
+    if (charts[key]) { charts[key].destroy(); charts[key] = null; }
+  }
+
+  function createCharts(payload) {
+    // KPIs
+    document.getElementById("kpiIra").textContent = payload.kpis.ira.toFixed(1) + "%";
+    document.getElementById("kpiMeta").textContent = payload.kpis.meta_ira.toFixed(1);
+    document.getElementById("kpiTotal").textContent = payload.kpis.total;
+    document.getElementById("kpiConf").textContent = payload.kpis.conferidas;
+    document.getElementById("kpiPend").textContent = payload.kpis.pendentes;
+    document.getElementById("kpiDiv").textContent = payload.kpis.divergentes;
+    document.getElementById("kpiPend2").textContent = payload.kpis.pendentes;
+    document.getElementById("kpiConf2").textContent = payload.kpis.conferidas;
+
+    // Donut Status
+    destroyChart("status");
+    charts.status = new Chart(document.getElementById("chartStatus"), {
+      type: "doughnut",
+      data: {
+        labels: payload.charts.status.labels,
+        datasets: [{ data: payload.charts.status.values }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "right" },
+          tooltip: { enabled: true }
+        },
+        cutout: "65%"
+      }
+    });
+
+    // Pareto (barras)
+    destroyChart("pareto");
+    charts.pareto = new Chart(document.getElementById("chartPareto"), {
+      type: "bar",
+      data: {
+        labels: payload.charts.pareto.labels,
+        datasets: [{ label: "Carga (UDs)", data: payload.charts.pareto.values }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxRotation: 0, autoSkip: false } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    // Pendência por PSA
+    destroyChart("psa");
+    charts.psa = new Chart(document.getElementById("chartPSA"), {
+      type: "bar",
+      data: {
+        labels: payload.charts.pendencia_psa.labels,
+        datasets: [{ label: "Pendentes", data: payload.charts.pendencia_psa.values }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    // Trend conferência
+    destroyChart("trend");
+    charts.trend = new Chart(document.getElementById("chartTrend"), {
+      type: "line",
+      data: {
+        labels: payload.charts.trend_conferencia.labels,
+        datasets: [{ label: "Conferidas/dia", data: payload.charts.trend_conferencia.values, tension: 0.25 }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    // Vencimento
+    destroyChart("venc");
+    charts.venc = new Chart(document.getElementById("chartVenc"), {
+      type: "bar",
+      data: {
+        labels: payload.charts.vencimento.labels,
+        datasets: [{ label: "UDs", data: payload.charts.vencimento.values }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  async function loadDashboard() {
+    const psa = document.getElementById("psaSelect").value;
+    const dias = document.getElementById("diasSelect").value;
+
+    const params = new URLSearchParams();
+    if (psa) params.set("psa", psa);
+    params.set("dias", dias);
+
+    const res = await fetch(`/dash/api/dashboard?` + params.toString());
+    const payload = await res.json();
+    createCharts(payload);
+  }
+
+  document.getElementById("btnRefresh").addEventListener("click", loadDashboard);
+  document.getElementById("psaSelect").addEventListener("change", loadDashboard);
+  document.getElementById("diasSelect").addEventListener("change", loadDashboard);
+
+  loadDashboard();
+</script>
+{% endblock %}
