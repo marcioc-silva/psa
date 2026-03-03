@@ -47,7 +47,7 @@ def upload():
             dtype={'Unidade de depósito': str, 'Material': str, 'Lote': str}
         )
         df = df.replace({np.nan: None})
-
+        df = df.drop_duplicates(subset=['Unidade de depósito'], keep='last')
         data_atual = datetime.now()
 
         def limpar_numero(val):
