@@ -32,7 +32,11 @@
     {% endif %}
   {% endfor %}
 </select>
-
+<div class="small text-white opacity-75 mt-1">
+  psas_len={{ (psas|default([]))|length }} |
+  psa_key_atual={{ psa_key_atual|default('') }} |
+  ctx_error={{ ctx_error|default('') }}
+</div>
   <!-- seu filtro de data (igual) -->
   <select name="data_filtro"
           class="form-select border-primary text-primary fw-bold me-2"
@@ -170,5 +174,6 @@
     .catch(err => console.error("Falha ao carregar KPIs:", err));
 })();
 </script>
+
 
 
