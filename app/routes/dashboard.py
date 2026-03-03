@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from app import db
 from app.models.material import MaterialPSA
 
-bp = Blueprint("dash", __name__, url_prefix="/dash")
+bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
 
 @bp.route("/")
