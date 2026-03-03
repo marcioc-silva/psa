@@ -1,12 +1,35 @@
 from __future__ import annotations
-
 from datetime import datetime, timedelta, date
 from typing import Optional, Dict, Any
-
 from sqlalchemy import func
-
 from app.models.material import MaterialPSA
+from app import db
 
+def listar_psas():
+    """
+    Retorna lista de PSA disponíveis no banco.
+    Formato: [{key:"145:ACONDLIQ", label:"ACONDLIQ (145)"}, ...]
+    """
+    rows = (
+        db.session.query(
+            MaterialPSA.psa_key,
+            MaterialPSA.psa_posicao,
+            MaterialPSA.psa_tipo
+        )
+        .filter(MaterialPSA.psa_key.isnot(None))
+        .group_by(MaterialPSA.psa_key, MaterialPSA.psa_posicao, MaterialPSA.psa_tipo)
+        .order_by(MaterialPSA.psa_tipo.asc(), MaterialPSA.psa_posicao.asc())
+        .all()
+    )
+
+    out = []
+    for key, pos, tipo in rows:
+        pos = (pos or "").strip()
+        tipo = (tipo or "").strip()
+        label = f"{pos} ({tipo})" if pos or tipo else key
+        out.append({"key": key, "label": label})
+
+    return out
 
 def _parse_data_filtro(data_filtro: str | None) -> Optional[date]:
     if not data_filtro:
