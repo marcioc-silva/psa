@@ -104,22 +104,16 @@
 
 <script>
 (function() {
-  // ✅ NÃO dependa de window.location.search
-  const dataFiltro = {{ (data_atual|default(None)) | tojson | safe }};
+  const params = new URLSearchParams(window.location.search);
+  const dataFiltro = params.get("data_filtro");
+  const psaKey = params.get("psa_key"); // novo
 
-  const url = new URL("{{ url_for('api.kpis') }}", window.location.origin);
+  const url = new URL("/api/kpis", window.location.origin);
   if (dataFiltro) url.searchParams.set("data_filtro", dataFiltro);
+  if (psaKey) url.searchParams.set("psa_key", psaKey);
 
-  // evita cache esquisito em proxy
-  url.searchParams.set("_ts", Date.now().toString());
-
-  fetch(url.toString(), { credentials: "same-origin" })
-    .then(async (r) => {
-      const ct = (r.headers.get("content-type") || "").toLowerCase();
-      if (!r.ok) throw new Error(await r.text());
-      if (!ct.includes("application/json")) throw new Error("Resposta não é JSON (provável redirect/login).");
-      return r.json();
-    })
+  fetch(url, { credentials: "same-origin" })
+    .then(r => r.ok ? r.json() : r.text().then(t => Promise.reject(t)))
     .then(k => {
       const set = (id, val) => {
         const el = document.getElementById(id);
@@ -134,14 +128,15 @@
       set("kpi-taxaq", ((k.taxa_qualidade ?? 100) + "%"));
       set("kpi-div", (k.itens_com_divergencia ?? 0));
 
-      // opcional: se vier retencao_pendente no JSON
-      const lbl = document.getElementById("kpi-retencao-label");
-      if (lbl) {
+      // label de retenção (se quiser voltar o “🚨 X pendentes”)
+      const label = document.getElementById("kpi-retencao-label");
+      if (label) {
         const rp = k.retencao_pendente ?? 0;
-        lbl.className = "small " + (rp > 0 ? "text-danger fw-bold" : "text-muted");
-        lbl.textContent = rp > 0 ? ("🚨 " + rp + " pendentes de conferência") : "Itens parados";
+        label.textContent = rp > 0 ? `🚨 ${rp} pendentes de conferência` : "Itens parados";
+        label.className = rp > 0 ? "small text-danger fw-bold" : "small text-muted";
       }
     })
     .catch(err => console.error("Falha ao carregar KPIs:", err));
 })();
-    </script>
+</script>
+
