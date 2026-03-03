@@ -56,10 +56,9 @@ def upload():
             return str(val).split('.')[0].strip()
 
         # -----------------------------
-        # ✅ NOVO: separa sozinho por PSA
+        # ✅ separa por PSA
         # -----------------------------
         grupos = {}  # psa_key -> {"psa_tipo":..., "psa_posicao":..., "rows":[...], "uds":set()}
-        total_linhas_validas = 0
 
         for _, row in df.iterrows():
             ud = limpar_numero(row.get('Unidade de depósito'))
@@ -69,9 +68,8 @@ def upload():
             tipo_dep = row.get('Tipo de depósito')
             pos_dep = row.get('Posição no depósito')
             psa_tipo, psa_posicao, psa_key = make_psa_key(tipo_dep, pos_dep)
-            
+
             if not psa_tipo or not psa_posicao:
-                # se o excel vier sem essas colunas, melhor falhar cedo do que fazer limpeza errada
                 continue
 
             if psa_key not in grupos:
@@ -84,7 +82,6 @@ def upload():
 
             grupos[psa_key]["rows"].append(row)
             grupos[psa_key]["uds"].add(ud)
-            total_linhas_validas += 1
 
         if not grupos:
             flash("Arquivo não contém UDs válidas com PSA (Tipo/Posição).", "warning")
@@ -95,17 +92,16 @@ def upload():
         count_deletados = 0
 
         # -----------------------------
-        # ✅ Processa PSA por PSA
+        # ✅ Upsert (sem deletar nada aqui)
         # -----------------------------
         for psa_key, g in grupos.items():
             psa_tipo = g["psa_tipo"]
             psa_posicao = g["psa_posicao"]
             uds_set = g["uds"]
 
-            # 1) Carrega existentes desse PSA (somente os que estão no excel)
+            # 1) Carrega existentes por UD (GLOBAL)
             existentes = (
                 MaterialPSA.query
-                .filter(MaterialPSA.psa_key == psa_key)
                 .filter(MaterialPSA.unidade_deposito.in_(list(uds_set)))
                 .all()
             )
@@ -119,7 +115,6 @@ def upload():
 
                 existente = por_ud.get(ud_codigo)
 
-                # Datas
                 raw_venc = row.get('Data do vencimento')
                 raw_ultmov = row.get('Último movimento') or row.get('data_ultimo_mov')
 
@@ -138,7 +133,6 @@ def upload():
                     except Exception:
                         data_ultmov = None
 
-                # Quantidade
                 qtd = row.get('Estoque total', 0) or row.get('Quantidade total', 0)
                 try:
                     qtd = float(qtd or 0)
@@ -160,16 +154,13 @@ def upload():
                         conferido=False,
                         data_importacao=data_atual,
 
-                        # ✅ novos campos PSA
                         psa_tipo=psa_tipo,
                         psa_posicao=psa_posicao,
                         psa_key=psa_key,
                     )
                     db.session.add(novo_material)
                     count_novos += 1
-
                 else:
-                    # ✅ Atualiza dados vindos do SAP SEM resetar conferência/divergência
                     existente.cod_material = limpar_numero(row.get('Material'))
                     existente.desc_material = str(row.get('Texto breve material') or existente.desc_material or "SEM DESCRIÇÃO")
                     existente.lote = limpar_numero(row.get('Lote')) or existente.lote or "S/L"
@@ -179,18 +170,23 @@ def upload():
                     existente.unidade_medida = str(row.get('UM básica', existente.unidade_medida or 'UN'))
                     existente.data_vencimento = data_venc
                     existente.data_ultimo_mov = data_ultmov
-                    existente.data_importacao = data_atual  # snapshot do “último import”
+                    existente.data_importacao = data_atual
 
-                    # ✅ mantém alinhado (caso tenha sido nulo antes)
                     existente.psa_tipo = psa_tipo
                     existente.psa_posicao = psa_posicao
                     existente.psa_key = psa_key
 
                     count_atualizados += 1
 
-            db.session.flush()
+        # ✅ Commit único do upsert
+        db.session.commit()
 
-            # 3) Limpeza só desse PSA
+        # -----------------------------
+        # ✅ Limpeza (agora sim, PSA por PSA)
+        # -----------------------------
+        for psa_key, g in grupos.items():
+            uds_set = g["uds"]
+
             deletados = (
                 MaterialPSA.query
                 .filter(MaterialPSA.psa_key == psa_key)
@@ -199,7 +195,7 @@ def upload():
             )
             count_deletados += int(deletados or 0)
 
-            db.session.commit()
+        db.session.commit()
 
         flash(
             f"Import concluído! PSAs: {len(grupos)} | Novos: {count_novos} | Atualizados: {count_atualizados} | Removidos: {count_deletados}",
