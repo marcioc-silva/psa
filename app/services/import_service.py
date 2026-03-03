@@ -6,7 +6,7 @@ from datetime import datetime
 def processar_arquivo(filepath):
     # Lê o Excel forçando a UD como texto
     df = pd.read_excel(filepath, dtype={'Unidade de depósito': str})
-    
+    df = df.drop_duplicates(subset=['Unidade de depósito'], keep='last')
     novos = 0
     atualizados = 0
     data_lote = datetime.now()
@@ -49,4 +49,5 @@ def processar_arquivo(filepath):
             novos += 1
 
     db.session.commit()
+
     return True, f"Importação Concluída! {novos} novos itens criados. {atualizados} itens existentes foram atualizados com novos dados."
