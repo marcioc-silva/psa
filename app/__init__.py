@@ -1,6 +1,8 @@
 import os
-from datetime import datetime, timezone
 
+from flask import current_app, request, has_request_context
+from flask_login import current_user
+from datetime import datetime, timezone
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -28,52 +30,50 @@ def create_app(config_object=None):
     # =========================
     # Context Processor (KPIs + Datas) — para os cards funcionarem em TODAS as páginas
     # =========================
-    @app.context_processor
-    def inject_globals():
-        from datetime import datetime, timezone
-        from flask import current_app, request
-        from flask_login import current_user
-    
-        ctx = {
-            "now": datetime.now(timezone.utc),
-            "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions,
-            "ctx_version": "CTX-2026-03-01-01",  # ✅ sempre presente, mesmo se o try falhar
-        }
-    
-        if not current_user.is_authenticated:
-            return ctx
-    
-        data_filtro = request.args.get("data_filtro")
-    
+from flask import current_app, request, has_request_context
+from flask_login import current_user
+from datetime import datetime, timezone
+
+@app.context_processor
+def inject_globals():
+    ctx = {
+        "now": datetime.now(timezone.utc),
+        "has_enviar_reporte": "reports.enviar_reporte" in current_app.view_functions,
+        "ctx_version": "CTX-2026-03-03-01",
+    }
+
+    # ✅ POKA-YOKE: sem request (boot, cli, migrate, etc.)
+    if not has_request_context():
+        ctx.setdefault("data_atual", None)
+        ctx.setdefault("psa_key_atual", None)
+        ctx.setdefault("datas", [])
+        ctx.setdefault("psas", [])
+        return ctx
+
+    # ✅ A partir daqui é seguro usar request.args
+    data_filtro = request.args.get("data_filtro")
+    psa_key = request.args.get("psa_key")
+
+    ctx["data_atual"] = data_filtro
+    ctx["psa_key_atual"] = psa_key
+
+    # ✅ Usuário não logado: não calcula KPI, mas mantém listas vazias (ou você pode preencher datas/psas mesmo sem login)
+    if not current_user.is_authenticated:
+        ctx.setdefault("datas", [])
+        ctx.setdefault("psas", [])
+        return ctx
+
     try:
         from app.services.kpis import (
             calcular_kpis,
             listar_datas_importacao,
-            listar_psas
+            listar_psas,
         )
-    
-        # =========================
-        # Filtros vindos da URL
-        # =========================
-        data_filtro = request.args.get("data_filtro")
-        psa_key = request.args.get("psa_key")
-    
-        ctx["data_atual"] = data_filtro
-        ctx["psa_key_atual"] = psa_key
-    
-        # =========================
-        # Listas para os selects
-        # =========================
+
         ctx["datas"] = listar_datas_importacao()
         ctx["psas"] = listar_psas()
-    
-        # =========================
-        # KPIs
-        # =========================
-        k = calcular_kpis(
-            data_filtro=data_filtro,
-            psa_key=psa_key
-        )
+
+        k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
 
         ctx.update(
             total=k.get("total", 0),
@@ -85,11 +85,14 @@ def create_app(config_object=None):
             total_retencao=k.get("total_retencao", 0),
             retencao_pendente=k.get("retencao_pendente", 0),
         )
+
     except Exception as e:
+        # ✅ aqui current_app existe (estamos dentro do request/app context)
         current_app.logger.exception("Falha ao injetar KPIs no context_processor: %s", e)
 
-        ctx.setdefault("data_atual", data_filtro)
         ctx.setdefault("datas", [])
+        ctx.setdefault("psas", [])
+
         ctx.setdefault("total", 0)
         ctx.setdefault("conferidos", 0)
         ctx.setdefault("pendentes", 0)
@@ -99,12 +102,7 @@ def create_app(config_object=None):
         ctx.setdefault("total_retencao", 0)
         ctx.setdefault("retencao_pendente", 0)
 
-        # ✅ opcional (ajuda MUITO a debugar sem olhar log)
         ctx["ctx_error"] = str(e)[:120]
-        ctx.setdefault("psa_key_atual", psa_key)
-        ctx.setdefault("psas", [])
-        ctx.setdefault("psa_key_atual", request.args.get("psa_key"))
-        ctx.setdefault("psas", [])
 
     return ctx
 # =========================
