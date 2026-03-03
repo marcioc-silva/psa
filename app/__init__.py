@@ -5,7 +5,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
 
-# Extensões (criadas fora da factory para evitar importação circular)
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
@@ -13,7 +12,6 @@ login_manager = LoginManager()
 def create_app(config_object=None):
     basedir = os.path.abspath(os.path.dirname(__file__))
     
-    # Garante que os models sejam conhecidos pelo SQLAlchemy/Migrate
     from app.models.usuario import Usuario
     from app.models.material import MaterialPSA
     
@@ -26,18 +24,14 @@ def create_app(config_object=None):
         static_url_path="/static"
     )
 
-    # ======================================================
-    # Context Processor (KPIs + Datas)
-    # ======================================================
     @app.context_processor
     def inject_globals():
         ctx = {
             "now": datetime.now(timezone.utc),
             "has_enviar_reporte": "reports.enviar_reporte" in app.view_functions,
-            "ctx_version": "CTX-2026-03-03-03",
+            "ctx_version": "CTX-2026-03-03-04",
         }
 
-        # POKA-YOKE: sem request context (CLI, Migrate, etc.)
         if not has_request_context():
             ctx.update({
                 "data_atual": None,
@@ -47,26 +41,21 @@ def create_app(config_object=None):
             })
             return ctx
 
-        # Captura filtros da URL
         data_filtro = request.args.get("data_filtro")
         psa_key = request.args.get("psa_key")
         ctx["data_atual"] = data_filtro
         ctx["psa_key_atual"] = psa_key
 
-        # Se não estiver logado, não tenta buscar KPIs
         if not current_user.is_authenticated:
             ctx.update({"datas": [], "psas": []})
             return ctx
 
         try:
             from app.services.kpis import calcular_kpis, listar_datas_importacao, listar_psas
-            
             ctx["datas"] = listar_datas_importacao()
             ctx["psas"] = listar_psas()
-
             k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
             ctx.update(k)
-
         except Exception as e:
             app.logger.exception("Falha ao injetar KPIs: %s", e)
             ctx.update({
@@ -77,9 +66,6 @@ def create_app(config_object=None):
 
         return ctx
 
-    # =========================
-    # Configuração de Ambiente
-    # =========================
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-only-change-me")
 
     db_url = os.getenv("DATABASE_URL")
@@ -96,41 +82,23 @@ def create_app(config_object=None):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {"pool_pre_ping": True})
 
-    # =========================
-    # Inicialização de Extensões
-    # =========================
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
     login_manager.login_view = "main.login"
     login_manager.login_message_category = "warning"
 
-    # =========================
-    # Registro de Blueprints
-    # =========================
     from app.routes.main import bp as main_bp
     app.register_blueprint(main_bp)
-
     from app.routes.api import bp as api_bp
     app.register_blueprint(api_bp)
-
     from app.routes.importer import bp as importer_bp
     app.register_blueprint(importer_bp)
-
     from app.routes.reports import bp as reports_bp
     app.register_blueprint(reports_bp)
-
     from app.routes.admin import bp as admin_bp
     app.register_blueprint(admin_bp)
 
-    # Verificação de Rotas Críticas
-    missing = [ep for ep in ("main.login", "main.registrar") if ep not in app.view_functions]
-    if missing:
-        raise RuntimeError(f"Endpoints ausentes: {missing}. Verifique os Blueprints.")
-
-    # =========================
-    # Flask-Login Loader
-    # =========================
     @login_manager.user_loader
     def load_user(user_id):
         try:
@@ -138,7 +106,6 @@ def create_app(config_object=None):
         except (TypeError, ValueError):
             return None
 
-    # Banco: create_all apenas em desenvolvimento
     if app.debug or os.getenv("FLASK_ENV") == "development":
         with app.app_context():
             db.create_all()
