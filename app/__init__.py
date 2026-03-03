@@ -50,8 +50,8 @@ def create_app(config_object=None):
     
             ctx["data_atual"] = data_filtro
             ctx["datas"] = listar_datas_importacao()
-    
-            k = calcular_kpis(data_filtro)
+            psa_key = request.args.get("psa_key")  # ou o nome do parâmetro que você decidir no filtro
+            k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
             ctx.update(
                 total=k.get("total", 0),
                 conferidos=k.get("conferidos", 0),
