@@ -189,33 +189,29 @@
   </div>
 </div>
 <script>
-  function abrirDetalhes(dados) {
-    // DEBUG: remova depois
-    // console.log(dados);
+function abrirDetalhes(dados) {
+    // Alinhando o JavaScript com as chaves definidas no seu to_dict() do Python
+    document.getElementById('res-ud').innerText = dados.ud || "---"; 
+    document.getElementById('res-nome').innerText = dados.descricao || "---";
+    document.getElementById('res-lote').innerText = dados.lote || "S/L";
+    
+    // Mostra a quantidade e a unidade (Ex: 1600 UNI)
+    document.getElementById('res-qtd').innerText = (dados.qtd || "0") + " " + (dados.unidade || "");
+    
+    // Datas formatadas conforme o seu to_dict()
+    document.getElementById('res-venc').innerText = dados.vencimento || "S/V";
+    
+    // Corrigindo o Último Movimento: a chave no to_dict é 'ult_mov'
+    document.getElementById('res-ult-mov').innerText = dados.ult_mov || "---";
 
-    const ud = dados.ud ?? dados.unidade_deposito ?? "---";
-    const desc = dados.descricao ?? dados.desc_material ?? dados.cod_material ?? "---";
-    const lote = dados.lote ?? "S/L";
-
-    const qtd = dados.qtd ?? dados.quantidade_estoque ?? 0;
-    const unidade = dados.unidade ?? dados.unidade_medida ?? "";
-
-    // Se vier datetime cru, pelo menos não quebra:
-    const venc = dados.vencimento ?? dados.data_vencimento ?? "S/V";
-    const ult  = dados.ult_mov ?? dados.data_ultimo_mov ?? "---";
-
-    document.getElementById("res-ud").innerText = ud;
-    document.getElementById("res-nome").innerText = desc;
-    document.getElementById("res-lote").innerText = lote;
-    document.getElementById("res-qtd").innerText = `${qtd} ${unidade}`.trim();
-    document.getElementById("res-venc").innerText = venc || "S/V";
-    document.getElementById("res-ult-mov").innerText = ult || "---";
-
-    const modalEl = document.getElementById("modalResultado");
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
-  }
+    // Abre o modal de forma segura
+    const modalEl = document.getElementById('modalResultado');
+    const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    instance.show();
+}
 </script>
 {% endblock %}
+
 
 
 
