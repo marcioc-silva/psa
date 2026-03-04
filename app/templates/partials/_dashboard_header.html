@@ -9,52 +9,54 @@
     </div>
 
     <form action="{{ url_for('main.dashboard') }}" method="GET"
-      class="d-flex align-items-center w-100 w-md-auto">
+      class="d-flex flex-column flex-md-row align-items-stretch align-items-md-center w-100 gap-2">
 
-  <!-- ✅ NOVO: filtro de PSA -->
-  <select name="psa_key"
-        class="form-select border-primary text-primary fw-bold me-2"
-        onchange="this.form.submit()"
-        style="min-width: 260px;">
-  <option value="">🏭 Todos os PSA (Geral)</option>
-
-  {% for p in (psas|default([])) %}
-    {% if p is string %}
-      <option value="{{ p }}"
-              {% if (psa_key_atual|default('')) == p %}selected{% endif %}>
-        {{ p }}
-      </option>
-    {% else %}
-      <option value="{{ p['key'] }}"
-              {% if (psa_key_atual|default('')) == p['key'] %}selected{% endif %}>
-        {{ p['label'] }}
-      </option>
+    <select name="psa_key"
+            class="form-select border-primary text-primary fw-bold"
+            onchange="this.form.submit()"
+            style="width: 100%; max-width: 340px;">
+      <option value="">🏭 Todos os PSA (Geral)</option>
+  
+      {% for p in (psas|default([])) %}
+        {% if p is string %}
+          <option value="{{ p }}"
+                  {% if (psa_key_atual|default('')) == p %}selected{% endif %}>
+            {{ p }}
+          </option>
+        {% else %}
+          <option value="{{ p['key'] }}"
+                  {% if (psa_key_atual|default('')) == p['key'] %}selected{% endif %}>
+            {{ p['label'] }}
+          </option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  
+    <select name="data_filtro"
+            class="form-select border-primary text-primary fw-bold"
+            onchange="this.form.submit()"
+            style="width: 100%; max-width: 340px;">
+      <option value="">📊 Todas as Importações (Geral)</option>
+      {% for data in (datas|default([])) %}
+        <option value="{{ data }}" {% if (data_atual|default('')) == data %}selected{% endif %}>
+          📅 Importação de {{ data }}
+        </option>
+      {% endfor %}
+    </select>
+  
+    {% if data_atual or psa_key_atual %}
+      <a href="{{ url_for('main.dashboard') }}"
+         class="btn btn-outline-danger w-100 w-md-auto"
+         title="Limpar Filtros">
+        <i class="bi bi-x-lg"></i> Limpar
+      </a>
     {% endif %}
-  {% endfor %}
-</select>
-<div class="small text-white opacity-75 mt-1">
-  psas_len={{ (psas|default([]))|length }} |
-  psa_key_atual={{ psa_key_atual|default('') }} |
-  ctx_error={{ ctx_error|default('') }}
-</div>
-  <!-- seu filtro de data (igual) -->
-  <select name="data_filtro"
-          class="form-select border-primary text-primary fw-bold me-2"
-          onchange="this.form.submit()"
-          style="min-width: 250px;">
-    <option value="">📊 Todas as Importações (Geral)</option>
-    {% for data in (datas|default([])) %}
-      <option value="{{ data }}" {% if (data_atual|default('')) == data %}selected{% endif %}>
-        📅 Importação de {{ data }}
-      </option>
-    {% endfor %}
-  </select>
-
-  {% if data_atual or psa_key_atual %}
-    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-danger" title="Limpar Filtros">
-      <i class="bi bi-x-lg"></i>
-    </a>
-  {% endif %}
+  
+    <div class="small text-muted mt-1 d-none d-md-block">
+      psas_len={{ (psas|default([]))|length }} |
+      psa_key_atual={{ psa_key_atual|default('') }} |
+      ctx_error={{ ctx_error|default('') }}
+    </div>
 </form>
   </div>
 </div>
@@ -174,6 +176,7 @@
     .catch(err => console.error("Falha ao carregar KPIs:", err));
 })();
 </script>
+
 
 
 
