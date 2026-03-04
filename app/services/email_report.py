@@ -30,7 +30,7 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
     assunto_base = (cfg.assunto_padrao or "Reporte PSA - Nestlé Araçatuba").strip()
 
     # KPIs
-    k = calcular_kpis(data_filtro)
+    k = calcular_kpis(data_filtro=data_filtro)
 
     # Query base (respeita filtro de data)
     q = MaterialPSA.query
