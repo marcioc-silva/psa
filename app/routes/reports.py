@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from app.models.material import MaterialPSA
-from app.services.email_report import enviar_reporte_por_email,montar_reporte_html
+from app.services.email_report import enviar_reporte_por_email
 
 
 bp = Blueprint("reports", __name__, url_prefix="/reports")
@@ -175,9 +175,10 @@ def _enviar_reporte_route():
     flash(msg, "success" if ok else "danger")
     return redirect(url_for("main.dashboard", data_filtro=data_filtro) if data_filtro else url_for("main.dashboard"))
 
-@bp.route("/preview-reporte")
+@bp.route("/preview-reporte", methods=["GET"], endpoint="preview_reporte")
 @login_required
 def preview_reporte():
+    from app.services.email_report import montar_reporte_html  # import local evita circular
     data_filtro = request.args.get("data_filtro")
-    assunto, html = montar_reporte_html(data_filtro=data_filtro)
+    _, html = montar_reporte_html(data_filtro=data_filtro)
     return html
