@@ -117,7 +117,7 @@ def create_app(config_object=None):
         except Exception as e:
             app.logger.warning(f"MyDot desabilitado (não impacta PSA): {e}")
             
-        if app.debug or os.getenv("FLASK_ENV") == "development":
+    if app.debug or os.getenv("FLASK_ENV") == "development":
             with app.app_context():
                 db.create_all()
 
