@@ -190,16 +190,19 @@
 </div>
 <script>
   function abrirDetalhes(dados) {
-    console.log("DADOS DO MODAL:", dados); // 👈 veja no Console (F12)
-    alert(Object.keys(dados || {}).join(", ")); // 👈 lista as chaves
-    // Poka-yoke: suporta tanto o to_dict() “novo” quanto um dict cru do model
+    // DEBUG: remova depois
+    // console.log(dados);
+
     const ud = dados.ud ?? dados.unidade_deposito ?? "---";
     const desc = dados.descricao ?? dados.desc_material ?? dados.cod_material ?? "---";
     const lote = dados.lote ?? "S/L";
+
     const qtd = dados.qtd ?? dados.quantidade_estoque ?? 0;
     const unidade = dados.unidade ?? dados.unidade_medida ?? "";
-    const venc = dados.vencimento ?? (dados.data_vencimento ?? "S/V");
-    const ult = dados.ult_mov ?? dados.data_ultimo_mov ?? "---";
+
+    // Se vier datetime cru, pelo menos não quebra:
+    const venc = dados.vencimento ?? dados.data_vencimento ?? "S/V";
+    const ult  = dados.ult_mov ?? dados.data_ultimo_mov ?? "---";
 
     document.getElementById("res-ud").innerText = ud;
     document.getElementById("res-nome").innerText = desc;
@@ -209,11 +212,11 @@
     document.getElementById("res-ult-mov").innerText = ult || "---";
 
     const modalEl = document.getElementById("modalResultado");
-    const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
-    instance.show();
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }
 </script>
 {% endblock %}
+
 
 
 
