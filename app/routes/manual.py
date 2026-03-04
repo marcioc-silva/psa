@@ -26,6 +26,7 @@ MODULES = [
                 "h": "Fluxo geral (em 60 segundos)",
                 "p": [
                     "1) Importa SAP → 2) Sistema organiza por PSA/Importação → 3) Conferência/Scanner → 4) Divergências → 5) Dashboard/Reportes."
+                        "Obrservação importante: Unidade de depósito nunca deve estar vazio."
                 ]
             },
         ],
