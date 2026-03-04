@@ -190,6 +190,8 @@
 </div>
 <script>
   function abrirDetalhes(dados) {
+    console.log("DADOS DO MODAL:", dados); // 👈 veja no Console (F12)
+    alert(Object.keys(dados || {}).join(", ")); // 👈 lista as chaves
     // Poka-yoke: suporta tanto o to_dict() “novo” quanto um dict cru do model
     const ud = dados.ud ?? dados.unidade_deposito ?? "---";
     const desc = dados.descricao ?? dados.desc_material ?? dados.cod_material ?? "---";
@@ -212,6 +214,7 @@
   }
 </script>
 {% endblock %}
+
 
 
 
