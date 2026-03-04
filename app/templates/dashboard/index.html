@@ -248,6 +248,7 @@
     params.set("dias", dias);
 
     const res = await fetch(`/dash/api/dashboard?` + params.toString());
+    
     const payload = await res.json();
     createCharts(payload);
   }
