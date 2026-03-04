@@ -111,14 +111,14 @@ def create_app(config_object=None):
             return None
 
     if app.config.get("ENABLE_MYDOT", True):
-    try:
-        from mydot.mydot_module.routes.mydot import bp as mydot_bp
-        app.register_blueprint(mydot_bp, url_prefix="/mydot")
-    except Exception as e:
-        app.logger.warning(f"MyDot desabilitado (não impacta PSA): {e}")
-        
-    if app.debug or os.getenv("FLASK_ENV") == "development":
-        with app.app_context():
-            db.create_all()
+        try:
+            from mydot.mydot_module.routes.mydot import bp as mydot_bp
+            app.register_blueprint(mydot_bp, url_prefix="/mydot")
+        except Exception as e:
+            app.logger.warning(f"MyDot desabilitado (não impacta PSA): {e}")
+            
+        if app.debug or os.getenv("FLASK_ENV") == "development":
+            with app.app_context():
+                db.create_all()
 
     return app
