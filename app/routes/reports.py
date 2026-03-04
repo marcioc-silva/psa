@@ -176,4 +176,4 @@ def _enviar_reporte_route():
     data_filtro = request.args.get("data_filtro") or request.form.get("data_filtro")
     ok, msg = enviar_reporte_por_email(data_filtro=data_filtro)
     flash(msg, "success" if ok else "danger")
-    return redirect(url_for("main.dashboard", data_filtro=data_filtro) if data_filtro else url_for("main.dashboard"))
+    return redirect(url_for("reports.enviar_reporte", data_filtro=data_filtro) if data_filtro else url_for("reports.enviar_reporte))
