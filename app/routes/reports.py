@@ -177,3 +177,10 @@ def _enviar_reporte_route():
     ok, msg = enviar_reporte_por_email(data_filtro=data_filtro)
     flash(msg, "success" if ok else "danger")
     return redirect(url_for("main.dashboard", data_filtro=data_filtro) if data_filtro else url_for("main.dashboard"))
+
+@bp.route("/preview-reporte")
+@login_required
+def preview_reporte():
+    data_filtro = request.args.get("data_filtro")
+    assunto, html = montar_reporte_html(data_filtro=data_filtro)
+    return html
