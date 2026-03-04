@@ -188,29 +188,24 @@
     </div>
   </div>
 </div>
-<script>
-function abrirDetalhes(dados) {
-    // Alinhando o JavaScript com as chaves definidas no seu to_dict() do Python
-    document.getElementById('res-ud').innerText = dados.ud || "---"; 
-    document.getElementById('res-nome').innerText = dados.descricao || "---";
-    document.getElementById('res-lote').innerText = dados.lote || "S/L";
-    
-    // Mostra a quantidade e a unidade (Ex: 1600 UNI)
-    document.getElementById('res-qtd').innerText = (dados.qtd || "0") + " " + (dados.unidade || "");
-    
-    // Datas formatadas conforme o seu to_dict()
-    document.getElementById('res-venc').innerText = dados.vencimento || "S/V";
-    
-    // Corrigindo o Último Movimento: a chave no to_dict é 'ult_mov'
-    document.getElementById('res-ult-mov').innerText = dados.ult_mov || "---";
 
-    // Abre o modal de forma segura
-    const modalEl = document.getElementById('modalResultado');
-    const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
-    instance.show();
+<script>
+async function abrirDetalhesPorId(id) {
+  const res = await fetch(`/api/material/${id}`);
+  const dados = await res.json();
+
+  document.getElementById('res-ud').innerText = dados.ud ?? "---";
+  document.getElementById('res-nome').innerText = dados.descricao ?? "---";
+  document.getElementById('res-lote').innerText = dados.lote ?? "S/L";
+  document.getElementById('res-qtd').innerText = `${dados.qtd ?? 0} ${dados.unidade ?? ""}`.trim();
+  document.getElementById('res-venc').innerText = dados.vencimento ?? "S/V";
+  document.getElementById('res-ult-mov').innerText = dados.ult_mov ?? "---";
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalResultado')).show();
 }
 </script>
 {% endblock %}
+
 
 
 
