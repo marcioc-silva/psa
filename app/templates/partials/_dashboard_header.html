@@ -54,15 +54,7 @@
            title="Limpar Filtros">
           <i class="bi bi-x-lg"></i> Limpar
         </a>
-      {% endif %}
-
-      <!-- ✅ Debug (somente desktop) -->
-      <div class="small text-muted d-none d-md-block">
-        psas_len={{ (psas|default([]))|length }} |
-        psa_key_atual={{ psa_key_atual|default('') }} |
-        ctx_error={{ ctx_error|default('') }}
-      </div>
-
+      {% endif %}  
     </form>
 
   </div>
@@ -183,6 +175,7 @@
     .catch(err => console.error("Falha ao carregar KPIs:", err));
 })();
 </script>
+
 
 
 
