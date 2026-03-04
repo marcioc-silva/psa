@@ -81,15 +81,14 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
     link_dashboard = ""
     link_div = ""
     try:
-        # Se você quiser linkar para o dashboard novo (/dash), ajuste para o endpoint certo do blueprint:
-        # Exemplo comum: url_for("dashboard.page", _external=True)
-        # Vou tentar primeiro o dash novo; se não existir, cai no antigo main.dashboard.
-        try:
-            link_dashboard = url_for("dashboard.page", _external=True)
-        except Exception:
-            link_dashboard = url_for("main.dashboard", _external=True, data_filtro=data_filtro) if data_filtro else url_for("main.dashboard", _external=True)
+        link_dashboard = url_for("dashboard.dashboard", _external=True)
+    
+        link_div = (
+            url_for("main.relatorio_divergencias", _external=True, data_filtro=data_filtro)
+            if data_filtro
+            else url_for("main.relatorio_divergencias", _external=True)
+        )
 
-        link_div = url_for("main.relatorio_divergencias", _external=True, data_filtro=data_filtro) if data_filtro else url_for("main.relatorio_divergencias", _external=True)
     except Exception:
         link_dashboard = ""
         link_div = ""
