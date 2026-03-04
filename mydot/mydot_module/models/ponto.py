@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from app import db
 
+# Dica: se quiser isolar o MyDot, configure SQLALCHEMY_BINDS['mydot'] no PSA
+# e adicione __bind_key__ = 'mydot' aqui.
+
+
 
 class MyDotPunch(db.Model):
     __tablename__ = "mydot_punch"

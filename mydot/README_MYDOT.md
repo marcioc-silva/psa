@@ -46,3 +46,24 @@ Quando você quiser migrar para modo industrial, é só ligar as chaves e integr
 - Câmera no navegador/WebView exige **HTTPS**.
 - A foto é enviada como base64 e salva como arquivo no servidor (mais leve que salvar no banco).
 - Este módulo já registra IP, user-agent e hash da imagem (base para antifraude).
+
+
+## Integração segura no PSA (sem impactar o PSA)
+
+No `create_app()` do seu PSA (app/__init__.py), registre o blueprint com try/except:
+
+```python
+if app.config.get("ENABLE_MYDOT", True):
+    try:
+        from mydot.mydot_module.routes.mydot import bp as mydot_bp
+        app.register_blueprint(mydot_bp, url_prefix="/mydot")
+    except Exception as e:
+        app.logger.warning(f"MyDot desabilitado (não impacta PSA): {e}")
+```
+
+### Static isolado
+Os arquivos estáticos do MyDot são servidos em `/mydot-static/...` para não conflitar com o `/static` do PSA.
+
+### Banco separado (opcional, recomendado no futuro)
+Você pode isolar o MyDot em outro banco usando `SQLALCHEMY_BINDS` com a chave `mydot`.
+Depois, adicione `__bind_key__ = "mydot"` no model `MyDotPunch`.

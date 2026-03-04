@@ -14,8 +14,8 @@ from sqlalchemy import desc
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.models.mydot import MyDotPunch
-from app.services.mydot_service import (
+from ..models.ponto import MyDotPunch
+from ..services.mydot_service import (
     get_or_set_device_id, parse_geo, geo_within_radius_m,
     ensure_upload_dir, save_base64_image_jpeg
 )
@@ -27,7 +27,19 @@ except Exception:  # pragma: no cover
     login_required = None
     current_user = None
 
-bp = Blueprint("mydot", __name__, template_folder="../templates", static_folder="../static")
+# Blueprint isolado: templates/static do MyDot (não conflita com PSA)
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # .../mydot_module
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+
+bp = Blueprint(
+    "mydot",
+    __name__,
+    template_folder=TEMPLATES_DIR,
+    static_folder=STATIC_DIR,
+    static_url_path="/mydot-static",
+)
+
 
 
 def _require_login() -> bool:
