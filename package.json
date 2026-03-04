@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "bootstrap-icons": "^1.13.1",
-    "html5-qrcode": "^2.3.8",
-    "jquery": "^4.0.0"
-  }
-}
