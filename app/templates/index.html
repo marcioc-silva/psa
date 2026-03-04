@@ -190,7 +190,7 @@
 </div>
 
 <script>
-async function abrirDetalhesPorId(id) {
+async function abrirDetalhes(id) {
   const res = await fetch(`/api/material/${id}`);
   const dados = await res.json();
 
@@ -205,6 +205,7 @@ async function abrirDetalhesPorId(id) {
 }
 </script>
 {% endblock %}
+
 
 
 
