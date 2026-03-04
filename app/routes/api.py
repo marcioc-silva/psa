@@ -73,3 +73,9 @@ def kpis():
     psa_key = request.args.get("psa_key")
     k = calcular_kpis(data_filtro=data_filtro, psa_key=psa_key)
     return jsonify(k)
+
+@bp.route("/api/material/<int:mid>")
+@login_required
+def api_material(mid):
+    m = MaterialPSA.query.get_or_404(mid)
+    return jsonify(m.to_dict())
