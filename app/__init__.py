@@ -100,6 +100,8 @@ def create_app(config_object=None):
     app.register_blueprint(admin_bp)
     from app.routes.dashboard import bp as dashboard_bp
     app.register_blueprint(dashboard_bp)
+    from app.routes.manual import bp as manual_bp
+    app.register_blueprint(manual_bp)
 
     @login_manager.user_loader
     def load_user(user_id):
