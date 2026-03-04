@@ -105,12 +105,19 @@
                             {% endif %}
     
                             <li>
-                                <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="m-0 p-0 d-block">                                
-                                    {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
-                                    <button type="submit" class="dropdown-item text-warning fw-bold text-start w-100 bg-transparent border-0">
-                                        <i class="bi bi-envelope-fill me-2"></i> Enviar reporte
-                                    </button>
-                                </form>
+                                <div class="d-flex gap-2">
+                                      <a class="btn btn-outline-secondary btn-sm"
+                                         href="{{ url_for('reports.preview_reporte', data_filtro=request.args.get('data_filtro')) }}"
+                                         target="_blank">
+                                        Preview
+                                      </a>
+                                      <form method="post" action="{{ url_for('reports.enviar_reporte') }}" class="m-0 p-0 d-block">                                
+                                            {% if data_atual %}<input type="hidden" name="data_filtro" value="{{ data_atual }}">{% endif %}
+                                            <button type="submit" class="dropdown-item text-warning fw-bold text-start w-100 bg-transparent border-0">
+                                                <i class="bi bi-envelope-fill me-2"></i> Enviar reporte
+                                            </button>
+                                      </form>
+                                </div>    
                             </li>
                         </ul>
                     </li>
