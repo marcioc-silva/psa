@@ -239,6 +239,28 @@
     });
   }
 
+   async function loadPSAs() {
+    const sel = document.getElementById("psaSelect");
+    if (!sel) return;
+  
+    const res = await fetch("/dash/api/psas");
+    if (!res.ok) {
+      console.error("Falha ao carregar PSAs:", res.status);
+      return;
+    }
+  
+    const psas = await res.json();
+  
+    // limpa tudo e recria
+    sel.innerHTML = `<option value="">Todos os PSAs</option>`;
+    for (const p of psas) {
+      const opt = document.createElement("option");
+      opt.value = p;      // IMPORTANTÍSSIMO: value = psa_key
+      opt.textContent = p;
+      sel.appendChild(opt);
+    }
+  }
+  
   async function loadDashboard() {
     const psa = document.getElementById("psaSelect").value;
     const dias = document.getElementById("diasSelect").value;
@@ -257,6 +279,9 @@
   document.getElementById("psaSelect").addEventListener("change", loadDashboard);
   document.getElementById("diasSelect").addEventListener("change", loadDashboard);
 
-  loadDashboard();
+  (async () => {
+  await loadPSAs();
+  await loadDashboard();
+})();
 </script>
 {% endblock %}
