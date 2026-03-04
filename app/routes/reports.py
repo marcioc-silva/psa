@@ -1,13 +1,10 @@
 from __future__ import annotations
-
 from collections import Counter
 from datetime import datetime, timedelta
-
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
-
 from app.models.material import MaterialPSA
-from app.services.email_report import enviar_reporte_por_email
+from app.services.email_report import enviar_reporte_por_email,montar_reporte_html
 
 
 bp = Blueprint("reports", __name__, url_prefix="/reports")
