@@ -121,7 +121,7 @@
   </div>
 
   <div class="col">
-    <a href="{{ url_for('reports.kpis', data_filtro=data_atual, psa_key=psa_key_atual) }}"
+    <a href="{{ url_for('dash', data_filtro=data_atual, psa_key=psa_key_atual) }}"
        class="text-decoration-none h-100 d-block card-hover">
       <div class="card card-indicator shadow-sm p-3 h-100 text-center" style="border-left-color:#0056b3 !important;">
         <div class="text-uppercase fw-bold text-muted mb-1" style="font-size:.75rem; letter-spacing:.5px;">Relatórios</div>
@@ -175,6 +175,7 @@
     .catch(err => console.error("Falha ao carregar KPIs:", err));
 })();
 </script>
+
 
 
 
