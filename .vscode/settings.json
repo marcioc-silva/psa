@@ -1,5 +1,12 @@
 {
     "python.analysis.extraPaths": [
         "./app/models"
+    ],
+    "python-envs.pythonProjects": [
+        {
+            "path": "mydot",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
     ]
 }
