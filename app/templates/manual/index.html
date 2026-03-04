@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Manual do Sistema{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manual.css') }}">
+
+<div class="container-fluid py-3">
+  <div class="manual-hero mb-3">
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+      <div>
+        <div class="manual-kicker">📘 Academia do Controle PSA</div>
+        <h3 class="m-0">Aprenda o sistema por módulos</h3>
+        <div class="text-muted mt-1">Objetivo: dominar o fluxo, reduzir erro e acelerar a gestão.</div>
+      </div>
+
+      <a href="{{ url_for('manual.module_page', module_id=1) }}" class="btn btn-primary btn-lg manual-cta">
+        Começar do início
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- Lista de módulos -->
+    <div class="col-12 col-lg-8">
+      <div class="row g-3">
+        {% for m in modules %}
+        <div class="col-12 col-md-6">
+          <a class="manual-card card shadow-sm h-100 text-decoration-none" href="{{ url_for('manual.module_page', module_id=m.id) }}">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <div class="manual-chip">Módulo {{ m.id }}</div>
+                <div class="manual-meta">{{ m.duration }}</div>
+              </div>
+
+              <h5 class="mt-2 mb-1 text-dark">{{ m.title }}</h5>
+              <div class="text-muted small mb-2">{{ m.summary }}</div>
+
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="manual-audience small">
+                  <i class="bi bi-people"></i> {{ m.audience }}
+                </div>
+                <div class="manual-link small">
+                  Abrir <i class="bi bi-arrow-right"></i>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Sidebar: dicas e “como usar” -->
+    <div class="col-12 col-lg-4">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="fw-bold mb-2">Como estudar</h6>
+          <ul class="small text-muted mb-3">
+            <li>Faça 1 módulo por dia (5–10 min).</li>
+            <li>Abra o sistema e execute o que leu.</li>
+            <li>Use os checklists no final de cada módulo.</li>
+          </ul>
+
+          <div class="manual-tip">
+            <div class="fw-bold mb-1">Dica operacional</div>
+            <div class="small text-muted">Se os números “sumirem”, quase sempre é filtro aplicado. Confirme PSA/Importação no topo.</div>
+          </div>
+
+          <hr>
+
+          <div class="small text-muted">
+            Este manual pode evoluir com a fábrica. Se você quiser, dá para incluir:
+            <b>FAQ</b>, <b>vídeos curtos</b>, <b>prints</b> e <b>quizzes</b>.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
