@@ -55,10 +55,16 @@
                             <td class="text-center">
                                 <!-- FIX: passa UD como string JS segura (sem perder dígitos e sem quebrar com aspas) -->
                                 
-                                    <button class="btn btn-outline-primary btn-sm" 
+                                   <!-- <button class="btn btn-outline-primary btn-sm" 
                                             onclick='abrirDetalhes({{ item.to_dict() | tojson | safe }})'>
                                         <i class="bi bi-search"></i>
-                                    </button>                                
+                                    </button> -->
+
+                                    <button type="button"
+                                            class="btn btn-outline-primary btn-sm"
+                                            onclick='abrirDetalhes(event, {{ item.to_dict() | tojson | safe }})'>
+                                      <i class="bi bi-search"></i>
+                                    </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -130,6 +136,7 @@
 </style>
 
 {% endblock %}
+
 
 
 
