@@ -134,40 +134,85 @@
         background-color: #5d5d61 !important;
     }
 </style>
-<div class="modal fade" id="detalhesModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Detalhes da UD</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+<!-- Modal Detalhes (cole no final da página, antes do endblock) -->
+<div class="modal fade" id="modalResultado" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header" style="background-color:#0d6efd;color:#fff;border:none;">
+        <h6 class="m-0 text-ud-font">Detalhes da Unidade (UD)</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body">
-        <pre id="detalhesBody" class="mb-0" style="white-space:pre-wrap;"></pre>
+
+      <div class="modal-body p-0 text-center">
+        <div class="py-3">
+          <div class="text-muted small text-ud-font">Unidade Depósito</div>
+          <div id="res-ud" class="text-primary text-ud-font" style="font-size:1.8rem;"></div>
+        </div>
+
+        <div class="px-3 mb-3 text-start">
+          <label class="text-muted small text-ud-font d-block mb-1">Descrição do Material</label>
+          <div id="res-nome" class="form-control bg-light text-ud-font border-0"
+               style="min-height:45px;font-size:1.1rem;"></div>
+        </div>
+
+        <div class="container-fluid pb-3 text-center">
+          <div class="row mb-3">
+            <div class="col-6">
+              <span class="text-muted small d-block text-ud-font">Qtd Estoque</span>
+              <span id="res-qtd" class="text-ud-font fs-5"></span>
+            </div>
+            <div class="col-6">
+              <span class="text-muted small d-block text-ud-font">Lote</span>
+              <span id="res-lote" class="text-ud-font fs-5"></span>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-6">
+              <span class="text-muted small d-block text-ud-font text-danger">Vencimento</span>
+              <span id="res-venc" class="text-danger text-ud-font fs-5"></span>
+            </div>
+            <div class="col-6">
+              <span class="text-muted small d-block text-ud-font">Últ. Movimentação</span>
+              <span id="res-ult-mov" class="text-ud-font fs-5"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer border-0 p-3">
+        <button type="button" class="btn btn-secondary w-100 text-ud-font py-2" data-bs-dismiss="modal">
+          FECHAR
+        </button>
       </div>
     </div>
   </div>
 </div>
 <script>
-  // deixa global pra funcionar com onclick inline
-  window.abrirDetalhes = function (ev, item) {
-    try {
-      if (ev) ev.preventDefault();
-      if (ev) ev.stopPropagation();
+  function abrirDetalhes(dados) {
+    // Poka-yoke: suporta tanto o to_dict() “novo” quanto um dict cru do model
+    const ud = dados.ud ?? dados.unidade_deposito ?? "---";
+    const desc = dados.descricao ?? dados.desc_material ?? dados.cod_material ?? "---";
+    const lote = dados.lote ?? "S/L";
+    const qtd = dados.qtd ?? dados.quantidade_estoque ?? 0;
+    const unidade = dados.unidade ?? dados.unidade_medida ?? "";
+    const venc = dados.vencimento ?? (dados.data_vencimento ?? "S/V");
+    const ult = dados.ult_mov ?? dados.data_ultimo_mov ?? "---";
 
-      // mostra no modal (você pode trocar esse conteúdo por cards bonitos depois)
-      const body = document.getElementById("detalhesBody");
-      body.textContent = JSON.stringify(item, null, 2);
+    document.getElementById("res-ud").innerText = ud;
+    document.getElementById("res-nome").innerText = desc;
+    document.getElementById("res-lote").innerText = lote;
+    document.getElementById("res-qtd").innerText = `${qtd} ${unidade}`.trim();
+    document.getElementById("res-venc").innerText = venc || "S/V";
+    document.getElementById("res-ult-mov").innerText = ult || "---";
 
-      const modalEl = document.getElementById("detalhesModal");
-      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-      modal.show();
-    } catch (e) {
-      console.error("Falha ao abrir detalhes:", e);
-      alert("Erro ao abrir detalhes. Veja o console.");
-    }
+    const modalEl = document.getElementById("modalResultado");
+    const instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    instance.show();
   }
 </script>
 {% endblock %}
+
 
 
 
