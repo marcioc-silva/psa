@@ -134,8 +134,41 @@
         background-color: #5d5d61 !important;
     }
 </style>
+<div class="modal fade" id="detalhesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Detalhes da UD</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <pre id="detalhesBody" class="mb-0" style="white-space:pre-wrap;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // deixa global pra funcionar com onclick inline
+  window.abrirDetalhes = function (ev, item) {
+    try {
+      if (ev) ev.preventDefault();
+      if (ev) ev.stopPropagation();
 
+      // mostra no modal (você pode trocar esse conteúdo por cards bonitos depois)
+      const body = document.getElementById("detalhesBody");
+      body.textContent = JSON.stringify(item, null, 2);
+
+      const modalEl = document.getElementById("detalhesModal");
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+      modal.show();
+    } catch (e) {
+      console.error("Falha ao abrir detalhes:", e);
+      alert("Erro ao abrir detalhes. Veja o console.");
+    }
+  }
+</script>
 {% endblock %}
+
 
 
 
