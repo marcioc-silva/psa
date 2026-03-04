@@ -28,7 +28,7 @@ def _clean_database_url(raw: str) -> str:
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'uma-chave-muito-segura-da-nestle')
-
+    ENABLE_MYDOT = True
     # Banco: usa env (Render/Neon) e cai para SQLite local
     BASEDIR = os.path.abspath(os.path.dirname(__file__))
     DEFAULT_SQLITE = f"sqlite:///{os.path.join(BASEDIR, 'psa_storage.db')}"
