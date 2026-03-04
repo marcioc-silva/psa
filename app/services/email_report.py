@@ -27,10 +27,12 @@ def _fmt_dt(d: datetime | None) -> str:
 def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
     """Retorna (assunto, html_body)."""
     cfg = ConfiguracaoSistema.get_singleton()
-    assunto = (cfg.assunto_padrao or "Reporte PSA - Nestlé Araçatuba").strip()
+    assunto_base = (cfg.assunto_padrao or "Reporte PSA - Nestlé Araçatuba").strip()
 
+    # KPIs
     k = calcular_kpis(data_filtro)
 
+    # Query base (respeita filtro de data)
     q = MaterialPSA.query
     if data_filtro:
         dt = None
@@ -42,9 +44,11 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
                 continue
         if dt:
             q = q.filter(func.date(MaterialPSA.data_importacao) == dt)
-        assunto = f"{assunto} | Importação {data_filtro}"
+        assunto = f"{assunto_base} | Importação {data_filtro}"
+    else:
+        assunto = assunto_base
 
-
+    # Divergências recentes (tabela)
     divergencias = (
         q.filter(MaterialPSA.possui_divergencia.is_(True))
         .order_by(MaterialPSA.data_conferencia.desc().nullslast(), MaterialPSA.data_importacao.desc().nullslast())
@@ -52,50 +56,154 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
         .all()
     )
 
-    # links úteis
+    # Top PSAs com pendência (gestão)
+    top_psa_pend = (
+        q.filter(MaterialPSA.conferido.is_(False))
+        .with_entities(MaterialPSA.psa_key, func.count(MaterialPSA.id).label("qtd"))
+        .filter(MaterialPSA.psa_key.isnot(None))
+        .group_by(MaterialPSA.psa_key)
+        .order_by(func.count(MaterialPSA.id).desc())
+        .limit(5)
+        .all()
+    )
+
+    # Top materiais com divergência (gestão)
+    top_mat_div = (
+        q.filter(MaterialPSA.possui_divergencia.is_(True))
+        .with_entities(MaterialPSA.desc_material, func.count(MaterialPSA.id).label("qtd"))
+        .group_by(MaterialPSA.desc_material)
+        .order_by(func.count(MaterialPSA.id).desc())
+        .limit(5)
+        .all()
+    )
+
+    # Links úteis (fallbacks seguros)
+    link_dashboard = ""
+    link_div = ""
     try:
-        link_dashboard = url_for('main.dashboard', _external=True, data_filtro=data_filtro) if data_filtro else url_for('main.dashboard', _external=True)
-        link_div = url_for('main.relatorio_divergencias', _external=True, data_filtro=data_filtro) if data_filtro else url_for('main.relatorio_divergencias', _external=True)
+        # Se você quiser linkar para o dashboard novo (/dash), ajuste para o endpoint certo do blueprint:
+        # Exemplo comum: url_for("dashboard.page", _external=True)
+        # Vou tentar primeiro o dash novo; se não existir, cai no antigo main.dashboard.
+        try:
+            link_dashboard = url_for("dashboard.page", _external=True)
+        except Exception:
+            link_dashboard = url_for("main.dashboard", _external=True, data_filtro=data_filtro) if data_filtro else url_for("main.dashboard", _external=True)
+
+        link_div = url_for("main.relatorio_divergencias", _external=True, data_filtro=data_filtro) if data_filtro else url_for("main.relatorio_divergencias", _external=True)
     except Exception:
-        # em caso de chamada fora de request context
         link_dashboard = ""
         link_div = ""
 
+    # Poka-yoke nos KPIs
+    total = int(k.get("total") or 0)
+    conferidos = int(k.get("conferidos") or 0)
+    pendentes = int(k.get("pendentes") or 0)
+    diverg = int(k.get("divergencias") or k.get("divergentes") or 0)  # aceita chaves diferentes
+    taxa_qual = float(k.get("taxa_qualidade") or 0.0)
+    acur = float(k.get("acuracidade") or 0.0)
+    ret = k.get("total_retencao") or "---"
+
+    # Status semântico rápido
+    # (ajuste limites conforme sua realidade)
+    if taxa_qual >= 98.5:
+        status_txt = "Dentro da meta"
+        status_bg = "#198754"  # verde
+    elif taxa_qual >= 95:
+        status_txt = "Atenção"
+        status_bg = "#fd7e14"  # laranja
+    else:
+        status_txt = "Crítico"
+        status_bg = "#dc3545"  # vermelho
+
+    gerado_em = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    def badge(text: str, bg: str, fg: str = "#fff") -> str:
+        return f"""<span style="display:inline-block;background:{bg};color:{fg};padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;">{text}</span>"""
+
+    def pill(label: str, value: str, hint: str = "", color: str = "#0d6efd") -> str:
+        hint_html = f"""<div style="font-size:11px;color:#6c757d;margin-top:2px;">{hint}</div>""" if hint else ""
+        return f"""
+        <div style="flex:1; min-width:170px; border:1px solid #eee; border-radius:14px; padding:12px 14px;">
+          <div style="font-size:11px; color:#6c757d; letter-spacing:.08em; text-transform:uppercase;">{label}</div>
+          <div style="display:flex;align-items:flex-end;gap:10px;margin-top:6px;">
+            <div style="font-size:24px; font-weight:800; color:#212529;">{value}</div>
+            <div>{badge(status_txt, status_bg) if label == "Qualidade" else ""}</div>
+          </div>
+          {hint_html}
+        </div>
+        """
+
+    def list_block(title: str, rows: list[tuple[str, int]]) -> str:
+        if not rows:
+            return f"""
+            <div style="flex:1; min-width:260px; border:1px solid #eee; border-radius:14px; padding:12px 14px;">
+              <div style="font-size:12px;font-weight:800;color:#212529;margin-bottom:8px;">{title}</div>
+              <div style="font-size:12px;color:#6c757d;">Sem dados para o filtro atual.</div>
+            </div>
+            """
+        items = ""
+        for name, qty in rows:
+            name = (name or "---")
+            items += f"""
+            <div style="display:flex;justify-content:space-between;gap:10px;border-top:1px solid #f1f1f1;padding:8px 0;">
+              <div style="font-size:12px;color:#212529;max-width:75%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{name}</div>
+              <div style="font-size:12px;font-weight:800;color:#0d6efd;">{int(qty)}</div>
+            </div>
+            """
+        return f"""
+        <div style="flex:1; min-width:260px; border:1px solid #eee; border-radius:14px; padding:12px 14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:12px;font-weight:800;color:#212529;">{title}</div>
+            <div style="font-size:11px;color:#6c757d;">Top 5</div>
+          </div>
+          <div style="margin-top:6px;">{items}</div>
+        </div>
+        """
+
+    # Montagem do HTML
     html = f"""
     <div style="font-family:Segoe UI,Arial,sans-serif; background:#f6f7f8; padding:20px;">
-      <div style="max-width:900px; margin:0 auto; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.08)">
+      <div style="max-width:920px; margin:0 auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.10)">
         <div style="background:#212529; color:#fff; padding:18px 20px;">
-          <div style="font-size:18px; font-weight:700;">Reporte PSA</div>
-          <div style="font-size:12px; opacity:.85;">Nestlé Araçatuba • Gerado em {datetime.now().strftime('%d/%m/%Y %H:%M')}</div>
+          <div style="font-size:18px; font-weight:800;">Reporte PSA</div>
+          <div style="font-size:12px; opacity:.85;">Nestlé Araçatuba • Gerado em {gerado_em}</div>
         </div>
 
         <div style="padding:18px 20px;">
+          <!-- Resumo executivo -->
+          <div style="background:#f8f9fa;border:1px solid #eee;border-radius:14px;padding:12px 14px;margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:800;color:#212529;margin-bottom:6px;">
+              Resumo executivo
+            </div>
+            <div style="font-size:12px;color:#495057;line-height:1.5;">
+              IRA/Qualidade em <b>{taxa_qual:.1f}%</b> (meta recomendada 98,5%). Total <b>{total}</b> UDs, com <b>{conferidos}</b> conferidas,
+              <b>{pendentes}</b> pendentes e <b>{diverg}</b> com divergência.
+              Acuracidade atual: <b>{acur:.1f}%</b>.
+            </div>
+          </div>
+
+          <!-- Cards KPI -->
           <div style="display:flex; flex-wrap:wrap; gap:10px;">
-            <div style="flex:1; min-width:160px; border:1px solid #eee; border-radius:12px; padding:12px;">
-              <div style="font-size:11px; color:#666; letter-spacing:.08em; text-transform:uppercase;">Total</div>
-              <div style="font-size:22px; font-weight:700;">{k['total']}</div>
-            </div>
-            <div style="flex:1; min-width:160px; border:1px solid #eee; border-radius:12px; padding:12px;">
-              <div style="font-size:11px; color:#666; letter-spacing:.08em; text-transform:uppercase;">Conferidos</div>
-              <div style="font-size:22px; font-weight:700;">{k['conferidos']}</div>
-            </div>
-            <div style="flex:1; min-width:160px; border:1px solid #eee; border-radius:12px; padding:12px;">
-              <div style="font-size:11px; color:#666; letter-spacing:.08em; text-transform:uppercase;">Pendentes</div>
-              <div style="font-size:22px; font-weight:700;">{k['pendentes']}</div>
-            </div>
-            <div style="flex:1; min-width:160px; border:1px solid #eee; border-radius:12px; padding:12px;">
-              <div style="font-size:11px; color:#666; letter-spacing:.08em; text-transform:uppercase;">Qualidade</div>
-              <div style="font-size:22px; font-weight:700;">{k['taxa_qualidade']}%</div>
-            </div>
+            {pill("Total", f"{total}", "UDs no filtro atual")}
+            {pill("Conferidos", f"{conferidos}", "UDs conferidas")}
+            {pill("Pendentes", f"{pendentes}", "Prioridade operacional", color="#fd7e14")}
+            {pill("Qualidade", f"{taxa_qual:.1f}%", "Indicador principal")}
           </div>
 
-          <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-            {f'<a href="{link_dashboard}" style="background:#0056b3;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;font-weight:700;font-size:12px;">Abrir Dashboard</a>' if link_dashboard else ''}
-            {f'<a href="{link_div}" style="background:#D51C29;color:#fff;text-decoration:none;padding:10px 12px;border-radius:10px;font-weight:700;font-size:12px;">Ver Divergências</a>' if link_div else ''}
+          <!-- Links -->
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            {f'<a href="{link_dashboard}" style="background:#0d6efd;color:#fff;text-decoration:none;padding:10px 12px;border-radius:12px;font-weight:800;font-size:12px;">Abrir Dashboard</a>' if link_dashboard else ''}
+            {f'<a href="{link_div}" style="background:#D51C29;color:#fff;text-decoration:none;padding:10px 12px;border-radius:12px;font-weight:800;font-size:12px;">Ver Divergências</a>' if link_div else ''}
           </div>
 
-          <h3 style="margin:18px 0 10px; font-size:16px;">Divergências recentes (até 30)</h3>
-          <div style="border:1px solid #eee; border-radius:12px; overflow:hidden;">
+          <!-- Top lists -->
+          <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+            {list_block("Pendências por PSA", [(r[0], r[1]) for r in top_psa_pend])}
+            {list_block("Materiais com mais divergência", [((r[0] or '')[:42], r[1]) for r in top_mat_div])}
+          </div>
+
+          <h3 style="margin:18px 0 10px; font-size:16px; color:#212529;">Divergências recentes (até 30)</h3>
+          <div style="border:1px solid #eee; border-radius:14px; overflow:hidden;">
             <table style="width:100%; border-collapse:collapse; font-size:12px;">
               <thead>
                 <tr style="background:#212529; color:#fff;">
@@ -114,33 +222,33 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
         for m in divergencias:
             html += f"""
                 <tr style="border-top:1px solid #eee;">
-                  <td style="padding:10px; font-family:Consolas,monospace; font-weight:700; color:#0056b3;">{m.unidade_deposito}</td>
+                  <td style="padding:10px; font-family:Consolas,monospace; font-weight:800; color:#0d6efd;">{m.unidade_deposito}</td>
                   <td style="padding:10px;">{(m.desc_material or '')[:60]}</td>
                   <td style="padding:10px;">{m.lote or 'S/L'}</td>
-                  <td style="padding:10px; text-align:right; font-weight:700;">{int(m.quantidade_estoque or 0)}</td>
-                  <td style="padding:10px; color:#D51C29; font-weight:700;">{_fmt_data(m.data_vencimento)}</td>
+                  <td style="padding:10px; text-align:right; font-weight:800;">{int(m.quantidade_estoque or 0)}</td>
+                  <td style="padding:10px; color:#D51C29; font-weight:800;">{_fmt_data(m.data_vencimento)}</td>
                   <td style="padding:10px;">{_fmt_dt(m.data_conferencia)}</td>
                 </tr>
             """
     else:
-        html += """<tr><td colspan="6" style="padding:12px; text-align:center; color:#666;">Sem divergências registradas para o filtro atual.</td></tr>"""
+        html += """<tr><td colspan="6" style="padding:12px; text-align:center; color:#6c757d;">Sem divergências registradas para o filtro atual.</td></tr>"""
 
-    html += """
+    html += f"""
               </tbody>
             </table>
           </div>
 
-          <div style="margin-top:14px; font-size:12px; color:#666;">
-            <div><b>Acuracidade:</b> {ac}% • <b>Retenção:</b> {ret} semanas</div>
+          <div style="margin-top:12px; font-size:12px; color:#6c757d;">
+            <div><b>Acuracidade:</b> {acur:.1f}% • <b>Retenção:</b> {ret} semanas</div>
           </div>
         </div>
 
-        <div style="background:#f6f7f8; padding:12px 20px; font-size:11px; color:#666;">
+        <div style="background:#f6f7f8; padding:12px 20px; font-size:11px; color:#6c757d;">
           Este e-mail foi gerado automaticamente pelo Controle PSA.
         </div>
       </div>
     </div>
-    """.format(ac=k['acuracidade'], ret=k['total_retencao'])
+    """
 
     return assunto, html
 
