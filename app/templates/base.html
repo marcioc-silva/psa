@@ -64,6 +64,22 @@
                 margin-top: 1px;
                 font-weight: 400;
             }
+
+            html, body { max-width: 100%; overflow-x: hidden; }
+
+            .filters-card { max-width: 100%; }
+            
+            @media (max-width: 576px) {
+              .filters-card { width: 100% !important; margin: 0 !important; border-radius: 14px; }
+              .filters-card .form-select,
+              .filters-card .btn,
+              .filters-card .form-control {
+                width: 100% !important;
+                min-height: 44px;
+                font-size: 16px; /* evita zoom automático no iOS */
+              }
+              .filters-card, .filters-card .card-body { overflow: visible !important; }
+            }
         </style>
     </head>
     <body>
