@@ -190,21 +190,38 @@
 </div>
 
 <script>
-async function abrirDetalhes(id) {
-  const res = await fetch(`/api/material/${id}`);
-  const dados = await res.json();
+// Esta função agora aceita os dois parâmetros que seu HTML está enviando
+async function abrirDetalhes(event, dados) {
+    // 1. Evita que o navegador tente seguir um link ou recarregar a página
+    if (event) event.preventDefault();
 
-  document.getElementById('res-ud').innerText = dados.ud ?? "---";
-  document.getElementById('res-nome').innerText = dados.descricao ?? "---";
-  document.getElementById('res-lote').innerText = dados.lote ?? "S/L";
-  document.getElementById('res-qtd').innerText = `${dados.qtd ?? 0} ${dados.unidade ?? ""}`.trim();
-  document.getElementById('res-venc').innerText = dados.vencimento ?? "S/V";
-  document.getElementById('res-ult-mov').innerText = dados.ult_mov ?? "---";
+    // 2. Se você quiser usar os dados que JÁ ESTÃO no HTML (mais rápido):
+    document.getElementById('res-ud').innerText = dados.ud ?? "---";
+    document.getElementById('res-nome').innerText = dados.descricao ?? "---";
+    document.getElementById('res-lote').innerText = dados.lote ?? "S/L";
+    document.getElementById('res-qtd').innerText = `${dados.qtd ?? 0} ${dados.unidade ?? ""}`.trim();
+    document.getElementById('res-venc').innerText = dados.vencimento ?? "S/V";
+    document.getElementById('res-ult-mov').innerText = dados.ult_mov ?? "---";
 
-  bootstrap.Modal.getOrCreateInstance(document.getElementById('modalResultado')).show();
+    // 3. Opcional: Se você REALMENTE precisar buscar dados novos do servidor via API:
+    /*
+    try {
+        const res = await fetch(`/api/material/${dados.id}`);
+        const apiDados = await res.json();
+        // Atualizaria os campos aqui com apiDados...
+    } catch (err) {
+        console.error("Erro ao buscar via API:", err);
+    }
+    */
+
+    // 4. Abre o modal correto (ID: modalResultado)
+    const modalElement = document.getElementById('modalResultado');
+    const instance = bootstrap.Modal.getOrCreateInstance(modalElement);
+    instance.show();
 }
 </script>
 {% endblock %}
+
 
 
 
