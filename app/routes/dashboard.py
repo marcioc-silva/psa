@@ -14,7 +14,7 @@ bp = Blueprint("dashboard", __name__, url_prefix="/dash")
 @login_required
 def dashboard():
     # só renderiza o layout; dados vêm via fetch no JS
-    return render_template("dash/dashboard.html")
+    return render_template("dashboard/index.html")
 
 
 @bp.route("/api/dashboard")
