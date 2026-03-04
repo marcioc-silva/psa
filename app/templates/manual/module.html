@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Manual • {{ module.title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/manual.css') }}">
+
+<div class="container-fluid py-3">
+  <div class="row g-3">
+
+    <!-- Sidebar (TOC) -->
+    <div class="col-12 col-lg-3">
+      <div class="card shadow-sm manual-sticky">
+        <div class="card-body">
+          <div class="manual-chip mb-2">Manual do Sistema</div>
+          <h6 class="fw-bold mb-2">Módulos</h6>
+
+          <div class="list-group list-group-flush">
+            {% for m in modules %}
+              <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center
+                        {% if m.id == module.id %}active{% endif %}"
+                 href="{{ url_for('manual.module_page', module_id=m.id) }}">
+                <span><b>{{ m.id }}.</b> {{ m.title }}</span>
+                <small class="{% if m.id == module.id %}text-white{% else %}text-muted{% endif %}">
+                  {{ m.duration }}
+                </small>
+              </a>
+            {% endfor %}
+          </div>
+
+          <hr>
+          <a href="{{ url_for('manual.index') }}" class="btn btn-outline-secondary w-100">
+            <i class="bi bi-arrow-left"></i> Voltar ao índice
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="col-12 col-lg-9">
+      <div class="manual-hero mb-3">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+          <div>
+            <div class="manual-kicker">Módulo {{ module.id }} • {{ module.duration }} • {{ module.audience }}</div>
+            <h3 class="m-0">{{ module.title }}</h3>
+            <div class="text-muted mt-1">{{ module.summary }}</div>
+          </div>
+
+          <div class="d-flex gap-2 flex-wrap">
+            {% if prev_id %}
+              <a class="btn btn-outline-secondary" href="{{ url_for('manual.module_page', module_id=prev_id) }}">
+                <i class="bi bi-arrow-left"></i> Anterior
+              </a>
+            {% endif %}
+            {% if next_id %}
+              <a class="btn btn-primary" href="{{ url_for('manual.module_page', module_id=next_id) }}">
+                Próximo <i class="bi bi-arrow-right"></i>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Seções -->
+      {% for s in module.sections %}
+      <div class="card shadow-sm mb-3">
+        <div class="card-body">
+          <h5 class="fw-bold mb-2">{{ s.h }}</h5>
+          {% for p in s.p %}
+            <p class="mb-2 text-muted" style="line-height:1.6;">{{ p }}</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Checklist -->
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="fw-bold mb-2">Checklist de aprendizado</h5>
+          <div class="text-muted small mb-2">Marque para você mesmo (não salva no banco ainda; se quiser a gente salva por usuário depois).</div>
+
+          <div class="row g-2">
+            {% for item in module.checklist %}
+            <div class="col-12 col-md-6">
+              <label class="manual-check d-flex align-items-start gap-2">
+                <input type="checkbox" class="form-check-input mt-1">
+                <span>{{ item }}</span>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-3 d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('manual.index') }}" class="btn btn-outline-secondary">
+              Ver todos os módulos
+            </a>
+            {% if next_id %}
+            <a href="{{ url_for('manual.module_page', module_id=next_id) }}" class="btn btn-primary">
+              Continuar (Módulo {{ next_id }})
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
