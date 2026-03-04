@@ -77,6 +77,17 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
         .all()
     )
 
+
+    try:
+        link_preview = url_for(
+            "reports.preview_reporte",
+            _external=True,
+            data_filtro=data_filtro
+        ) if data_filtro else url_for("reports.preview_reporte", _external=True)
+    
+    except Exception:
+        link_preview = ""
+    
     # Links úteis (fallbacks seguros)
     link_dashboard = ""
     link_div = ""
@@ -189,10 +200,11 @@ def montar_reporte_html(*, data_filtro: str | None = None) -> tuple[str, str]:
             {pill("Qualidade", f"{taxa_qual:.1f}%", "Indicador principal")}
           </div>
 
-          <!-- Links -->
+          <!-- Links -->          
           <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
             {f'<a href="{link_dashboard}" style="background:#0d6efd;color:#fff;text-decoration:none;padding:10px 12px;border-radius:12px;font-weight:800;font-size:12px;">Abrir Dashboard</a>' if link_dashboard else ''}
             {f'<a href="{link_div}" style="background:#D51C29;color:#fff;text-decoration:none;padding:10px 12px;border-radius:12px;font-weight:800;font-size:12px;">Ver Divergências</a>' if link_div else ''}
+            {f'<a href="{link_preview}" style="background:#198754;color:#fff;text-decoration:none;padding:10px 12px;border-radius:12px;font-weight:800;font-size:12px;">Abrir reporte no navegador</a>' if link_preview else ''}
           </div>
 
           <!-- Top lists -->
