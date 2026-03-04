@@ -9,6 +9,17 @@ from app.models.material import MaterialPSA
 
 bp = Blueprint("dashboard", __name__, url_prefix="/dash")
 
+@bp.route("/api/psas")
+@login_required
+def api_psas():
+    rows = (
+        db.session.query(MaterialPSA.psa_key)
+        .filter(MaterialPSA.psa_key.isnot(None))
+        .distinct()
+        .order_by(MaterialPSA.psa_key)
+        .all()
+    )
+    return jsonify([r[0] for r in rows])
 
 @bp.route("/")
 @login_required
