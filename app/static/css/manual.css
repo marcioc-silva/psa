@@ -1,0 +1,84 @@
+.manual-hero{
+  background: linear-gradient(135deg, rgba(13,110,253,.12), rgba(33,37,41,.06));
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.manual-kicker{
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(33,37,41,.65);
+  font-weight: 700;
+}
+
+.manual-cta{
+  border-radius: 14px;
+  padding: 10px 16px;
+  font-weight: 800;
+}
+
+.manual-card{
+  border-radius: 16px;
+  transition: transform .12s ease, box-shadow .12s ease;
+  border: 1px solid rgba(0,0,0,.08);
+}
+.manual-card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(0,0,0,.12);
+}
+
+.manual-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(13,110,253,.12);
+  color: #0d6efd;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.manual-meta{
+  font-size: 12px;
+  color: rgba(33,37,41,.6);
+  font-weight: 700;
+}
+
+.manual-audience{
+  color: rgba(33,37,41,.75);
+}
+.manual-link{
+  color: #0d6efd;
+  font-weight: 800;
+}
+
+.manual-tip{
+  border: 1px dashed rgba(0,0,0,.15);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255,193,7,.08);
+}
+
+.manual-check{
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+/* Sidebar sticky no desktop */
+@media (min-width: 992px){
+  .manual-sticky{
+    position: sticky;
+    top: 12px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 576px){
+  .manual-hero{ padding: 14px; }
+  .manual-card{ border-radius: 14px; }
+}
