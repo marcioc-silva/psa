@@ -130,35 +130,32 @@ def config():
 def registrar():
     return render_template("mydot/registrar.html")
 
+from zoneinfo import ZoneInfo
+TZ_BR = ZoneInfo("America/Sao_Paulo")
+
 @bp.post("/registrar")
 def registrar_post():
-    # device id (modo individual) + cookie
     resp = make_response()
     device_id = get_or_set_device_id(resp)
 
-    # lê payload (opcional: dt_local para registrar “atrasado”)
     data = request.get_json(silent=True) or {}
     dt_local_str = (data.get("dt_local") or "").strip()
 
-    # define timestamp (armazenar em UTC)
     if dt_local_str:
         try:
-            # 1. Converte a string para objeto datetime (ainda sem fuso)
-            dt_naive = datetime.fromisoformat(dt_local_str)
-            
-            # 2. Informa que esse horário digitado É o de Brasília
-            dt_com_fuso = TZ_BR.localize(dt_naive) 
-            
-            # 3. Agora sim, converte para UTC para salvar no banco
-            ts = dt_com_fuso.astimezone(timezone.utc)
-        except (ValueError, AttributeError):
-            ts = datetime.now(timezone.utc)
-            
-    # alterna entrada/saida (usando o último registro)
+            dt_naive = datetime.fromisoformat(dt_local_str)  # "YYYY-MM-DDTHH:MM"
+            ts = dt_naive.replace(tzinfo=TZ_BR).astimezone(timezone.utc)
+        except ValueError:
+            resp.set_data(jsonify({"ok": False, "error": "DT_LOCAL_INVALID"}).get_data())
+            resp.mimetype = "application/json"
+            return resp, 400
+    else:
+        ts = datetime.now(timezone.utc)
+
     last = (
         MyDotPunch.query
-        .filter(MyDotPunch.device_id == device_id)
-        .order_by(desc(MyDotPunch.ts_utc))
+        .filter(MyDotPunch.device_id == device_id, MyDotPunch.ts_utc <= ts)
+        .order_by(MyDotPunch.ts_utc.desc())
         .first()
     )
     kind = "entrada" if (not last or last.kind == "saida") else "saida"
@@ -167,7 +164,6 @@ def registrar_post():
     db.session.add(punch)
     db.session.commit()
 
-    # formata SEM depender do timezone do servidor (Render costuma ser UTC)
     ts_br = ts.astimezone(TZ_BR)
 
     payload = {
@@ -178,7 +174,6 @@ def registrar_post():
         "hora": ts_br.strftime("%H:%M"),
     }
 
-    # mantém o cookie setado em resp e retorna JSON
     resp.set_data(jsonify(payload).get_data())
     resp.mimetype = "application/json"
     return resp
