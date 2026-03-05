@@ -56,6 +56,18 @@ def history():
         subject = f"Dispositivo {device_id[:8]}…"
 
     punches = q.order_by(desc(MyDotPunch.ts_utc)).limit(300).all()
+    from mydot.mydot_module.services.mydot_engine import compute, RhRules
+
+    rules = RhRules(
+        daily_expected_minutes=480,
+        min_lunch_minutes=60,
+    )
+
+    engine = compute(punches, rules=rules)
+
+# agora você tem:
+# engine.days -> lista por dia com worked/breaks/delta/flags
+# engine.total_delta -> saldo total
     return render_template("mydot/history.html", punches=punches, subject=subject)
 
 
