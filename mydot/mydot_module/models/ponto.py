@@ -10,6 +10,7 @@ from app import db
 
 class MyDotPunch(db.Model):
     __tablename__ = "mydot_punch"
+    __bind_key__ = "mydot"
 
     id = db.Column(db.Integer, primary_key=True)
 

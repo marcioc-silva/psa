@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from flask import Flask, request, has_request_context, current_app
+from flask import Flask, app, request, has_request_context, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
@@ -81,6 +81,15 @@ def create_app(config_object=None):
 
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {"pool_pre_ping": True})
+    # Banco separado para o MyDot (SQLite)
+    instance_dir = os.path.join(basedir, "..", "instance")
+    os.makedirs(instance_dir, exist_ok=True)
+
+    mydot_sqlite = os.path.join(instance_dir, "mydot.db")
+
+    app.config["SQLALCHEMY_BINDS"] = {
+        "mydot": f"sqlite:///{mydot_sqlite}"
+    }
 
     db.init_app(app)
     migrate.init_app(app, db)
@@ -102,6 +111,11 @@ def create_app(config_object=None):
     app.register_blueprint(dashboard_bp)
     from app.routes.manual import bp as manual_bp
     app.register_blueprint(manual_bp)
+    from mydot.mydot_module.routes.mydot import bp as mydot_bp
+    app.register_blueprint(mydot_bp, url_prefix="/mydot")
+
+    with app.app_context():
+        db.create_all(bind_key="mydot")
 
     @login_manager.user_loader
     def load_user(user_id):
