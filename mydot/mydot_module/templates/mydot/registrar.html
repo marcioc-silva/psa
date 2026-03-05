@@ -1,22 +1,53 @@
 {% extends "mydot_base.html" %}
 
 {% block content %}
-<div class="container py-3">
-  <h4 class="mb-3">Registrar Ponto</h4>
+<div class="mydot-page">
+  <div class="mydot-top">
+    <div class="title">Registrar Ponto</div>
+    <a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.history') }}">Histórico</a>
+  </div>
 
-  <div class="card p-3 shadow-sm">
-    <div class="mb-2">
-      <video id="video" autoplay playsinline class="w-100 rounded" style="background:#000; max-height: 60vh;"></video>
-      <canvas id="canvas" class="d-none"></canvas>
-    </div>
+  <div class="mydot-cam">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" class="d-none"></canvas>
+  </div>
 
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary" id="btnSnap">Tirar foto e registrar</button>
-      <a class="btn btn-outline-secondary" href="{{ url_for('mydot.history') }}">Consultar</a>
-      <a class="btn btn-outline-secondary" href="{{ url_for('mydot.config') }}">Config</a>
-    </div>
-
-    <div class="mt-3" id="status" style="min-height: 1.5rem;"></div>
+  <div class="mydot-actions">
+    <button class="btn btn-lg btn-primary w-100" id="btnSnap">
+      Tirar foto e registrar
+    </button>
+    <div id="status" class="mt-2" style="min-height:1.4rem;"></div>
   </div>
 </div>
+
+<style>
+  .mydot-page{
+    height: 100dvh;
+    padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .mydot-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .title{ font-weight:800; font-size:16px; }
+  .mydot-cam{
+    flex: 1;
+    border-radius: 16px;
+    overflow:hidden;
+    background:#000;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  #video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .mydot-actions{ padding-bottom: 6px; }
+</style>
 {% endblock %}

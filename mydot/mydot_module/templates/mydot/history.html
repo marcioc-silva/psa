@@ -2,49 +2,121 @@
 {% block title %}MyDot - Histórico{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-    <h5 class="fw-bold">MyDot — Histórico ({{ subject }})</h5>
+<div class="mydot-page">
+  <div class="mydot-top">
+    <div class="title">Histórico ({{ subject }})</div>
     <div class="d-flex gap-2">
-      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('mydot.home') }}">Bater ponto</a>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('mydot.export_csv') }}">Exportar CSV</a>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.dashboard') }}">Voltar</a>
+      <a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.registrar') }}">Registrar</a>
+      <a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.export_csv') }}">CSV</a>
     </div>
   </div>
 
-  <div class="card shadow-sm">
-    <div class="table-responsive" style="max-height: 75vh; overflow:auto;">
-      <table class="table table-sm table-striped mb-0">
-        <thead class="table-dark sticky-top">
-          <tr>
-            <th>ID</th>
-            <th>Data/Hora (UTC)</th>
-            <th>Tipo</th>
-            <th>Lat</th>
-            <th>Lon</th>
-            <th>IP</th>
-            <th>Foto</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for p in punches %}
-          <tr>
-            <td>{{ p.id }}</td>
-            <td class="text-nowrap">{{ p.ts_utc }}</td>
-            <td><span class="badge bg-secondary">{{ p.kind }}</span></td>
-            <td>{{ '%.6f'|format(p.lat) if p.lat is not none else '' }}</td>
-            <td>{{ '%.6f'|format(p.lon) if p.lon is not none else '' }}</td>
-            <td class="text-nowrap">{{ p.ip or '' }}</td>
-            <td>
-              {% if p.photo_path %}
-                <a target="_blank" href="{{ url_for('mydot.static', filename=p.photo_path) }}">abrir</a>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="mydot-table">
+    <table class="table table-sm table-striped mb-0">
+      <thead class="table-dark sticky-top">
+        <tr>
+          <th>ID</th>
+          <th>Data</th>
+          <th>Hora</th>
+          <th>Tipo</th>
+          <th>Foto</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in punches %}
+        <tr>
+          <td>{{ p.id }}</td>
+          <td class="text-nowrap">{{ p.ts_local.strftime('%d/%m/%Y') }}</td>
+          <td class="text-nowrap">{{ p.ts_local.strftime('%H:%M') }}</td>
+          <td><span class="badge bg-secondary">{{ p.kind }}</span></td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary" data-photo-id="{{ p.id }}" type="button">ver</button>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
   </div>
+
+  <dialog id="photoDlg" style="border:none; border-radius:14px; padding:0; max-width:min(92vw,520px);">
+    <div style="background:#0b1020; color:#fff; padding:10px 12px; display:flex; justify-content:space-between; align-items:center;">
+      <strong>Foto</strong>
+      <button class="btn btn-sm btn-outline-light" id="closeDlg">Fechar</button>
+    </div>
+    <div style="background:#000;">
+      <img id="photoImg" style="display:block; width:100%; height:auto;" />
+    </div>
+  </dialog>
 </div>
+
+<style>
+  .mydot-page{
+    height: 100dvh;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    display:flex;
+    flex-direction:column;
+  }
+  .mydot-top{
+    padding: 12px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .title{ font-weight:800; font-size:15px; }
+  .mydot-table{
+    flex:1;
+    overflow:auto;
+    padding: 0 10px 10px;
+  }
+  table{ border-radius: 14px; overflow:hidden; }
+</style>
+
+<script>
+(async function(){
+  const dlg = document.getElementById("photoDlg");
+  const img = document.getElementById("photoImg");
+  const close = document.getElementById("closeDlg");
+
+  function openDB(){
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("mydot", 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if(!db.objectStoreNames.contains("photos")){
+          db.createObjectStore("photos", { keyPath: "id" });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function getPhoto(id){
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("photos", "readonly");
+      const store = tx.objectStore("photos");
+      const req = store.get(Number(id));
+      req.onsuccess = () => resolve(req.result ? req.result.dataUrl : null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  document.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("[data-photo-id]");
+    if(!btn) return;
+    const id = btn.getAttribute("data-photo-id");
+    const dataUrl = await getPhoto(id);
+    if(!dataUrl){
+      alert("Sem foto salva neste dispositivo para este ID.");
+      return;
+    }
+    img.src = dataUrl;
+    dlg.showModal();
+  });
+
+  close?.addEventListener("click", () => dlg.close());
+})();
+</script>
 {% endblock %}

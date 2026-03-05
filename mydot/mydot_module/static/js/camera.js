@@ -12,6 +12,31 @@
     status.className = isErr ? "text-danger" : "text-success";
   }
 
+  function openDB(){
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("mydot", 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if(!db.objectStoreNames.contains("photos")){
+          db.createObjectStore("photos", { keyPath: "id" });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function savePhoto(id, dataUrl){
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("photos", "readwrite");
+      const store = tx.objectStore("photos");
+      store.put({ id: Number(id), dataUrl, savedAt: Date.now() });
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" } },
@@ -26,7 +51,7 @@
   btn.addEventListener("click", async () => {
     try {
       btn.disabled = true;
-      setStatus("Registrando...");
+      setStatus("Capturando foto...");
 
       const w = video.videoWidth || 720;
       const h = video.videoHeight || 1280;
@@ -36,24 +61,27 @@
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, w, h);
 
-      // JPEG base64
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-      const base64 = dataUrl.split(",")[1];
 
+      setStatus("Registrando no servidor...");
+
+      // servidor só cria o registro (sem imagem)
       const resp = await fetch("/mydot/registrar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image_base64: base64 })
+        body: JSON.stringify({})
       });
 
       const json = await resp.json().catch(() => ({}));
-
       if (!resp.ok || !json.ok) {
         setStatus("Erro ao registrar: " + (json.error || resp.status), true);
         return;
       }
 
-      setStatus(`OK! ${json.kind.toUpperCase()} registrada às ${json.ts_utc}`);
+      // salva foto no DISPOSITIVO (IndexedDB), chaveando pelo ID do registro
+      await savePhoto(json.id, dataUrl);
+
+      setStatus(`OK! ${String(json.kind).toUpperCase()} em ${json.data} ${json.hora}`);
     } catch (e) {
       setStatus("Falha ao registrar (erro inesperado).", true);
     } finally {
