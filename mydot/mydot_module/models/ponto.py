@@ -13,5 +13,4 @@ class MyDotPunch(db.Model):
 
     @property
     def ts_local(self):
-        # converte UTC -> local do servidor (pode ajustar pra America/Sao_Paulo depois)
         return self.ts_utc.astimezone()

@@ -56,12 +56,6 @@ def history():
         subject = f"Dispositivo {device_id[:8]}…"
 
     punches = q.order_by(desc(MyDotPunch.ts_utc)).limit(300).all()
-
-    # cria um ts_local pra facilitar no template (dd/mm e hh:mm)
-    for p in punches:
-        if p.ts_utc is not None:
-            p.ts_local = p.ts_utc.replace(tzinfo=timezone.utc).astimezone()
-
     return render_template("mydot/history.html", punches=punches, subject=subject)
 
 
