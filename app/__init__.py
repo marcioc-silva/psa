@@ -111,7 +111,7 @@ def create_app(config_object=None):
     app.register_blueprint(dashboard_bp)
     from app.routes.manual import bp as manual_bp
     app.register_blueprint(manual_bp)
-    from mydot.mydot_module.routes.mydot import bp as mydot_bp
+    
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -124,9 +124,10 @@ def create_app(config_object=None):
         try:
             from mydot.mydot_module.routes.mydot import bp as mydot_bp
             app.register_blueprint(mydot_bp, url_prefix="/mydot")
+
+            from mydot.mydot_module.models.ponto import MyDotPunch
             with app.app_context():
                 db.create_all(bind_key="mydot")
-                
         except Exception as e:
             app.logger.warning(f"MyDot desabilitado (não impacta PSA): {e}")
             
