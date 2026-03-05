@@ -5,7 +5,7 @@ html, body {
   margin: 0;
   padding: 0;
   overflow-x: hidden; /* Evita scrolls horizontais acidentais */
-  background-color: #9d1266; /* Cor sólida de fundo de app */
+  background-color: #6c6a79; /* Cor sólida de fundo de app */
   font-family: sans-serif;
 }
 

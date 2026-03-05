@@ -22,38 +22,48 @@
 </div>
 
 <style>
-  .mydot-page{
-    height: 100dvh;
+  .mydot-page {
+    /* dvh é excelente, pois se adapta dinamicamente à barra de endereços/menu */
+    height: 100dvh; 
+    /* O padding inferior garante que nada toque no menu do sistema */
     padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-  }
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box; /* Garante que o padding não aumente o tamanho da página */
+    
   .mydot-top{
     display:flex;
     justify-content:space-between;
     align-items:center;
     gap:10px;
   }
+  
   .title{ font-weight:800; font-size:16px; }
-  .mydot-cam{
-    flex: 1;
-    border-radius: 16px;
-    overflow:hidden;
-    background:#000;
-    border: 1px solid rgba(255,255,255,.12);
-  }
-  #video{
-    width: 100%;
-    max-width: 420px;
-    height: 60vh;
-    margin: 0 auto;
+
+  .mydot-cam {
+    flex: 1; /* Faz este container ocupar todo o espaço central disponível */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 16px;
     overflow: hidden;
-    }
-    object-fit:cover;
-    display:block;
+    background: #000;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  #video {
+    width: 100%;
+    max-width: 420px;
+    /* Removemos o 60vh fixo para que ele se ajuste ao espaço que sobra */
+    height: 100%; 
+    max-height: 100%;
+    margin: 0 auto;
+    object-fit: cover; /* Importante: mantém a proporção sem distorcer */
+    display: block;
+    border-radius: 16px;
+  }
+    
   
-  .mydot-actions{ padding-bottom: 6px; }
+  .mydot-actions{ padding-bottom: 12px; }
 </style>
 {% endblock %}
