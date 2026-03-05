@@ -208,17 +208,9 @@ def consultar_redirect():
 
 
 @bp.get("/registrar")
-def registrar_redirect():
-    # por enquanto registrar = home ou uma página específica depois
-    return redirect(url_for("mydot.home"))
-
-
-
-@bp.get("/registrar")
 def registrar():
     # página com câmera e botão registrar
     return render_template("mydot/registrar.html")
-
 
 @bp.post("/registrar")
 def registrar_post():
