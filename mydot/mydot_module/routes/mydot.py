@@ -181,24 +181,25 @@ def punch():
 
 @bp.route("/config", methods=["GET", "POST"])
 def config():
+    # cria um response “vazio” para poder setar cookie se precisar
+    resp = make_response()
 
-    device_id = get_or_set_device_id()
+    device_id = get_or_set_device_id(resp)
 
     cfg = MyDotConfig.query.filter_by(device_id=device_id).first()
-
     if not cfg:
         cfg = MyDotConfig(device_id=device_id)
 
     if request.method == "POST":
-
         cfg.daily_expected_minutes = int(request.form["daily"])
         cfg.min_lunch_minutes = int(request.form["lunch"])
         cfg.initial_balance_minutes = int(request.form["balance"])
-
         db.session.add(cfg)
         db.session.commit()
 
-    return render_template("mydot/config.html", cfg=cfg)
+    resp.set_data(render_template("mydot/config.html", cfg=cfg))
+    resp.mimetype = "text/html"
+    return resp
 
 @bp.get("/consultar")
 def consultar_redirect():
