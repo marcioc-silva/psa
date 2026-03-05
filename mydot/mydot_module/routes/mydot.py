@@ -14,6 +14,7 @@ from sqlalchemy import desc
 from werkzeug.utils import secure_filename
 
 from app import db
+from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
 from ..services.mydot_service import (
     get_or_set_device_id, parse_geo, geo_within_radius_m,
@@ -66,7 +67,7 @@ def history():
         subject = f"Usuário {getattr(current_user, 'nome_completo', 'logado')}"
     else:
         if not device_id:
-            return redirect(url_for("mydot.index"))
+            return redirect(url_for("mydot.home"))
         q = q.filter(MyDotPunch.device_id == device_id)
         subject = f"Dispositivo {device_id[:8]}…"
 
@@ -178,66 +179,6 @@ def punch():
 
     return resp
 
-@bp.post("/register")
-def register():
-
-    device_id = get_or_set_device_id()
-
-    kind, label = decide_kind(device_id)
-
-    photo = request.json.get("photo")
-
-    photo_path = None
-
-    if photo:
-        photo_path = save_base64_image_jpeg(photo)
-
-    punch = MyDotPunch(
-        device_id=device_id,
-        kind=kind,
-        label=label,
-        photo_path=photo_path
-    )
-
-    db.session.add(punch)
-    db.session.commit()
-
-    return jsonify({
-        "ok": True,
-        "kind": kind,
-        "label": label
-    })
-
-@bp.post("/register")
-def register():
-
-    device_id = get_or_set_device_id()
-
-    kind, label = decide_kind(device_id)
-
-    photo = request.json.get("photo")
-
-    photo_path = None
-
-    if photo:
-        photo_path = save_base64_image_jpeg(photo)
-
-    punch = MyDotPunch(
-        device_id=device_id,
-        kind=kind,
-        label=label,
-        photo_path=photo_path
-    )
-
-    db.session.add(punch)
-    db.session.commit()
-
-    return jsonify({
-        "ok": True,
-        "kind": kind,
-        "label": label
-    })
-
 @bp.route("/config", methods=["GET", "POST"])
 def config():
 
@@ -258,3 +199,13 @@ def config():
         db.session.commit()
 
     return render_template("mydot/config.html", cfg=cfg)
+
+@bp.get("/consultar")
+def consultar_redirect():
+    return redirect(url_for("mydot.history"))
+
+
+@bp.get("/registrar")
+def registrar_redirect():
+    # por enquanto registrar = home ou uma página específica depois
+    return redirect(url_for("mydot.home"))

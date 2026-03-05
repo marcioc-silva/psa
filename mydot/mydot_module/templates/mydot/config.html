@@ -1,0 +1,18 @@
+<!-- templates/mydot/config.html -->
+{% extends "mydot/mydot_base.html" %}
+{% block content %}
+<h5>Configuração de Jornada</h5>
+
+<form method="post">
+  <label>Carga diária (min):</label>
+  <input name="daily" type="number" value="{{ cfg.daily_expected_minutes or 528 }}" class="form-control">
+
+  <label class="mt-2">Almoço mínimo (min):</label>
+  <input name="lunch" type="number" value="{{ cfg.min_lunch_minutes or 60 }}" class="form-control">
+
+  <label class="mt-2">Saldo inicial (min):</label>
+  <input name="balance" type="number" value="{{ cfg.initial_balance_minutes or 0 }}" class="form-control">
+
+  <button class="btn btn-primary mt-3" type="submit">Salvar</button>
+</form>
+{% endblock %}
