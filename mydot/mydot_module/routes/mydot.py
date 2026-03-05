@@ -5,6 +5,7 @@ import uuid
 import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
+from flask import flash  # se você quiser mensagem; opcional
 
 from flask import (
     Blueprint, current_app, render_template, request, jsonify,
@@ -210,3 +211,78 @@ def consultar_redirect():
 def registrar_redirect():
     # por enquanto registrar = home ou uma página específica depois
     return redirect(url_for("mydot.home"))
+
+
+
+@bp.get("/registrar")
+def registrar():
+    # página com câmera e botão registrar
+    return render_template("mydot/registrar.html")
+
+
+@bp.post("/registrar")
+def registrar_post():
+    """
+    Recebe foto em base64 e cria um MyDotPunch com:
+    - device_id do cookie (ou cria)
+    - ts_utc do servidor (sem OCR)
+    - kind simples: alterna entrada/saida automaticamente
+    """
+    data = request.get_json(silent=True) or {}
+    img_b64 = (data.get("image_base64") or "").strip()
+    if not img_b64:
+        return jsonify({"ok": False, "error": "IMAGE_REQUIRED"}), 400
+
+    # device id (modo individual)
+    device_id = request.cookies.get("mydot_device_id")
+    created_cookie = False
+    if not device_id:
+        device_id = str(uuid.uuid4())
+        created_cookie = True
+
+    # lógica mínima: alterna entrada/saida
+    last = (
+        MyDotPunch.query
+        .filter(MyDotPunch.device_id == device_id)
+        .order_by(MyDotPunch.ts_utc.desc())
+        .first()
+    )
+    kind = "entrada" if (not last or last.kind == "saida") else "saida"
+
+    # salva imagem
+    upload_dir = ensure_upload_dir()
+    photo_relpath, img_hash = save_base64_image_jpeg(img_b64, upload_dir)
+
+    punch = MyDotPunch(
+        user_id=None,
+        device_id=device_id,
+        kind=kind,
+        ts_utc=datetime.now(timezone.utc),
+        lat=None,
+        lon=None,
+        acc_m=None,
+        ip=request.headers.get("X-Forwarded-For", request.remote_addr),
+        user_agent=request.headers.get("User-Agent"),
+        photo_path=photo_relpath,
+        img_hash=img_hash,
+    )
+    db.session.add(punch)
+    db.session.commit()
+
+    resp = make_response(jsonify({
+        "ok": True,
+        "id": punch.id,
+        "kind": punch.kind,
+        "ts_utc": punch.ts_utc.isoformat(),
+    }))
+
+    if created_cookie:
+        resp.set_cookie(
+            "mydot_device_id",
+            device_id,
+            max_age=60 * 60 * 24 * 365,
+            samesite="Lax",
+            secure=True,
+        )
+
+    return resp
