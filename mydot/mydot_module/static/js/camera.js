@@ -83,10 +83,14 @@
       await savePhoto(json.id, dataUrl);
 
       setStatus(`OK! ${String(json.kind).toUpperCase()} em ${json.data} ${json.hora}`);
+      setTimeout(() => {
+        window.location.href = "/mydot/historico"; // Substitua pelo caminho da sua página de histórico
+      }, 1500);
     } catch (e) {
       setStatus("Falha ao registrar (erro inesperado).", true);
     } finally {
       btn.disabled = false;
+      return 
     }
   });
 })();
