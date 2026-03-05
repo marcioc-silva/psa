@@ -2,6 +2,11 @@
 {% extends "mydot_base.html" %}
 {% block content %}
 <div class="espacador-seguro"></div>
+<a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.home') }}">🏠 Home</a>
+<a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.registrar') }}">📷 Registrar</a>
+<a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.history') }}">🗂 Histórico</a>
+ 
+      
 <h5>Configuração de Jornada</h5>
 
 <form method="post">
