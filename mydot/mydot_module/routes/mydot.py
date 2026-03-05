@@ -246,7 +246,6 @@ def registrar_post():
     photo_relpath, img_hash = save_base64_image_jpeg(img_b64, upload_dir)
 
     punch = MyDotPunch(
-        user_id=None,
         device_id=device_id,
         kind=kind,
         ts_utc=datetime.now(timezone.utc),
