@@ -44,11 +44,16 @@
     border: 1px solid rgba(255,255,255,.12);
   }
   #video{
-    width:100%;
-    height:100%;
+    width: 100%;
+    max-width: 420px;
+    height: 60vh;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    }
     object-fit:cover;
     display:block;
-  }
+  
   .mydot-actions{ padding-bottom: 6px; }
 </style>
 {% endblock %}

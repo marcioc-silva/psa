@@ -146,7 +146,7 @@ def registrar_post():
         "id": punch.id,
         "kind": punch.kind,
         "data": ts.astimezone().strftime("%d/%m/%Y"),
-        "hora": ts.astimezone().strftime("%H:%M"),
+        "hora": ts.astimezone("America/Sao_Paulo").strftime("%H:%M"),
     }
 
     resp.set_data(jsonify(payload).get_data())
