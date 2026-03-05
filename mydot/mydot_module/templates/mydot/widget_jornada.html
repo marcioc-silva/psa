@@ -1,0 +1,66 @@
+<div class="card" style="max-width: 350px; margin: 20px auto; font-family: Arial, sans-serif;">
+  <div class="card-header" style="background:#2a7; color:#fff; padding:10px; border-radius:6px 6px 0 0;">
+    Jornada RH
+  </div>
+  <div class="card-body" style="background:#fff; padding:15px; border:1px solid #ddd; border-radius:0 0 6px 6px;">
+    <label for="entrada">Hora de entrada:</label>
+    <input type="time" id="entrada" value="05:00" onchange="mostrarEventos()" style="margin:10px 0;">
+
+    <div id="eventos"></div>
+  </div>
+</div>
+
+<script>
+  function calcularEventos(entradaHora, jornadaHoras = 8) {
+    let entrada = new Date();
+    let [h, m] = entradaHora.split(":");
+    entrada.setHours(parseInt(h), parseInt(m), 0);
+
+    let eventos = [];
+
+    // Almoço após 6h
+    let almoco = new Date(entrada.getTime());
+    almoco.setHours(entrada.getHours() + 6);
+    eventos.push({nome: "Almoço", hora: almoco});
+
+    // Retorno após 1h de almoço
+    let retorno = new Date(almoco.getTime());
+    retorno.setHours(almoco.getHours() + 1);
+    eventos.push({nome: "Retorno", hora: retorno});
+
+    // Saída mínima (jornada - 2h)
+    let saidaMin = new Date(entrada.getTime());
+    saidaMin.setHours(entrada.getHours() + jornadaHoras - 2);
+    eventos.push({nome: "Saída mínima", hora: saidaMin});
+
+    // Saída máxima (jornada completa)
+    let saidaMax = new Date(entrada.getTime());
+    saidaMax.setHours(entrada.getHours() + jornadaHoras);
+    eventos.push({nome: "Saída máxima", hora: saidaMax});
+
+    // Próxima entrada (mínimo 11h após saída máxima)
+    let proxEntrada = new Date(saidaMax.getTime());
+    proxEntrada.setHours(saidaMax.getHours() + 11);
+    eventos.push({nome: "Próxima entrada (mínimo)", hora: proxEntrada});
+
+    return eventos;
+  }
+
+  function mostrarEventos() {
+    let entradaHora = document.getElementById("entrada").value;
+    let eventos = calcularEventos(entradaHora);
+    let container = document.getElementById("eventos");
+    container.innerHTML = "";
+
+    let agora = new Date();
+
+    eventos.forEach(ev => {
+      let horaStr = ev.hora.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      let classe = ev.hora > agora ? "color:#2a7; font-weight:bold;" : "color:#555;";
+      container.innerHTML += `<div style="margin:5px 0; ${classe}">${ev.nome}: ${horaStr}</div>`;
+    });
+  }
+
+  mostrarEventos();
+  setInterval(mostrarEventos, 60000); // atualiza a cada minuto
+</script>
