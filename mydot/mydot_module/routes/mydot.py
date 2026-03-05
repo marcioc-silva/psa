@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-
+from zoneinfo import ZoneInfo
 from flask import Blueprint, render_template, request, jsonify, make_response, redirect, url_for
 from sqlalchemy import desc
 
@@ -158,7 +158,7 @@ def registrar_post():
         "id": punch.id,
         "kind": punch.kind,
         "data": ts.astimezone().strftime("%d/%m/%Y"),
-        "hora": ts.astimezone("America/Sao_Paulo").strftime("%H:%M"),
+        "hora": ts.astimezone(ZoneInfo("America/Sao_Paulo")).strftime("%H:%M"),
     }
 
     resp.set_data(jsonify(payload).get_data())
