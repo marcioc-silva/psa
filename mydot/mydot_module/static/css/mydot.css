@@ -58,3 +58,11 @@ html, body {
   overflow-y: auto; /* A rolagem acontece apenas aqui dentro */
   padding: 16px;
 }
+.espacador-seguro {
+    /* Ocupa a largura toda */
+    width: 100%; 
+    /* A altura será o tamanho da 'área segura' do Android + 10px de respiro */
+    height: calc(env(safe-area-inset-bottom, 0px) + 10px); 
+    /* Garante que nada apareça */
+    background: transparent; 
+}
