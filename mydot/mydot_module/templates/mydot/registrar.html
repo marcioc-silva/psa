@@ -31,14 +31,14 @@
     flex-direction: column;
     gap: 12px;
     box-sizing: border-box; /* Garante que o padding não aumente o tamanho da página */
-    
+  } 
   .mydot-top{
     display:flex;
     justify-content:space-between;
     align-items:center;
     gap:10px;
   }
-  
+
   .title{ font-weight:800; font-size:16px; }
 
   .mydot-cam {
@@ -64,6 +64,19 @@
   }
     
   
-  .mydot-actions{ padding-bottom: 12px; }
+  .mydot-actions{ 
+    background-color: #007bff; /* Cor azul do seu botão */
+    color: white;
+    width: 100%;
+    border: none;
+    padding-top: 15px;    /* Espaço interno em cima */
+    
+    /* A MÁGICA ESTÁ AQUI: */
+    /* Ele vai somar 15px de respiro + o tamanho da barra do Android */
+    padding-bottom: calc(15px + env(safe-area-inset-bottom, 20px)); 
+    
+    text-align: center;
+    font-size: 18px; 
+  }
 </style>
 {% endblock %}
