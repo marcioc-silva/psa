@@ -14,7 +14,7 @@
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user" },
+      video: { facingMode: { ideal: "environment" } },
       audio: false
     });
     video.srcObject = stream;
