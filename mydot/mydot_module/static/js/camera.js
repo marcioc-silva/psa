@@ -64,12 +64,13 @@
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
       setStatus("Registrando no servidor...");
-
+      const dtEl = document.getElementById("dtLocal");
+      const dtLocal = dtEl?.value || null;
       // servidor só cria o registro (sem imagem)
       const resp = await fetch("/mydot/registrar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({})
+        body: JSON.stringify({dt_local: dtLocal })
       });
 
       const json = await resp.json().catch(() => ({}));

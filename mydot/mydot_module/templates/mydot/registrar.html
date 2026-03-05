@@ -12,7 +12,13 @@
     <video id="video" autoplay playsinline></video>
     <canvas id="canvas" class="d-none"></canvas>
   </div>
-
+  <div class="mb-2">
+    <label class="form-label text-light">Data e hora do ponto</label>
+    <input id="dtLocal" type="datetime-local" class="form-control" />
+    <small class="text-light opacity-75">
+        Ajuste se estiver registrando depois do horário real.
+    </small>
+</div>
   <div class="mydot-actions">
     <button class="btn btn-lg btn-primary w-100" id="btnSnap">
       Tirar foto e registrar

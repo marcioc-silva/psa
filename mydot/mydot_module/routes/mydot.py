@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from flask import Blueprint, render_template, request, jsonify, make_response, redirect, url_for
 from sqlalchemy import desc
-
 from app import db
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
@@ -18,7 +17,7 @@ except Exception:  # pragma: no cover
     login_required = None
     current_user = None
 
-
+TZ_BR = ZoneInfo("America/Sao_Paulo")
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # .../mydot_module
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -131,36 +130,53 @@ def config():
 def registrar():
     return render_template("mydot/registrar.html")
 
-
 @bp.post("/registrar")
 def registrar_post():
-    # device id (modo individual)
+    # device id (modo individual) + cookie
     resp = make_response()
     device_id = get_or_set_device_id(resp)
 
-    # alterna entrada/saida
+    # lê payload (opcional: dt_local para registrar “atrasado”)
+    data = request.get_json(silent=True) or {}
+    dt_local_str = (data.get("dt_local") or "").strip()
+
+    # define timestamp (armazenar em UTC)
+    if dt_local_str:
+        try:
+            # esperado: "YYYY-MM-DDTHH:MM" (input type="datetime-local")
+            dt_naive = datetime.fromisoformat(dt_local_str)
+            ts = dt_naive.replace(tzinfo=TZ_BR).astimezone(timezone.utc)
+        except ValueError:
+            # se vier inválido, cai pro agora
+            ts = datetime.now(timezone.utc)
+    else:
+        ts = datetime.now(timezone.utc)
+
+    # alterna entrada/saida (usando o último registro)
     last = (
         MyDotPunch.query
         .filter(MyDotPunch.device_id == device_id)
-        .order_by(MyDotPunch.ts_utc.desc())
+        .order_by(desc(MyDotPunch.ts_utc))
         .first()
     )
     kind = "entrada" if (not last or last.kind == "saida") else "saida"
-
-    ts = datetime.now(timezone.utc)
 
     punch = MyDotPunch(device_id=device_id, kind=kind, ts_utc=ts)
     db.session.add(punch)
     db.session.commit()
 
+    # formata SEM depender do timezone do servidor (Render costuma ser UTC)
+    ts_br = ts.astimezone(TZ_BR)
+
     payload = {
         "ok": True,
         "id": punch.id,
         "kind": punch.kind,
-        "data": ts.astimezone().strftime("%d/%m/%Y"),
-        "hora": ts.astimezone(ZoneInfo("America/Sao_Paulo")).strftime("%H:%M"),
+        "data": ts_br.strftime("%d/%m/%Y"),
+        "hora": ts_br.strftime("%H:%M"),
     }
 
+    # mantém o cookie setado em resp e retorna JSON
     resp.set_data(jsonify(payload).get_data())
     resp.mimetype = "application/json"
     return resp
