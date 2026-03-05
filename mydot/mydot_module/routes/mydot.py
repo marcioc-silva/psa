@@ -51,11 +51,8 @@ def _require_geo() -> bool:
 
 
 @bp.get("/")
-def index():
-    # Modo individual: cria/recupera device_id via cookie
-    resp = make_response(render_template("mydot/punch.html"))
-    get_or_set_device_id(resp)
-    return resp
+def home():
+    return render_template("mydot/home.html")
 
 
 @bp.get("/history")
@@ -180,3 +177,84 @@ def punch():
         resp.set_cookie("mydot_device_id", device_id, max_age=60*60*24*365, samesite="Lax", secure=True)
 
     return resp
+
+@bp.post("/register")
+def register():
+
+    device_id = get_or_set_device_id()
+
+    kind, label = decide_kind(device_id)
+
+    photo = request.json.get("photo")
+
+    photo_path = None
+
+    if photo:
+        photo_path = save_base64_image_jpeg(photo)
+
+    punch = MyDotPunch(
+        device_id=device_id,
+        kind=kind,
+        label=label,
+        photo_path=photo_path
+    )
+
+    db.session.add(punch)
+    db.session.commit()
+
+    return jsonify({
+        "ok": True,
+        "kind": kind,
+        "label": label
+    })
+
+@bp.post("/register")
+def register():
+
+    device_id = get_or_set_device_id()
+
+    kind, label = decide_kind(device_id)
+
+    photo = request.json.get("photo")
+
+    photo_path = None
+
+    if photo:
+        photo_path = save_base64_image_jpeg(photo)
+
+    punch = MyDotPunch(
+        device_id=device_id,
+        kind=kind,
+        label=label,
+        photo_path=photo_path
+    )
+
+    db.session.add(punch)
+    db.session.commit()
+
+    return jsonify({
+        "ok": True,
+        "kind": kind,
+        "label": label
+    })
+
+@bp.route("/config", methods=["GET", "POST"])
+def config():
+
+    device_id = get_or_set_device_id()
+
+    cfg = MyDotConfig.query.filter_by(device_id=device_id).first()
+
+    if not cfg:
+        cfg = MyDotConfig(device_id=device_id)
+
+    if request.method == "POST":
+
+        cfg.daily_expected_minutes = int(request.form["daily"])
+        cfg.min_lunch_minutes = int(request.form["lunch"])
+        cfg.initial_balance_minutes = int(request.form["balance"])
+
+        db.session.add(cfg)
+        db.session.commit()
+
+    return render_template("mydot/config.html", cfg=cfg)

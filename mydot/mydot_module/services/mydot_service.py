@@ -4,11 +4,12 @@ import os
 import uuid
 import base64
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timezone,timedelta
 from pathlib import Path
 from typing import Any, Tuple, Optional
 
 from flask import request, current_app, Response
+from mydot.mydot_module.models.ponto import MyDotPunch
 
 # ---------- Device ID (modo individual) ----------
 
@@ -100,3 +101,26 @@ def geo_within_radius_m(lat: float, lon: float, acc_m: Optional[float] = None) -
     # aqui só soma a precisão como “margem”.
     margin = float(acc_m) if acc_m else 0.0
     return d <= (radius_m + margin)
+
+def decide_kind(device_id):
+
+    last = (
+        MyDotPunch.query
+        .filter_by(device_id=device_id)
+        .order_by(MyDotPunch.ts_utc.desc())
+        .first()
+    )
+
+    if not last:
+        return "in", "Entrada Jornada"
+
+    diff = datetime.utcnow() - last.ts_utc
+
+    # nova jornada após 11 horas
+    if diff > timedelta(hours=11):
+        return "in", "Entrada Jornada"
+
+    if last.kind == "in":
+        return "out", "Saída"
+    else:
+        return "in", "Entrada"
