@@ -143,15 +143,17 @@ def registrar_post():
     # define timestamp (armazenar em UTC)
     if dt_local_str:
         try:
-            # esperado: "YYYY-MM-DDTHH:MM" (input type="datetime-local")
+            # 1. Converte a string para objeto datetime (ainda sem fuso)
             dt_naive = datetime.fromisoformat(dt_local_str)
-            ts = dt_naive.replace(tzinfo=TZ_BR).astimezone(timezone.utc)
-        except ValueError:
-            # se vier inválido, cai pro agora
+            
+            # 2. Informa que esse horário digitado É o de Brasília
+            dt_com_fuso = TZ_BR.localize(dt_naive) 
+            
+            # 3. Agora sim, converte para UTC para salvar no banco
+            ts = dt_com_fuso.astimezone(timezone.utc)
+        except (ValueError, AttributeError):
             ts = datetime.now(timezone.utc)
-    else:
-        ts = datetime.now(timezone.utc)
-
+            
     # alterna entrada/saida (usando o último registro)
     last = (
         MyDotPunch.query
