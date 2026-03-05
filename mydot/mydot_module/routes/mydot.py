@@ -36,8 +36,8 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 bp = Blueprint(
     "mydot",
     __name__,
-    template_folder="../templates",
-    static_folder="../static",
+    template_folder=TEMPLATES_DIR,
+    static_folder=STATIC_DIR,
     static_url_path="/mydot-static"
 )
 
