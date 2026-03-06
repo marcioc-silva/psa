@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from flask import Blueprint, render_template, request, jsonify, make_response, redirect, url_for
 from sqlalchemy import desc
@@ -171,7 +171,7 @@ def registrar_post():
         "id": punch.id,
         "kind": punch.kind,
         "data": ts_br.strftime("%d/%m/%Y"),
-        "hora": ts_br.strftime("%H:%M"),
+        "hora": ts_br.strftime("%H:%M") - timedelta(hours=3),
     }
 
     resp.set_data(jsonify(payload).get_data())
