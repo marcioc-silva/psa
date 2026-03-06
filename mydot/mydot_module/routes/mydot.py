@@ -170,8 +170,7 @@ def registrar_post():
         "data": ts_br.strftime("%d/%m/%Y"),
         "hora": (ts_br - timedelta(hours=3)).strftime("%H:%M"),
     }
-    print("-" * 30)
-    print(f"ALERTA DE REGISTRO - USUÁRIO: {punch.user_id}")
+    print("-" * 30)    
     print(f"HORA ORIGINAL (SERVIDOR): {ts_br.strftime('%H:%M:%S')}")
     print(f"HORA CALCULADA (SAO PAULO): {payload['hora']}")
     print(f"PAYLOAD COMPLETO: {payload}")
