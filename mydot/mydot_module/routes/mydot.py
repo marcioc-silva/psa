@@ -57,12 +57,12 @@ def history():
     punches = q.order_by(desc(MyDotPunch.ts_utc)).limit(300).all()
     
 
-    rules = RhRules(
-        daily_expected_minutes=480,
-        min_lunch_minutes=60,
-    )
+   # rules = RhRules(
+   #     daily_expected_minutes=480,
+   #     min_lunch_minutes=60,
+   # )
 
-    engine = compute(punches, rules=rules)
+   # engine = compute(punches, rules=rules)
 
 # agora você tem:
 # engine.days -> lista por dia com worked/breaks/delta/flags
