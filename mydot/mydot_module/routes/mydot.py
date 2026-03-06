@@ -17,7 +17,6 @@ except Exception:  # pragma: no cover
     login_required = None
     current_user = None
 
-TZ_BR = ZoneInfo("America/Sao_Paulo")
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # .../mydot_module
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -130,8 +129,6 @@ def config():
 def registrar():
     return render_template("mydot/registrar.html")
 
-from zoneinfo import ZoneInfo
-TZ_BR = ZoneInfo("America/Sao_Paulo")
 
 @bp.post("/registrar")
 def registrar_post():
@@ -164,7 +161,7 @@ def registrar_post():
     db.session.add(punch)
     db.session.commit()
 
-    ts_br = ts.astimezone(TZ_BR)
+    ts_br = ts.astimezone(ZoneInfo("America/Sao_Paulo"))
 
     payload = {
         "ok": True,
@@ -173,7 +170,12 @@ def registrar_post():
         "data": ts_br.strftime("%d/%m/%Y"),
         "hora": (ts_br - timedelta(hours=3)).strftime("%H:%M"),
     }
-
+    print("-" * 30)
+    print(f"ALERTA DE REGISTRO - USUÁRIO: {punch.user_id}")
+    print(f"HORA ORIGINAL (SERVIDOR): {ts_br.strftime('%H:%M:%S')}")
+    print(f"HORA CALCULADA (SAO PAULO): {payload['hora']}")
+    print(f"PAYLOAD COMPLETO: {payload}")
+    print("-" * 30)
     resp.set_data(jsonify(payload).get_data())
     resp.mimetype = "application/json"
     return resp
