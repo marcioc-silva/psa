@@ -168,7 +168,7 @@ def registrar_post():
         "id": punch.id,
         "kind": punch.kind,
         "data": ts_br.strftime("%d/%m/%Y"),
-        "hora": (ts_br - timedelta(hours=3)).strftime("%H:%M"),
+        "hora": "Teste 8:45"#(ts_br - timedelta(hours=3)).strftime("%H:%M"),
     }
     print("-" * 30)    
     print(f"HORA ORIGINAL (SERVIDOR): {ts_br.strftime('%H:%M:%S')}")
