@@ -171,7 +171,7 @@ def registrar_post():
         "id": punch.id,
         "kind": punch.kind,
         "data": ts_br.strftime("%d/%m/%Y"),
-        "hora": ts_br.strftime("%H:%M") - timedelta(hours=3),
+        "hora": (ts_br - timedelta(hours=3)).strftime("%H:%M"),
     }
 
     resp.set_data(jsonify(payload).get_data())
