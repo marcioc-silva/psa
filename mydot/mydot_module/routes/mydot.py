@@ -162,13 +162,16 @@ def registrar_post():
     db.session.commit()
 
     ts_br = ts.astimezone(ZoneInfo("America/Sao_Paulo"))
+    fuso_sp = pytz.timezone('America/Sao_Paulo')
+    agora_sp = datetime.now(fuso_sp)
+    ts_limpo = agora_sp.strftime('%Y-%m-%d %H:%M:%S')
 
     payload = {
         "ok": True,
         "id": punch.id,
         "kind": punch.kind,
         "data": ts_br.strftime("%d/%m/%Y"),
-        "hora": ts_br.strftime("%H:%M"),
+        "hora": ts_limpo,
     }
     print("-" * 30)    
     print(f"HORA ORIGINAL (SERVIDOR): {ts_br.strftime('%H:%M:%S')}")

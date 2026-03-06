@@ -1,8 +1,8 @@
-from zoneinfo import ZoneInfo
 from app import db
-from datetime import datetime
-import pytz
+from datetime import datetime, timezone
 
+import pytz
+from datetime import datetime
 
 class MyDotPunch(db.Model):
     __bind_key__ = "mydot"
@@ -19,10 +19,6 @@ class MyDotPunch(db.Model):
 
     @property
     def ts_local(self):
-        # Se o banco salvou como UTC, forçamos a exibição em SP
-        # Se você seguiu a dica anterior de salvar já em SP, basta retornar self.ts_utc
-        fuso_sp = ZoneInfo("America/Sao_Paulo")
-        if self.ts_utc.tzinfo is None:
-            # Se o dado no banco não tiver fuso, dizemos que ele é UTC e convertemos para SP
-            return self.ts_utc.replace(tzinfo=pytz.timezone.utc).astimezone(fuso_sp)
-        return self.ts_utc.astimezone(fuso_sp)
+        # Como o dado já vai estar "limpo" no banco com a hora de SP, 
+        # basta retornar o valor puro
+        return self.ts_utc
