@@ -27,7 +27,7 @@
       {% for p in punches %}
         <tr>
           <td>{{ p.id }}</td>
-          <td class="text-nowrap">{{ p.ts_local.strftime('%d/%m/%Y') }}</td>
+          <td class="text-nowrap">{{ p.ts_local}}</td>
           <td class="text-nowrap">{{ p.ts_local }}</td>
           <td><span class="badge bg-secondary">{{ p.kind }}</span></td>
           <td>
