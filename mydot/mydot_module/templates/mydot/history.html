@@ -28,7 +28,7 @@
         <tr>
           <td>{{ p.id }}</td>
           <td class="text-nowrap">{{ p.ts_local.strftime('%d/%m/%Y') }}</td>
-          <td class="text-nowrap">{{ p.ts_local.strftime('%H:%M') }}</td>
+          <td class="text-nowrap">{{ p.ts_local }}</td>
           <td><span class="badge bg-secondary">{{ p.kind }}</span></td>
           <td>
             <button class="btn btn-sm btn-outline-secondary" data-photo-id="{{ p.id }}" type="button">ver</button>

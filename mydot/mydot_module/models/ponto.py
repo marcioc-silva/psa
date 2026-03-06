@@ -14,8 +14,9 @@ class MyDotPunch(db.Model):
 
     # Altere o default para já pegar o horário de São Paulo sem fuso (Naive)
     # Isso garante que o SQLite salve exatamente o número que você quer ver
-    ts_utc = db.Column(db.DateTime, nullable=False, 
-                       default=lambda: datetime.now(pytz.timezone('America/Sao_Paulo')).replace(tzinfo=None))
+    ts_utc = db.Column(db.String(30), nullable=False)
+    #  ts_utc = db.Column(db.DateTime, nullable=False, 
+    #                    default=lambda: datetime.now(pytz.timezone('America/Sao_Paulo')).replace(tzinfo=None))
 
     @property
     def ts_local(self):
