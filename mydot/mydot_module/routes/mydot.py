@@ -9,6 +9,7 @@ from app import db
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
 from ..services.mydot_service import get_or_set_device_id
+import pytz
 
 # Optional: se o PSA já usa flask_login, o módulo aproveita
 try:
@@ -162,7 +163,7 @@ def registrar_post():
     db.session.commit()
 
     ts_br = ts.astimezone(ZoneInfo("America/Sao_Paulo"))
-    fuso_sp = timezone('America/Sao_Paulo')
+    fuso_sp = pytz.timezone('America/Sao_Paulo')
     agora_sp = datetime.now(fuso_sp)
     ts_limpo = agora_sp.strftime('%Y-%m-%d %H:%M:%S')
 
