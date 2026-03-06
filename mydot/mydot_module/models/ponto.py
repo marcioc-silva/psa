@@ -1,5 +1,4 @@
 from zoneinfo import ZoneInfo
-import timezone
 from app import db
 from datetime import datetime
 import pytz
@@ -25,5 +24,5 @@ class MyDotPunch(db.Model):
         fuso_sp = ZoneInfo("America/Sao_Paulo")
         if self.ts_utc.tzinfo is None:
             # Se o dado no banco não tiver fuso, dizemos que ele é UTC e convertemos para SP
-            return self.ts_utc.replace(tzinfo=timezone.utc).astimezone(fuso_sp)
+            return self.ts_utc.replace(tzinfo=pytz.timezone.utc).astimezone(fuso_sp)
         return self.ts_utc.astimezone(fuso_sp)
