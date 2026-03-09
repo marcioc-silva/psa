@@ -38,10 +38,11 @@
                 <td>
                   <button
                     type="button"
-                    class="btn btn-sm btn-outline-info btn-ver-foto"
+                    class="btn btn-sm btn-outline-secondary btn-foto"
                     data-id="{{ item.id }}"
+                    disabled
                   >
-                    Ver foto
+                    Sem foto
                   </button>
                 </td>
               </tr>
@@ -58,26 +59,18 @@
   </div>
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content bg-dark text-light border-secondary">
-      <div class="modal-header">
-        <h5 class="modal-title">Foto do registro</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body text-center">
-        <img
-          id="fotoModalImg"
-          src=""
-          alt="Foto do registro"
-          class="img-fluid rounded d-none"
-          style="max-height: 70vh; object-fit: contain;"
-        />
-        <div id="fotoModalMsg" class="text-secondary">
-          Carregando foto...
-        </div>
-      </div>
+<!-- Lightbox -->
+<div id="lightboxFoto" class="lightbox d-none" aria-hidden="true">
+  <div class="lightbox-backdrop"></div>
+
+  <div class="lightbox-content" role="dialog" aria-modal="true" aria-label="Visualização da foto">
+    <button type="button" id="btnFecharLightbox" class="lightbox-close" aria-label="Fechar">
+      ×
+    </button>
+
+    <div class="lightbox-body">
+      <img id="lightboxImg" class="lightbox-img d-none" alt="Foto do registro" />
+      <div id="lightboxMsg" class="lightbox-msg">Carregando foto...</div>
     </div>
   </div>
 </div>
@@ -108,6 +101,103 @@
   .table td, .table th {
     vertical-align: middle;
     white-space: nowrap;
+  }
+
+  .btn-foto[disabled] {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+  }
+
+  .lightbox.d-none {
+    display: none !important;
+  }
+
+  .lightbox-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  .lightbox-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .lightbox-body {
+    position: relative;
+    max-width: 95vw;
+    max-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-img {
+    max-width: 95vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    background: #111;
+  }
+
+  .lightbox-msg {
+    color: #fff;
+    font-size: 16px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 3;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-close:hover {
+    background: rgba(255,255,255,.22);
+  }
+
+  @media (max-width: 576px) {
+    .lightbox-content {
+      padding: 12px;
+    }
+
+    .lightbox-img {
+      max-width: 94vw;
+      max-height: 80vh;
+    }
+
+    .lightbox-close {
+      top: 10px;
+      right: 10px;
+    }
   }
 </style>
 
@@ -140,28 +230,41 @@
     });
   }
 
-  const modalEl = document.getElementById("fotoModal");
-  const modalImg = document.getElementById("fotoModalImg");
-  const modalMsg = document.getElementById("fotoModalMsg");
-  const fotoModal = new bootstrap.Modal(modalEl);
+  const lightbox = document.getElementById("lightboxFoto");
+  const backdrop = lightbox.querySelector(".lightbox-backdrop");
+  const img = document.getElementById("lightboxImg");
+  const msg = document.getElementById("lightboxMsg");
+  const btnFechar = document.getElementById("btnFecharLightbox");
+  const botoes = document.querySelectorAll(".btn-foto");
 
   let db = null;
-  try {
-    db = await openDB();
-  } catch (e) {
-    console.error("Erro ao abrir IndexedDB:", e);
+
+  function abrirLightbox() {
+    lightbox.classList.remove("d-none");
+    lightbox.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
   }
 
-  async function abrirFoto(id) {
-    modalImg.classList.add("d-none");
-    modalImg.src = "";
-    modalMsg.classList.remove("d-none");
-    modalMsg.textContent = "Carregando foto...";
+  function fecharLightbox() {
+    lightbox.classList.add("d-none");
+    lightbox.setAttribute("aria-hidden", "true");
+    img.src = "";
+    img.classList.add("d-none");
+    msg.textContent = "";
+    msg.classList.remove("d-none");
+    document.body.style.overflow = "";
+  }
 
-    fotoModal.show();
+  async function mostrarFoto(id) {
+    msg.textContent = "Carregando foto...";
+    msg.classList.remove("d-none");
+    img.src = "";
+    img.classList.add("d-none");
+
+    abrirLightbox();
 
     if (!db) {
-      modalMsg.textContent = "Não foi possível acessar as fotos neste dispositivo.";
+      msg.textContent = "Não foi possível acessar as fotos neste dispositivo.";
       return;
     }
 
@@ -169,23 +272,59 @@
       const foto = await getPhoto(db, id);
 
       if (foto && foto.dataUrl) {
-        modalImg.src = foto.dataUrl;
-        modalImg.classList.remove("d-none");
-        modalMsg.classList.add("d-none");
+        img.src = foto.dataUrl;
+        img.classList.remove("d-none");
+        msg.classList.add("d-none");
       } else {
-        modalMsg.textContent = "Foto não encontrada neste dispositivo.";
+        msg.textContent = "Foto não encontrada neste dispositivo.";
       }
-    } catch (e) {
-      console.error("Erro ao buscar foto:", e);
-      modalMsg.textContent = "Erro ao carregar a foto.";
+    } catch (erro) {
+      console.error("Erro ao buscar foto:", erro);
+      msg.textContent = "Erro ao carregar a foto.";
     }
   }
 
-  document.querySelectorAll(".btn-ver-foto").forEach(btn => {
-    btn.addEventListener("click", () => {
+  try {
+    db = await openDB();
+
+    for (const btn of botoes) {
       const id = btn.dataset.id;
-      abrirFoto(id);
-    });
+      const foto = await getPhoto(db, id);
+
+      if (foto && foto.dataUrl) {
+        btn.disabled = false;
+        btn.classList.remove("btn-outline-secondary");
+        btn.classList.add("btn-outline-info");
+        btn.textContent = "📷 Ver";
+
+        btn.addEventListener("click", () => {
+          mostrarFoto(id);
+        });
+      } else {
+        btn.disabled = true;
+        btn.classList.remove("btn-outline-info");
+        btn.classList.add("btn-outline-secondary");
+        btn.textContent = "Sem foto";
+      }
+    }
+  } catch (erro) {
+    console.error("Erro ao abrir IndexedDB:", erro);
+
+    for (const btn of botoes) {
+      btn.disabled = true;
+      btn.classList.remove("btn-outline-info");
+      btn.classList.add("btn-outline-secondary");
+      btn.textContent = "Sem foto";
+    }
+  }
+
+  btnFechar.addEventListener("click", fecharLightbox);
+  backdrop.addEventListener("click", fecharLightbox);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !lightbox.classList.contains("d-none")) {
+      fecharLightbox();
+    }
   });
 })();
 </script>
