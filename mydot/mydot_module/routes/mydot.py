@@ -43,6 +43,9 @@ def home():
 from datetime import datetime
 from flask import render_template
 
+from datetime import datetime
+from flask import render_template
+
 @bp.get("/history")
 def history():
     registros = (
@@ -58,15 +61,21 @@ def history():
         hora_fmt = "-"
         datetime_fmt = "-"
 
-        if r.ts_utc:
-            try:
+        try:
+            if isinstance(r.ts_utc, datetime):
+                dt = r.ts_utc
+            elif isinstance(r.ts_utc, str):
                 dt = datetime.strptime(r.ts_utc, "%Y-%m-%d %H:%M:%S")
+            else:
+                dt = None
+
+            if dt is not None:
                 data_fmt = dt.strftime("%d/%m/%Y")
                 hora_fmt = dt.strftime("%H:%M:%S")
                 datetime_fmt = dt.strftime("%d/%m/%Y %H:%M:%S")
-            except ValueError:
-                # fallback caso exista algum registro antigo fora do padrão
-                datetime_fmt = str(r.ts_utc)
+
+        except Exception:
+            datetime_fmt = str(r.ts_utc)
 
         historico.append({
             "id": r.id,
@@ -75,7 +84,7 @@ def history():
             "data": data_fmt,
             "hora": hora_fmt,
             "datetime": datetime_fmt,
-            "ts_bruto": r.ts_utc,
+            "ts_bruto": str(r.ts_utc),
         })
 
     return render_template("mydot/history.html", historico=historico)
