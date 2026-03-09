@@ -6,18 +6,18 @@
 
   if (!video || !btn) return;
 
-  function setStatus(msg, isErr=false) {
+  function setStatus(msg, isErr = false) {
     if (!status) return;
     status.textContent = msg;
     status.className = isErr ? "text-danger" : "text-success";
   }
 
-  function openDB(){
+  function openDB() {
     return new Promise((resolve, reject) => {
       const req = indexedDB.open("mydot", 1);
       req.onupgradeneeded = () => {
         const db = req.result;
-        if(!db.objectStoreNames.contains("photos")){
+        if (!db.objectStoreNames.contains("photos")) {
           db.createObjectStore("photos", { keyPath: "id" });
         }
       };
@@ -26,7 +26,7 @@
     });
   }
 
-  async function savePhoto(id, dataUrl){
+  async function savePhoto(id, dataUrl) {
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction("photos", "readwrite");
@@ -64,33 +64,41 @@
       const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
       setStatus("Registrando no servidor...");
+
       const dtEl = document.getElementById("dtLocal");
-      const dtLocal = dtEl?.value || null;
-      // servidor só cria o registro (sem imagem)
+      const dtLocal = dtEl?.value?.trim() || null;
+
+      console.log("dtLocal enviado:", dtLocal);
+      console.log("Timezone do navegador:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+      console.log("Agora local navegador:", new Date().toString());
+      console.log("Agora ISO UTC navegador:", new Date().toISOString());
+
       const resp = await fetch("/mydot/registrar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({dt_local: dtLocal })
+        body: JSON.stringify({ dt_local: dtLocal })
       });
 
       const json = await resp.json().catch(() => ({}));
+      console.log("Resposta backend:", json);
+
       if (!resp.ok || !json.ok) {
         setStatus("Erro ao registrar: " + (json.error || resp.status), true);
         return;
       }
 
-      // salva foto no DISPOSITIVO (IndexedDB), chaveando pelo ID do registro
       await savePhoto(json.id, dataUrl);
 
       setStatus(`OK! ${String(json.kind).toUpperCase()} em ${json.data} ${json.hora}`);
+
       setTimeout(() => {
-        window.location.href = "/mydot/history"; // Substitua pelo caminho da sua página de histórico
+        window.location.href = "/mydot/history";
       }, 1500);
     } catch (e) {
+      console.error(e);
       setStatus("Falha ao registrar (erro inesperado).", true);
     } finally {
       btn.disabled = false;
-      return 
     }
   });
 })();
