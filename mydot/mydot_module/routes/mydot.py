@@ -40,34 +40,45 @@ def home():
     return render_template("mydot/home.html")
 
 
+from datetime import datetime
+from flask import render_template
+
 @bp.get("/history")
 def history():
-    device_id = request.cookies.get("mydot_device_id")
-    q = MyDotPunch.query
+    registros = (
+        MyDotPunch.query
+        .order_by(MyDotPunch.id.desc())
+        .all()
+    )
 
-    if _require_login() and login_required and current_user and getattr(current_user, "is_authenticated", False):
-        q = q.filter(MyDotPunch.user_id == getattr(current_user, "id", None))
-        subject = f"Usuário {getattr(current_user, 'nome_completo', 'logado')}"
-    else:
-        if not device_id:
-            return redirect(url_for("mydot.home"))
-        q = q.filter(MyDotPunch.device_id == device_id)
-        subject = f"Dispositivo {device_id[:8]}…"
+    historico = []
 
-    punches = q.order_by(desc(MyDotPunch.ts_utc)).limit(300).all()
-    
+    for r in registros:
+        data_fmt = "-"
+        hora_fmt = "-"
+        datetime_fmt = "-"
 
-   # rules = RhRules(
-   #     daily_expected_minutes=480,
-   #     min_lunch_minutes=60,
-   # )
+        if r.ts_utc:
+            try:
+                dt = datetime.strptime(r.ts_utc, "%Y-%m-%d %H:%M:%S")
+                data_fmt = dt.strftime("%d/%m/%Y")
+                hora_fmt = dt.strftime("%H:%M:%S")
+                datetime_fmt = dt.strftime("%d/%m/%Y %H:%M:%S")
+            except ValueError:
+                # fallback caso exista algum registro antigo fora do padrão
+                datetime_fmt = str(r.ts_utc)
 
-   # engine = compute(punches, rules=rules)
+        historico.append({
+            "id": r.id,
+            "kind": r.kind,
+            "device_id": r.device_id,
+            "data": data_fmt,
+            "hora": hora_fmt,
+            "datetime": datetime_fmt,
+            "ts_bruto": r.ts_utc,
+        })
 
-# agora você tem:
-# engine.days -> lista por dia com worked/breaks/delta/flags
-# engine.total_delta -> saldo total
-    return render_template("mydot/history.html", punches=punches, subject=subject)
+    return render_template("mydot/history.html", historico=historico)
 
 
 @bp.get("/export.csv")
@@ -133,7 +144,6 @@ def registrar():
 # fuso oficial de São Paulo
 TZ_BR = ZoneInfo("America/Sao_Paulo")
 
-
 @bp.post("/registrar")
 def registrar_post():
     resp = make_response()
@@ -144,19 +154,13 @@ def registrar_post():
 
     try:
         if dt_local_str:
-            # string vinda do <input type="datetime-local">
-            # ex: "2026-03-09T08:30"
-            dt_naive = datetime.fromisoformat(dt_local_str)
-
-            # interpreta como horário local de São Paulo
-            dt_br = dt_naive.replace(tzinfo=TZ_BR)
-
-            # converte para UTC para salvar no banco
-            ts_utc = dt_br.astimezone(timezone.utc)
+            # Ex.: "2026-03-09T15:30"
+            dt_original = datetime.fromisoformat(dt_local_str)
         else:
-            # se não vier data do frontend, pega agora em São Paulo
-            dt_br = datetime.now(TZ_BR)
-            ts_utc = dt_br.astimezone(timezone.utc)
+            dt_original = datetime.now()
+
+        # Solução drástica: subtrai 3 horas antes de gravar
+        ts_gravar = dt_original - timedelta(hours=3)
 
     except ValueError:
         payload = {"ok": False, "error": "DT_LOCAL_INVALID"}
@@ -168,7 +172,7 @@ def registrar_post():
         MyDotPunch.query
         .filter(
             MyDotPunch.device_id == device_id,
-            MyDotPunch.ts_utc <= ts_utc
+            MyDotPunch.ts_utc <= ts_gravar
         )
         .order_by(MyDotPunch.ts_utc.desc())
         .first()
@@ -179,28 +183,19 @@ def registrar_post():
     punch = MyDotPunch(
         device_id=device_id,
         kind=kind,
-        ts_utc=ts_utc
+        ts_utc=ts_gravar
     )
 
     db.session.add(punch)
     db.session.commit()
 
-    # relê o valor salvo e trata eventual retorno sem tzinfo
-    ts_salvo_utc = punch.ts_utc
-    if ts_salvo_utc.tzinfo is None:
-        ts_salvo_utc = ts_salvo_utc.replace(tzinfo=timezone.utc)
-
-    ts_br = ts_salvo_utc.astimezone(TZ_BR)
-
     payload = {
         "ok": True,
         "id": punch.id,
         "kind": punch.kind,
-        "data": ts_br.strftime("%d/%m/%Y"),
-        "hora": ts_br.strftime("%H:%M:%S"),
-        "dt_local_recebido": dt_local_str,
-        "ts_utc_salvo": ts_salvo_utc.isoformat(),
-        "ts_br_exibido": ts_br.isoformat(),
+        "data": ts_gravar.strftime("%d/%m/%Y"),
+        "hora": ts_gravar.strftime("%H:%M:%S"),
+        "datetime_formatado": ts_gravar.strftime("%d/%m/%Y %H:%M:%S"),
     }
 
     resp.set_data(jsonify(payload).get_data())
