@@ -36,15 +36,13 @@
                 <td>{{ item.data }}</td>
                 <td>{{ item.hora }}</td>
                 <td>
-                  <img
-                    id="foto-{{ item.id }}"
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-info btn-ver-foto"
                     data-id="{{ item.id }}"
-                    class="foto-historico d-none"
-                    alt="Foto do registro {{ item.id }}"
-                  />
-                  <span id="sem-foto-{{ item.id }}" class="text-secondary small">
-                    Sem foto
-                  </span>
+                  >
+                    Ver foto
+                  </button>
                 </td>
               </tr>
               {% endfor %}
@@ -56,6 +54,30 @@
           Nenhum ponto registrado ainda.
         </div>
       {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="fotoModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-dark text-light border-secondary">
+      <div class="modal-header">
+        <h5 class="modal-title">Foto do registro</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img
+          id="fotoModalImg"
+          src=""
+          alt="Foto do registro"
+          class="img-fluid rounded d-none"
+          style="max-height: 70vh; object-fit: contain;"
+        />
+        <div id="fotoModalMsg" class="text-secondary">
+          Carregando foto...
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -86,15 +108,6 @@
   .table td, .table th {
     vertical-align: middle;
     white-space: nowrap;
-  }
-
-  .foto-historico {
-    width: 72px;
-    height: 72px;
-    object-fit: cover;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,.15);
-    display: block;
   }
 </style>
 
@@ -127,25 +140,53 @@
     });
   }
 
-  try {
-    const db = await openDB();
-    const imgs = document.querySelectorAll(".foto-historico");
+  const modalEl = document.getElementById("fotoModal");
+  const modalImg = document.getElementById("fotoModalImg");
+  const modalMsg = document.getElementById("fotoModalMsg");
+  const fotoModal = new bootstrap.Modal(modalEl);
 
-    for (const img of imgs) {
-      const id = img.dataset.id;
+  let db = null;
+  try {
+    db = await openDB();
+  } catch (e) {
+    console.error("Erro ao abrir IndexedDB:", e);
+  }
+
+  async function abrirFoto(id) {
+    modalImg.classList.add("d-none");
+    modalImg.src = "";
+    modalMsg.classList.remove("d-none");
+    modalMsg.textContent = "Carregando foto...";
+
+    fotoModal.show();
+
+    if (!db) {
+      modalMsg.textContent = "Não foi possível acessar as fotos neste dispositivo.";
+      return;
+    }
+
+    try {
       const foto = await getPhoto(db, id);
 
       if (foto && foto.dataUrl) {
-        img.src = foto.dataUrl;
-        img.classList.remove("d-none");
-
-        const semFoto = document.getElementById(`sem-foto-${id}`);
-        if (semFoto) semFoto.classList.add("d-none");
+        modalImg.src = foto.dataUrl;
+        modalImg.classList.remove("d-none");
+        modalMsg.classList.add("d-none");
+      } else {
+        modalMsg.textContent = "Foto não encontrada neste dispositivo.";
       }
+    } catch (e) {
+      console.error("Erro ao buscar foto:", e);
+      modalMsg.textContent = "Erro ao carregar a foto.";
     }
-  } catch (e) {
-    console.error("Erro ao carregar fotos do IndexedDB:", e);
   }
+
+  document.querySelectorAll(".btn-ver-foto").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      abrirFoto(id);
+    });
+  });
 })();
 </script>
 {% endblock %}
