@@ -1,5 +1,4 @@
 {% extends "mydot_base.html" %}
-{% block title %}MyDot - Histórico{% endblock %}
 
 {% block content %}
 <div class="mydot-page">
@@ -20,7 +19,7 @@
                 <th>Tipo</th>
                 <th>Data</th>
                 <th>Hora</th>
-                <th>Data/Hora</th>
+                <th>Foto</th>
               </tr>
             </thead>
             <tbody>
@@ -36,7 +35,17 @@
                 </td>
                 <td>{{ item.data }}</td>
                 <td>{{ item.hora }}</td>
-                <td>{{ item.datetime }}</td>
+                <td>
+                  <img
+                    id="foto-{{ item.id }}"
+                    data-id="{{ item.id }}"
+                    class="foto-historico d-none"
+                    alt="Foto do registro {{ item.id }}"
+                  />
+                  <span id="sem-foto-{{ item.id }}" class="text-secondary small">
+                    Sem foto
+                  </span>
+                </td>
               </tr>
               {% endfor %}
             </tbody>
@@ -78,5 +87,65 @@
     vertical-align: middle;
     white-space: nowrap;
   }
+
+  .foto-historico {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.15);
+    display: block;
+  }
 </style>
+
+<script>
+(async function () {
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("mydot", 1);
+
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("photos")) {
+          db.createObjectStore("photos", { keyPath: "id" });
+        }
+      };
+
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function getPhoto(db, id) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("photos", "readonly");
+      const store = tx.objectStore("photos");
+      const req = store.get(Number(id));
+
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  try {
+    const db = await openDB();
+    const imgs = document.querySelectorAll(".foto-historico");
+
+    for (const img of imgs) {
+      const id = img.dataset.id;
+      const foto = await getPhoto(db, id);
+
+      if (foto && foto.dataUrl) {
+        img.src = foto.dataUrl;
+        img.classList.remove("d-none");
+
+        const semFoto = document.getElementById(`sem-foto-${id}`);
+        if (semFoto) semFoto.classList.add("d-none");
+      }
+    }
+  } catch (e) {
+    console.error("Erro ao carregar fotos do IndexedDB:", e);
+  }
+})();
+</script>
 {% endblock %}
