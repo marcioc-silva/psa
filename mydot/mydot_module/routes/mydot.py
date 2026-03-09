@@ -144,17 +144,19 @@ def registrar_post():
 
     try:
         if dt_local_str:
-            # Espera algo como: "2026-03-09T08:30"
+            # string vinda do <input type="datetime-local">
+            # ex: "2026-03-09T08:30"
             dt_naive = datetime.fromisoformat(dt_local_str)
 
-            # Interpreta como horário local de São Paulo
-            dt_local = dt_naive.replace(tzinfo=TZ_BR)
+            # interpreta como horário local de São Paulo
+            dt_br = dt_naive.replace(tzinfo=TZ_BR)
 
-            # Converte para UTC para gravar no banco
-            ts = dt_local.astimezone(timezone.utc)
+            # converte para UTC para salvar no banco
+            ts_utc = dt_br.astimezone(timezone.utc)
         else:
-            # Se não vier data/hora do frontend, usa o instante atual em UTC
-            ts = datetime.now(timezone.utc)
+            # se não vier data do frontend, pega agora em São Paulo
+            dt_br = datetime.now(TZ_BR)
+            ts_utc = dt_br.astimezone(timezone.utc)
 
     except ValueError:
         payload = {"ok": False, "error": "DT_LOCAL_INVALID"}
@@ -166,7 +168,7 @@ def registrar_post():
         MyDotPunch.query
         .filter(
             MyDotPunch.device_id == device_id,
-            MyDotPunch.ts_utc <= ts
+            MyDotPunch.ts_utc <= ts_utc
         )
         .order_by(MyDotPunch.ts_utc.desc())
         .first()
@@ -177,13 +179,18 @@ def registrar_post():
     punch = MyDotPunch(
         device_id=device_id,
         kind=kind,
-        ts_utc=ts
+        ts_utc=ts_utc
     )
+
     db.session.add(punch)
     db.session.commit()
 
-    # Converte o horário salvo para São Paulo, apenas para exibir ao usuário
-    ts_br = punch.ts_utc.astimezone(TZ_BR)
+    # relê o valor salvo e trata eventual retorno sem tzinfo
+    ts_salvo_utc = punch.ts_utc
+    if ts_salvo_utc.tzinfo is None:
+        ts_salvo_utc = ts_salvo_utc.replace(tzinfo=timezone.utc)
+
+    ts_br = ts_salvo_utc.astimezone(TZ_BR)
 
     payload = {
         "ok": True,
@@ -191,8 +198,9 @@ def registrar_post():
         "kind": punch.kind,
         "data": ts_br.strftime("%d/%m/%Y"),
         "hora": ts_br.strftime("%H:%M:%S"),
-        "datetime_local": ts_br.strftime("%Y-%m-%d %H:%M:%S"),
-        "datetime_utc": punch.ts_utc.strftime("%Y-%m-%d %H:%M:%S"),
+        "dt_local_recebido": dt_local_str,
+        "ts_utc_salvo": ts_salvo_utc.isoformat(),
+        "ts_br_exibido": ts_br.isoformat(),
     }
 
     resp.set_data(jsonify(payload).get_data())
