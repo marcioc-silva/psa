@@ -130,6 +130,9 @@ def config():
 def registrar():
     return render_template("mydot/registrar.html")
 
+# fuso oficial de São Paulo
+TZ_BR = ZoneInfo("America/Sao_Paulo")
+
 
 @bp.post("/registrar")
 def registrar_post():
@@ -139,46 +142,59 @@ def registrar_post():
     data = request.get_json(silent=True) or {}
     dt_local_str = (data.get("dt_local") or "").strip()
 
-    if dt_local_str:
-        try:
-            dt_naive = datetime.fromisoformat(dt_local_str)  # "YYYY-MM-DDTHH:MM"
-            ts = dt_naive.replace(tzinfo=TZ_BR).astimezone(timezone.utc)
-        except ValueError:
-            resp.set_data(jsonify({"ok": False, "error": "DT_LOCAL_INVALID"}).get_data())
-            resp.mimetype = "application/json"
-            return resp, 400
-    else:
-        ts = datetime.now(timezone.utc)
+    try:
+        if dt_local_str:
+            # Espera algo como: "2026-03-09T08:30"
+            dt_naive = datetime.fromisoformat(dt_local_str)
+
+            # Interpreta como horário local de São Paulo
+            dt_local = dt_naive.replace(tzinfo=TZ_BR)
+
+            # Converte para UTC para gravar no banco
+            ts = dt_local.astimezone(timezone.utc)
+        else:
+            # Se não vier data/hora do frontend, usa o instante atual em UTC
+            ts = datetime.now(timezone.utc)
+
+    except ValueError:
+        payload = {"ok": False, "error": "DT_LOCAL_INVALID"}
+        resp.set_data(jsonify(payload).get_data())
+        resp.mimetype = "application/json"
+        return resp, 400
 
     last = (
         MyDotPunch.query
-        .filter(MyDotPunch.device_id == device_id, MyDotPunch.ts_utc <= ts)
+        .filter(
+            MyDotPunch.device_id == device_id,
+            MyDotPunch.ts_utc <= ts
+        )
         .order_by(MyDotPunch.ts_utc.desc())
         .first()
     )
+
     kind = "entrada" if (not last or last.kind == "saida") else "saida"
 
-    punch = MyDotPunch(device_id=device_id, kind=kind, ts_utc=ts)
+    punch = MyDotPunch(
+        device_id=device_id,
+        kind=kind,
+        ts_utc=ts
+    )
     db.session.add(punch)
     db.session.commit()
 
-    ts_br = ts.astimezone(ZoneInfo("America/Sao_Paulo"))
-    fuso_sp = pytz.timezone('America/Sao_Paulo')
-    agora_sp = datetime.now(fuso_sp)
-    ts_limpo = agora_sp.strftime('%Y-%m-%d %H:%M:%S')
+    # Converte o horário salvo para São Paulo, apenas para exibir ao usuário
+    ts_br = punch.ts_utc.astimezone(TZ_BR)
 
     payload = {
         "ok": True,
         "id": punch.id,
         "kind": punch.kind,
         "data": ts_br.strftime("%d/%m/%Y"),
-        "hora": ts_limpo,
+        "hora": ts_br.strftime("%H:%M:%S"),
+        "datetime_local": ts_br.strftime("%Y-%m-%d %H:%M:%S"),
+        "datetime_utc": punch.ts_utc.strftime("%Y-%m-%d %H:%M:%S"),
     }
-    print("-" * 30)    
-    print(f"HORA ORIGINAL (SERVIDOR): {ts_br.strftime('%H:%M:%S')}")
-    print(f"HORA CALCULADA (SAO PAULO): {payload['hora']}")
-    print(f"PAYLOAD COMPLETO: {payload}")
-    print("-" * 30)
+
     resp.set_data(jsonify(payload).get_data())
     resp.mimetype = "application/json"
     return resp
