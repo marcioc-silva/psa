@@ -169,7 +169,7 @@ def registrar_post():
             dt_original = datetime.now()
 
         # Solução drástica: subtrai 3 horas antes de gravar
-        ts_gravar = dt_original - timedelta(hours=3)
+        ts_gravar = dt_original #- timedelta(hours=3)
 
     except ValueError:
         payload = {"ok": False, "error": "DT_LOCAL_INVALID"}
