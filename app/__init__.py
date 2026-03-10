@@ -4,6 +4,7 @@ from flask import Flask, app, request, has_request_context, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
+from flask_cors import CORS
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -16,7 +17,7 @@ def create_app(config_object=None):
     from app.models.material import MaterialPSA
     
     static_path = os.path.join(basedir, "static")
-
+    CORS(app, resources={r"/mydot/*": {"origins": "*"}})
     app = Flask(
         __name__, 
         template_folder="templates", 
