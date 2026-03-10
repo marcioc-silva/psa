@@ -1,7 +1,7 @@
 from app import db
 from datetime import datetime, timezone
 
-import pytz
+import pytz # pyright: ignore[reportMissingModuleSource]
 from datetime import datetime
 
 class MyDotPunch(db.Model):
