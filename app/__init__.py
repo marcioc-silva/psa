@@ -17,14 +17,14 @@ def create_app(config_object=None):
     from app.models.material import MaterialPSA
     
     static_path = os.path.join(basedir, "static")
-    CORS(app, resources={r"/mydot/*": {"origins": "*"}})
+    
     app = Flask(
         __name__, 
         template_folder="templates", 
         static_folder=static_path, 
         static_url_path="/static"
     )
-
+    CORS(app, resources={r"/mydot/*": {"origins": "*"}})
     @app.context_processor
     def inject_globals():
         ctx = {
