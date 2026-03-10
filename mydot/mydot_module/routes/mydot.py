@@ -3,18 +3,14 @@ from __future__ import annotations
 import os
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-from flask import Blueprint, render_template, request, jsonify, make_response, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, make_response, redirect, url_for, flash
 from sqlalchemy import desc
 from app import db
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
 from ..services.mydot_service import get_or_set_device_id
 import pytz
-from flask import render_template, request, redirect, url_for, flash
-from flask_login import login_required
-
-from app.models import ConfiguracaoRH, ConfiguracaoAparencia
-from . import bp
+from ..models.ponto import ConfiguracaoRH, ConfiguracaoAparencia
 
 # Optional: se o PSA já usa flask_login, o módulo aproveita
 try:
@@ -149,8 +145,10 @@ def config():
 def registrar():
     return render_template("mydot/registrar.html")
 
+
 # fuso oficial de São Paulo
 TZ_BR = ZoneInfo("America/Sao_Paulo")
+
 
 @bp.post("/registrar")
 def registrar_post():
@@ -168,7 +166,7 @@ def registrar_post():
             dt_original = datetime.now()
 
         # Solução drástica: subtrai 3 horas antes de gravar
-        ts_gravar = dt_original #- timedelta(hours=3)
+        ts_gravar = dt_original  # - timedelta(hours=3)
 
     except ValueError:
         payload = {"ok": False, "error": "DT_LOCAL_INVALID"}
@@ -210,6 +208,7 @@ def registrar_post():
     resp.mimetype = "application/json"
     return resp
 
+
 @bp.get("/history-json")
 def history_json():
     registros = (
@@ -231,7 +230,8 @@ def history_json():
             "ts": valor,
         })
 
-    return jsonify(itens)    
+    return jsonify(itens)
+
 
 def obter_config_rh():
     config = ConfiguracaoRH.query.first()
@@ -282,9 +282,9 @@ def configuracoes_rh():
             db.session.rollback()
             flash(f"Erro ao salvar configurações de RH: {str(e)}", "danger")
 
-        return redirect(url_for("main.configuracoes_rh"))
+        return redirect(url_for("mydot.configuracoes_rh"))
 
-    return render_template("configuracoes_rh.html", config=config)
+    return render_template("mydot/configuracoes_rh.html", config=config)
 
 
 @bp.route("/configuracoes/aparencia", methods=["GET", "POST"])
@@ -310,13 +310,15 @@ def configuracoes_aparencia():
             db.session.rollback()
             flash(f"Erro ao salvar aparência: {str(e)}", "danger")
 
-        return redirect(url_for("main.configuracoes_aparencia"))
+        return redirect(url_for("mydot.configuracoes_aparencia"))
 
-    return render_template("configuracoes_aparencia.html", config=config)
+    return render_template("mydot/configuracoes_aparencia.html", config=config)
+
 
 @bp.route("/config/rh")
 def config_rh():
     return render_template("mydot/config_rh.html")
+
 
 @bp.route("/config/aparencia")
 def config_aparencia():
