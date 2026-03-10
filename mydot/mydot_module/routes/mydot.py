@@ -210,3 +210,26 @@ def registrar_post():
     resp.set_data(jsonify(payload).get_data())
     resp.mimetype = "application/json"
     return resp
+
+@bp.get("/history-json")
+def history_json():
+    registros = (
+        MyDotPunch.query
+        .order_by(MyDotPunch.id.desc())
+        .all()
+    )
+
+    itens = []
+    for r in registros:
+        if isinstance(r.ts_utc, str):
+            valor = r.ts_utc
+        else:
+            valor = r.ts_utc.strftime("%Y-%m-%d %H:%M:%S")
+
+        itens.append({
+            "id": r.id,
+            "kind": r.kind,
+            "ts": valor,
+        })
+
+    return jsonify(itens)    
