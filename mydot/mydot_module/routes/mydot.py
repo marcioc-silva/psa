@@ -10,6 +10,11 @@ from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
 from ..services.mydot_service import get_or_set_device_id
 import pytz
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required
+
+from app.models import ConfiguracaoRH, ConfiguracaoAparencia
+from . import bp
 
 # Optional: se o PSA já usa flask_login, o módulo aproveita
 try:
@@ -39,12 +44,6 @@ def _require_login() -> bool:
 def home():
     return render_template("mydot/home.html")
 
-
-from datetime import datetime
-from flask import render_template
-
-from datetime import datetime
-from flask import render_template
 
 @bp.get("/history")
 def history():
@@ -233,3 +232,92 @@ def history_json():
         })
 
     return jsonify(itens)    
+
+def obter_config_rh():
+    config = ConfiguracaoRH.query.first()
+    if not config:
+        config = ConfiguracaoRH()
+        db.session.add(config)
+        db.session.commit()
+    return config
+
+
+def obter_config_aparencia():
+    config = ConfiguracaoAparencia.query.first()
+    if not config:
+        config = ConfiguracaoAparencia()
+        db.session.add(config)
+        db.session.commit()
+    return config
+
+
+@bp.route("/configuracoes/rh", methods=["GET", "POST"])
+@login_required
+def configuracoes_rh():
+    config = obter_config_rh()
+
+    if request.method == "POST":
+        try:
+            config.refeicao_minima_minutos = int(request.form.get("refeicao_minima_minutos", 60))
+            config.interjornada_minima_horas = int(request.form.get("interjornada_minima_horas", 11))
+            config.jornada_maxima_diaria_horas = int(request.form.get("jornada_maxima_diaria_horas", 10))
+            config.jornada_padrao_minutos = int(request.form.get("jornada_padrao_minutos", 480))
+
+            config.saldo_inicial_minutos = int(request.form.get("saldo_inicial_minutos", 0))
+            config.saldo_atual_minutos = int(request.form.get("saldo_inicial_minutos", 0))
+
+            config.tipo_escala = request.form.get("tipo_escala", "5x1_5x2")
+
+            config.usar_domingo_folga_fixa = bool(request.form.get("usar_domingo_folga_fixa"))
+            config.usar_sabado_alternado = bool(request.form.get("usar_sabado_alternado"))
+            config.folga_dinamica_ativa = bool(request.form.get("folga_dinamica_ativa"))
+
+            config.notificar_refeicao_invalida = bool(request.form.get("notificar_refeicao_invalida"))
+            config.notificar_interjornada_invalida = bool(request.form.get("notificar_interjornada_invalida"))
+            config.notificar_jornada_excedida = bool(request.form.get("notificar_jornada_excedida"))
+
+            db.session.commit()
+            flash("Configurações de RH salvas com sucesso!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erro ao salvar configurações de RH: {str(e)}", "danger")
+
+        return redirect(url_for("main.configuracoes_rh"))
+
+    return render_template("configuracoes_rh.html", config=config)
+
+
+@bp.route("/configuracoes/aparencia", methods=["GET", "POST"])
+@login_required
+def configuracoes_aparencia():
+    config = obter_config_aparencia()
+
+    if request.method == "POST":
+        try:
+            config.nome_sistema = request.form.get("nome_sistema", "MyDot").strip()
+            config.logo_url = request.form.get("logo_url", "").strip() or None
+            config.cor_primaria = request.form.get("cor_primaria", "#0d6efd")
+            config.cor_secundaria = request.form.get("cor_secundaria", "#6c757d")
+            config.cor_fundo = request.form.get("cor_fundo", "#f8f9fa")
+            config.cor_texto = request.form.get("cor_texto", "#212529")
+            config.tema = request.form.get("tema", "claro")
+            config.mensagem_boas_vindas = request.form.get("mensagem_boas_vindas", "").strip()
+            config.favicon_url = request.form.get("favicon_url", "").strip() or None
+
+            db.session.commit()
+            flash("Configurações de aparência salvas com sucesso!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erro ao salvar aparência: {str(e)}", "danger")
+
+        return redirect(url_for("main.configuracoes_aparencia"))
+
+    return render_template("configuracoes_aparencia.html", config=config)
+
+@bp.route("/config/rh")
+def config_rh():
+    return render_template("mydot/config_rh.html")
+
+@bp.route("/config/aparencia")
+def config_aparencia():
+    return render_template("mydot/config_aparencia.html")

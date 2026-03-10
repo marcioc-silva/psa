@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações de RH{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">Configurações de RH</h3>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+            Voltar
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.configuracoes_rh') }}">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                Regras de Ouro
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Refeição mínima (minutos)</label>
+                    <input type="number" class="form-control" name="refeicao_minima_minutos"
+                           value="{{ config.refeicao_minima_minutos }}" min="1" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Interjornada mínima (horas)</label>
+                    <input type="number" class="form-control" name="interjornada_minima_horas"
+                           value="{{ config.interjornada_minima_horas }}" min="1" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Jornada máxima diária (horas)</label>
+                    <input type="number" class="form-control" name="jornada_maxima_diaria_horas"
+                           value="{{ config.jornada_maxima_diaria_horas }}" min="1" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                Jornada e Banco de Horas
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Jornada padrão diária (minutos)</label>
+                    <input type="number" class="form-control" name="jornada_padrao_minutos"
+                           value="{{ config.jornada_padrao_minutos }}" min="1" required>
+                    <div class="form-text">Ex.: 480 = 8h</div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Saldo inicial do banco (minutos)</label>
+                    <input type="number" class="form-control" name="saldo_inicial_minutos"
+                           value="{{ config.saldo_inicial_minutos }}" required>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Tipo de escala</label>
+                    <select class="form-select" name="tipo_escala" id="tipo_escala">
+                        <option value="5x1_5x2" {% if config.tipo_escala == '5x1_5x2' %}selected{% endif %}>
+                            5/1 alternado com 5/2
+                        </option>
+                        <option value="6x2" {% if config.tipo_escala == '6x2' %}selected{% endif %}>
+                            6/2 com folga dinâmica
+                        </option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-warning">
+                Regras da Escala
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" name="usar_domingo_folga_fixa"
+                               id="usar_domingo_folga_fixa"
+                               {% if config.usar_domingo_folga_fixa %}checked{% endif %}>
+                        <label class="form-check-label" for="usar_domingo_folga_fixa">
+                            Domingo como folga fixa
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" name="usar_sabado_alternado"
+                               id="usar_sabado_alternado"
+                               {% if config.usar_sabado_alternado %}checked{% endif %}>
+                        <label class="form-check-label" for="usar_sabado_alternado">
+                            Sábado alternado
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" type="checkbox" name="folga_dinamica_ativa"
+                               id="folga_dinamica_ativa"
+                               {% if config.folga_dinamica_ativa %}checked{% endif %}>
+                        <label class="form-check-label" for="folga_dinamica_ativa">
+                            Folga dinâmica (escala 6/2)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="alert alert-light border mt-2 mb-0">
+                        <strong>Observação:</strong><br>
+                        Na escala <strong>5/1 alternado com 5/2</strong>, o sistema poderá tratar sábado alternado e domingo como folga fixa.<br>
+                        Na escala <strong>6/2</strong>, a lógica da folga deverá avançar dinamicamente no calendário.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-danger text-white">
+                Notificações ao Colaborador
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="notificar_refeicao_invalida"
+                               id="notificar_refeicao_invalida"
+                               {% if config.notificar_refeicao_invalida %}checked{% endif %}>
+                        <label class="form-check-label" for="notificar_refeicao_invalida">
+                            Alertar refeição menor que o mínimo
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="notificar_interjornada_invalida"
+                               id="notificar_interjornada_invalida"
+                               {% if config.notificar_interjornada_invalida %}checked{% endif %}>
+                        <label class="form-check-label" for="notificar_interjornada_invalida">
+                            Alertar interjornada menor que o mínimo
+                        </label>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="notificar_jornada_excedida"
+                               id="notificar_jornada_excedida"
+                               {% if config.notificar_jornada_excedida %}checked{% endif %}>
+                        <label class="form-check-label" for="notificar_jornada_excedida">
+                            Alertar jornada acima do máximo
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary px-4">
+                Salvar Configurações de RH
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
