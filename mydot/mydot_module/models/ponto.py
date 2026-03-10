@@ -1,7 +1,7 @@
 from app import db
 from datetime import datetime, timezone
 
-import pytz # pyright: ignore[reportMissingModuleSource]
+import pytz
 from datetime import datetime
 
 class MyDotPunch(db.Model):
@@ -32,6 +32,7 @@ class MyDotPunch(db.Model):
 
 
 class ConfiguracaoRH(db.Model):
+    __bind_key__ = "mydot"
     __tablename__ = "configuracoes_rh"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -75,6 +76,7 @@ class ConfiguracaoRH(db.Model):
 
 
 class ConfiguracaoAparencia(db.Model):
+    __bind_key__ = "mydot"
     __tablename__ = "configuracoes_aparencia"
 
     id = db.Column(db.Integer, primary_key=True)
