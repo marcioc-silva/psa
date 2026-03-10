@@ -317,9 +317,9 @@ def configuracoes_aparencia():
 
 @bp.route("/config/rh")
 def config_rh():
-    return render_template("mydot/config_rh.html")
+    return render_template("mydot/configuracoes_rh.html")
 
 
 @bp.route("/config/aparencia")
 def config_aparencia():
-    return render_template("mydot/config_aparencia.html")
+    return render_template("mydot/configuracoes_aparencia.html")
