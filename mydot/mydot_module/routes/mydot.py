@@ -242,17 +242,7 @@ def obter_config_rh():
     return config
 
 
-def obter_config_aparencia():
-    config = ConfiguracaoAparencia.query.first()
-    if not config:
-        config = ConfiguracaoAparencia()
-        db.session.add(config)
-        db.session.commit()
-    return config
-
-
 @bp.route("/configuracoes/rh", methods=["GET", "POST"])
-@login_required
 def configuracoes_rh():
     config = obter_config_rh()
 
@@ -323,3 +313,12 @@ def config_rh():
 @bp.route("/config/aparencia")
 def config_aparencia():
     return render_template("mydot/configuracoes_aparencia.html")
+
+from mydot.helpers.helper_aparencia import (
+    obter_config_aparencia,
+    inject_mydot_aparencia,
+)
+
+@bp.context_processor
+def contexto_aparencia():
+    return inject_mydot_aparencia()
