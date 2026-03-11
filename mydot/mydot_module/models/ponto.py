@@ -107,6 +107,7 @@ class MyDotBancoHoras(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     data_referencia = db.Column(db.Date, nullable=False, index=True)
 
+    tipo_dia = db.Column(db.String(30), nullable=False, default="trabalhado")
     jornada_prevista_minutos = db.Column(db.Integer, nullable=False, default=0)
     minutos_trabalhados = db.Column(db.Integer, nullable=False, default=0)
     saldo_dia_minutos = db.Column(db.Integer, nullable=False, default=0)
@@ -125,3 +126,15 @@ class MyDotBancoHoras(db.Model):
 
     criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+class MyDotLancamentoBancoHoras(db.Model):
+    __bind_key__ = "mydot"
+    __tablename__ = "mydot_lancamentos_banco_horas"
+
+    id = db.Column(db.Integer, primary_key=True)
+    data_referencia = db.Column(db.Date, nullable=False, unique=True, index=True)
+    tipo = db.Column(db.String(30), nullable=False, default="folga_banco_horas")
+    observacao = db.Column(db.String(255), nullable=True)
+
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False) 

@@ -8,15 +8,21 @@ from sqlalchemy import desc
 from app import db
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
-from mydot.mydot_module.models.ponto import ConfiguracaoRH, ConfiguracaoAparencia
+from mydot.mydot_module.models.ponto import (
+    MyDotPunch,
+    MyDotBancoHoras,
+    MyDotLancamentoBancoHoras,
+    ConfiguracaoRH,
+    ConfiguracaoAparencia,
+)
 from ..services.mydot_service import get_or_set_device_id
 from mydot.mydot_module.models.ponto import ConfiguracaoRH, ConfiguracaoAparencia, MyDotBancoHoras
 from mydot.mydot_module.helpers.helper_banco_horas import montar_resumo_banco_horas
 from mydot.mydot_module.helpers.helper_aparencia import (
     obter_config_aparencia,
     inject_mydot_aparencia,
+    
 )
-
 # Optional: se o PSA já usa flask_login, o módulo aproveita
 try:
     from flask_login import login_required, current_user
@@ -333,3 +339,38 @@ def banco_horas():
         resumo=resumo,
         config=config,
     )
+
+@bp.route("/banco-horas/lancamento", methods=["GET", "POST"])
+def lancamento_banco_horas():
+    if request.method == "POST":
+        try:
+            data_referencia = request.form.get("data_referencia", "").strip()
+            observacao = request.form.get("observacao", "").strip() or None
+
+            data_ref = datetime.strptime(data_referencia, "%Y-%m-%d").date()
+
+            lancamento = MyDotLancamentoBancoHoras.query.filter_by(
+                data_referencia=data_ref
+            ).first()
+
+            if not lancamento:
+                lancamento = MyDotLancamentoBancoHoras(
+                    data_referencia=data_ref,
+                    tipo="folga_banco_horas",
+                    observacao=observacao,
+                )
+                db.session.add(lancamento)
+            else:
+                lancamento.tipo = "folga_banco_horas"
+                lancamento.observacao = observacao
+
+            db.session.commit()
+            flash("Folga por banco de horas lançada com sucesso.", "success")
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erro ao lançar folga por banco de horas: {str(e)}", "danger")
+
+        return redirect(url_for("mydot.banco_horas"))
+
+    return render_template("mydot/lancamento_banco_horas.html")

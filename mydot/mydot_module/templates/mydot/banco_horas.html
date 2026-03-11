@@ -9,9 +9,14 @@
       <div class="text-muted small">Resumo diário e saldo acumulado</div>
     </div>
 
-    <a href="{{ url_for('mydot.home') }}" class="btn btn-outline-secondary btn-sm">
-      Voltar
-    </a>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('mydot.lancamento_banco_horas') }}" class="btn btn-primary btn-sm">
+        Lançar folga BH
+      </a>
+      <a href="{{ url_for('mydot.home') }}" class="btn btn-outline-secondary btn-sm">
+        Voltar
+      </a>
+    </div>
   </div>
 
   <div class="row g-3 mb-3">
@@ -54,6 +59,7 @@
           <thead class="table-light">
             <tr>
               <th>Data</th>
+              <th>Tipo</th>
               <th>E1</th>
               <th>S1</th>
               <th>E2</th>
@@ -68,6 +74,15 @@
             {% for item in resumo.linhas %}
             <tr>
               <td>{{ item.data }}</td>
+              <td>
+                {% if item.tipo_dia == 'folga_banco_horas' %}
+                  <span class="badge bg-info text-dark">Folga BH</span>
+                {% elif item.tipo_dia == 'folga' %}
+                  <span class="badge bg-secondary">Folga</span>
+                {% else %}
+                  <span class="badge bg-light text-dark">Trabalhado</span>
+                {% endif %}
+              </td>
               <td>{{ item.entrada_1 }}</td>
               <td>{{ item.saida_1 }}</td>
               <td>{{ item.entrada_2 }}</td>
@@ -83,7 +98,7 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="9" class="text-center text-muted py-4">
+              <td colspan="10" class="text-center text-muted py-4">
                 Nenhum registro encontrado para cálculo do banco de horas.
               </td>
             </tr>

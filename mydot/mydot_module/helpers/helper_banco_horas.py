@@ -1,8 +1,12 @@
 from collections import defaultdict
 from datetime import datetime
-
-from mydot.mydot_module.models.ponto import MyDotPunch
-
+from mydot.mydot_module.models.ponto import (
+    MyDotPunch,
+    MyDotBancoHoras,
+    MyDotLancamentoBancoHoras,
+    ConfiguracaoRH,
+)
+from mydot.mydot_module.routes.mydot import obter_config_rh
 
 def minutos_entre(inicio, fim):
     if not inicio or not fim:
@@ -105,3 +109,89 @@ def montar_resumo_banco_horas(config_rh):
         "saldo_total_minutos": saldo_acumulado,
         "saldo_total_fmt": formatar_minutos(saldo_acumulado),
     }
+
+def recalcular_banco_horas():
+    config_rh = obter_config_rh()
+
+    registros = (
+        MyDotPunch.query
+        .order_by(MyDotPunch.ts_utc.asc())
+        .all()
+    )
+
+    agrupado = defaultdict(list)
+    for r in registros:
+        if r.ts_utc:
+            agrupado[r.ts_utc.date()].append(r)
+
+    lancamentos = {
+        item.data_referencia: item
+        for item in MyDotLancamentoBancoHoras.query.all()
+    }
+
+    datas_com_ponto = set(agrupado.keys())
+    datas_com_lancamento = set(lancamentos.keys())
+    datas_processadas = sorted(datas_com_ponto | datas_com_lancamento)
+
+    MyDotBancoHoras.query.delete()
+    db.session.commit()
+
+    saldo_acumulado = config_rh.saldo_inicial_minutos
+
+    for data_ref in datas_processadas:
+        pontos_do_dia = agrupado.get(data_ref, [])
+        lancamento = lancamentos.get(data_ref)
+
+        jornada_prevista = config_rh.jornada_padrao_minutos
+        tipo_dia = "trabalhado"
+        minutos_trabalhados = 0
+
+        entrada_1 = saida_1 = entrada_2 = saida_2 = None
+        alerta_refeicao = False
+        alerta_interjornada = False
+        alerta_jornada_excedida = False
+        observacoes = None
+
+        if lancamento and lancamento.tipo == "folga_banco_horas":
+            tipo_dia = "folga_banco_horas"
+            minutos_trabalhados = 0
+            saldo_dia = -jornada_prevista
+            observacoes = lancamento.observacao
+
+        elif pontos_do_dia:
+            tipo_dia = "trabalhado"
+            minutos_trabalhados = calcular_minutos_trabalhados(pontos_do_dia)
+            saldo_dia = minutos_trabalhados - jornada_prevista
+
+            entrada_1, saida_1, entrada_2, saida_2 = extrair_batidas(pontos_do_dia)
+            alerta_refeicao, alerta_interjornada, alerta_jornada_excedida = calcular_alertas(
+                config_rh,
+                pontos_do_dia,
+                minutos_trabalhados,
+            )
+
+        else:
+            tipo_dia = "folga"
+            saldo_dia = 0
+
+        saldo_acumulado += saldo_dia
+
+        item = MyDotBancoHoras(
+            data_referencia=data_ref,
+            tipo_dia=tipo_dia,
+            jornada_prevista_minutos=jornada_prevista,
+            minutos_trabalhados=minutos_trabalhados,
+            saldo_dia_minutos=saldo_dia,
+            saldo_acumulado_minutos=saldo_acumulado,
+            entrada_1=entrada_1,
+            saida_1=saida_1,
+            entrada_2=entrada_2,
+            saida_2=saida_2,
+            alerta_refeicao=alerta_refeicao,
+            alerta_interjornada=alerta_interjornada,
+            alerta_jornada_excedida=alerta_jornada_excedida,
+            observacoes=observacoes,
+        )
+        db.session.add(item)
+
+    db.session.commit()
