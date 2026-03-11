@@ -8,7 +8,7 @@ from sqlalchemy import desc
 from app import db
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
-from ..models.mydot import ConfiguracaoRH, ConfiguracaoAparencia
+from mydot.mydot_module.models.ponto import ConfiguracaoRH, ConfiguracaoAparencia
 from ..services.mydot_service import get_or_set_device_id
 from mydot.mydot_module.helpers.helper_aparencia import (
     obter_config_aparencia,
@@ -286,7 +286,6 @@ def configuracoes_rh():
 
 
 @bp.route("/configuracoes/aparencia", methods=["GET", "POST"])
-@login_required
 def configuracoes_aparencia():
     config = obter_config_aparencia()
 
