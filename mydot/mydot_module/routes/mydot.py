@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, render_template, request, jsonify, make_response, redirect, url_for, flash
 from sqlalchemy import desc
 from app import db
+from flask_login import login_user, logout_user, login_required, current_user
+from mydot.mydot_module.models.auth import MyDotColaborador
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
 from mydot.mydot_module.models.ponto import (
@@ -58,11 +60,13 @@ def _require_login() -> bool:
 
 
 @bp.get("/")
+@login_required
 def home():
     return render_template("mydot/home.html")
 
 
 @bp.get("/history")
+@login_required
 def history():
     registros = (
         MyDotPunch.query
@@ -172,6 +176,7 @@ TZ_BR = ZoneInfo("America/Sao_Paulo")
 
 
 @bp.post("/registrar")
+@login_required
 def registrar_post():
     resp = make_response()
     device_id = get_or_set_device_id(resp)
@@ -264,6 +269,7 @@ def obter_config_rh():
 
 
 @bp.route("/configuracoes/rh", methods=["GET", "POST"])
+@login_required
 def configuracoes_rh():
     config = obter_config_rh()
 
@@ -299,6 +305,7 @@ def configuracoes_rh():
 
 
 @bp.route("/configuracoes/aparencia", methods=["GET", "POST"])
+@login_required
 def configuracoes_aparencia():
     config = obter_config_aparencia()
 
@@ -326,6 +333,7 @@ def configuracoes_aparencia():
 
 
 @bp.route("/config/rh")
+@login_required
 def config_rh():
     return render_template("mydot/configuracoes_rh.html")
 
@@ -335,6 +343,7 @@ def config_aparencia():
     return render_template("mydot/configuracoes_aparencia.html")
 
 @bp.route("/banco-horas")
+@login_required
 def banco_horas():
     config = obter_config_rh()
     resumo = montar_resumo_banco_horas(config)
@@ -346,6 +355,7 @@ def banco_horas():
     )
 
 @bp.route("/banco-horas/lancamento", methods=["GET", "POST"])
+@login_required
 def lancamento_banco_horas():
     if request.method == "POST":
         try:
@@ -379,3 +389,82 @@ def lancamento_banco_horas():
         return redirect(url_for("mydot.banco_horas"))
 
     return render_template("mydot/lancamento_banco_horas.html")
+
+@bp.route("/cadastro", methods=["GET", "POST"])
+def cadastro():
+    if current_user.is_authenticated:
+        return redirect(url_for("mydot.home"))
+
+    if request.method == "POST":
+        sap = (request.form.get("sap") or "").strip()
+        nome = (request.form.get("nome") or "").strip()
+        senha = request.form.get("senha") or ""
+        confirmar_senha = request.form.get("confirmar_senha") or ""
+
+        if not sap or not nome or not senha or not confirmar_senha:
+            flash("Preencha todos os campos.", "warning")
+            return render_template("mydot/cadastro.html")
+
+        if senha != confirmar_senha:
+            flash("As senhas não coincidem.", "danger")
+            return render_template("mydot/cadastro.html")
+
+        existente = MyDotColaborador.query.filter_by(sap=sap).first()
+        if existente:
+            flash("Já existe um colaborador cadastrado com esse SAP.", "warning")
+            return render_template("mydot/cadastro.html")
+
+        try:
+            colaborador = MyDotColaborador(
+                sap=sap,
+                nome=nome,
+                ativo=True,
+            )
+            colaborador.set_senha(senha)
+
+            db.session.add(colaborador)
+            db.session.commit()
+
+            login_user(colaborador, remember=True)
+            flash("Cadastro realizado com sucesso.", "success")
+            return redirect(url_for("mydot.home"))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erro ao realizar cadastro: {str(e)}", "danger")
+
+    return render_template("mydot/cadastro.html")
+
+
+@bp.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("mydot.home"))
+
+    if request.method == "POST":
+        sap = (request.form.get("sap") or "").strip()
+        senha = request.form.get("senha") or ""
+
+        colaborador = MyDotColaborador.query.filter_by(sap=sap).first()
+
+        if not colaborador or not colaborador.check_senha(senha):
+            flash("SAP ou senha inválidos.", "danger")
+            return render_template("mydot/login.html")
+
+        if not colaborador.ativo:
+            flash("Usuário inativo.", "warning")
+            return render_template("mydot/login.html")
+
+        login_user(colaborador, remember=True)
+        flash("Login realizado com sucesso.", "success")
+        return redirect(url_for("mydot.home"))
+
+    return render_template("mydot/login.html")
+
+
+@bp.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    flash("Você saiu do MyDot.", "info")
+    return redirect(url_for("mydot.login"))

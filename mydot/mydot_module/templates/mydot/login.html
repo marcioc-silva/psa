@@ -1,0 +1,62 @@
+{% extends "mydot_base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 420px;">
+  <div class="card shadow-sm mt-4">
+    <div class="card-body p-4">
+      <div class="text-center mb-4">
+        <h4 class="fw-bold mb-1">Entrar no MyDot</h4>
+        <div class="text-muted small">Use seu SAP e senha para acessar</div>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category if category in ['success', 'danger', 'warning', 'info'] else 'secondary' }} py-2 mb-2">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('mydot.login') }}">
+        <div class="mb-3">
+          <label class="form-label">SAP</label>
+          <input
+            type="text"
+            name="sap"
+            class="form-control"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Senha</label>
+          <input
+            type="password"
+            name="senha"
+            class="form-control"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <div class="d-grid mb-3">
+          <button type="submit" class="btn btn-primary">
+            Entrar
+          </button>
+        </div>
+      </form>
+
+      <div class="text-center small">
+        Primeiro acesso?
+        <a href="{{ url_for('mydot.cadastro') }}">Cadastre-se</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
