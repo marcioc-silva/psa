@@ -1,14 +1,15 @@
 from collections import defaultdict
 from datetime import datetime
+
+from app import db
 from mydot.mydot_module.models.ponto import (
     MyDotPunch,
     MyDotBancoHoras,
     MyDotLancamentoBancoHoras,
     ConfiguracaoRH,
 )
-from app import db
-from mydot.mydot_module.models.ponto import ConfiguracaoRH
-from mydot.mydot_module.routes import mydot
+
+
 def minutos_entre(inicio, fim):
     if not inicio or not fim:
         return 0
@@ -55,6 +56,33 @@ def extrair_batidas_do_dia(pontos_do_dia):
     return entrada_1, saida_1, entrada_2, saida_2
 
 
+def obter_config_rh():
+    config = ConfiguracaoRH.query.first()
+    if not config:
+        config = ConfiguracaoRH()
+        db.session.add(config)
+        db.session.commit()
+    return config
+
+
+def calcular_alertas(config_rh, pontos_do_dia, minutos_trabalhados):
+    alerta_refeicao = False
+    alerta_interjornada = False
+    alerta_jornada_excedida = False
+
+    entrada_1, saida_1, entrada_2, saida_2 = extrair_batidas_do_dia(pontos_do_dia)
+
+    if saida_1 and entrada_2:
+        intervalo_refeicao = minutos_entre(saida_1, entrada_2)
+        if intervalo_refeicao < config_rh.refeicao_minima_minutos:
+            alerta_refeicao = True
+
+    if minutos_trabalhados > (config_rh.jornada_maxima_diaria_horas * 60):
+        alerta_jornada_excedida = True
+
+    return alerta_refeicao, alerta_interjornada, alerta_jornada_excedida
+
+
 def montar_resumo_banco_horas(config_rh):
     """
     Retorna:
@@ -89,6 +117,7 @@ def montar_resumo_banco_horas(config_rh):
 
         linhas.append({
             "data": data_ref.strftime("%d/%m/%Y"),
+            "tipo_dia": "trabalhado",
             "entrada_1": entrada_1.strftime("%H:%M") if entrada_1 else "-",
             "saida_1": saida_1.strftime("%H:%M") if saida_1 else "-",
             "entrada_2": entrada_2.strftime("%H:%M") if entrada_2 else "-",
@@ -110,33 +139,10 @@ def montar_resumo_banco_horas(config_rh):
         "saldo_total_minutos": saldo_acumulado,
         "saldo_total_fmt": formatar_minutos(saldo_acumulado),
     }
-def obter_config_rh():
-    config = ConfiguracaoRH.query.first()
-    if not config:
-        config = ConfiguracaoRH()
-        db.session.add(config)
-        db.session.commit()
-    return config
 
-def calcular_alertas(config_rh, pontos_do_dia, minutos_trabalhados):
-    alerta_refeicao = False
-    alerta_interjornada = False
-    alerta_jornada_excedida = False
-
-    entrada_1, saida_1, entrada_2, saida_2 = extrair_batidas_do_dia(pontos_do_dia)
-
-    if saida_1 and entrada_2:
-        intervalo_refeicao = minutos_entre(saida_1, entrada_2)
-        if intervalo_refeicao < config_rh.refeicao_minima_minutos:
-            alerta_refeicao = True
-
-    if minutos_trabalhados > (config_rh.jornada_maxima_diaria_horas * 60):
-        alerta_jornada_excedida = True
-
-    return alerta_refeicao, alerta_interjornada, alerta_jornada_excedida
 
 def recalcular_banco_horas():
-    config_rh = mydot.mydot_module.routes.mydot.obter_config_rh()
+    config_rh = obter_config_rh()
 
     registros = (
         MyDotPunch.query
@@ -161,13 +167,13 @@ def recalcular_banco_horas():
     MyDotBancoHoras.query.delete()
     db.session.commit()
 
-    saldo_acumulado = config_rh.saldo_inicial_minutos
+    saldo_acumulado = config_rh.saldo_inicial_minutos or 0
 
     for data_ref in datas_processadas:
         pontos_do_dia = agrupado.get(data_ref, [])
         lancamento = lancamentos.get(data_ref)
 
-        jornada_prevista = config_rh.jornada_padrao_minutos
+        jornada_prevista = config_rh.jornada_padrao_minutos or 0
         tipo_dia = "trabalhado"
         minutos_trabalhados = 0
 
