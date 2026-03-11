@@ -1,5 +1,5 @@
 from app import db
-from ...mydot import ConfiguracaoAparencia
+from mydot.mydot_module.models.mydot import ConfiguracaoAparencia
 
 
 def obter_config_aparencia():

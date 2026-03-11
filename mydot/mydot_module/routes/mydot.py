@@ -8,9 +8,12 @@ from sqlalchemy import desc
 from app import db
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
+from ..models.mydot import ConfiguracaoRH, ConfiguracaoAparencia
 from ..services.mydot_service import get_or_set_device_id
-import pytz
-from ..models.ponto import ConfiguracaoRH, ConfiguracaoAparencia
+from mydot.mydot_module.helpers.helper_aparencia import (
+    obter_config_aparencia,
+    inject_mydot_aparencia,
+)
 
 # Optional: se o PSA já usa flask_login, o módulo aproveita
 try:
@@ -30,6 +33,11 @@ bp = Blueprint(
     static_folder=STATIC_DIR,
     static_url_path="/mydot-static"
 )
+
+
+@bp.context_processor
+def contexto_aparencia():
+    return inject_mydot_aparencia()
 
 
 def _require_login() -> bool:
@@ -313,12 +321,3 @@ def config_rh():
 @bp.route("/config/aparencia")
 def config_aparencia():
     return render_template("mydot/configuracoes_aparencia.html")
-
-from mydot.helpers.helper_aparencia import (
-    obter_config_aparencia,
-    inject_mydot_aparencia,
-)
-
-@bp.context_processor
-def contexto_aparencia():
-    return inject_mydot_aparencia()
