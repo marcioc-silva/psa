@@ -226,3 +226,54 @@ def recalcular_banco_horas():
         db.session.add(item)
 
     db.session.commit()
+
+def listar_banco_horas():
+    """
+    Retorna o resumo consolidado do banco de horas
+    já pronto para a tela.
+    """
+
+    config_rh = obter_config_rh()
+
+    # garante que o espelho esteja atualizado
+    recalcular_banco_horas()
+
+    registros = (
+        MyDotBancoHoras.query
+        .order_by(MyDotBancoHoras.data_referencia.asc())
+        .all()
+    )
+
+    linhas = []
+
+    for r in registros:
+        linhas.append({
+            "data": r.data_referencia.strftime("%d/%m/%Y") if r.data_referencia else "-",
+            "tipo_dia": r.tipo_dia or "trabalhado",
+
+            "entrada_1": r.entrada_1.strftime("%H:%M") if r.entrada_1 else "-",
+            "saida_1": r.saida_1.strftime("%H:%M") if r.saida_1 else "-",
+            "entrada_2": r.entrada_2.strftime("%H:%M") if r.entrada_2 else "-",
+            "saida_2": r.saida_2.strftime("%H:%M") if r.saida_2 else "-",
+
+            "jornada_prevista_minutos": r.jornada_prevista_minutos or 0,
+            "minutos_trabalhados": r.minutos_trabalhados or 0,
+
+            "saldo_dia_minutos": r.saldo_dia_minutos or 0,
+            "saldo_acumulado_minutos": r.saldo_acumulado_minutos or 0,
+
+            "jornada_prevista_fmt": formatar_minutos(r.jornada_prevista_minutos or 0).replace("+", ""),
+            "minutos_trabalhados_fmt": formatar_minutos(r.minutos_trabalhados or 0).replace("+", ""),
+            "saldo_dia_fmt": formatar_minutos(r.saldo_dia_minutos or 0),
+            "saldo_acumulado_fmt": formatar_minutos(r.saldo_acumulado_minutos or 0),
+        })
+
+    saldo_total = linhas[-1]["saldo_acumulado_minutos"] if linhas else config_rh.saldo_inicial_minutos
+
+    return {
+        "linhas": linhas,
+        "saldo_inicial_minutos": config_rh.saldo_inicial_minutos or 0,
+        "saldo_inicial_fmt": formatar_minutos(config_rh.saldo_inicial_minutos or 0),
+        "saldo_total_minutos": saldo_total,
+        "saldo_total_fmt": formatar_minutos(saldo_total),
+    }
