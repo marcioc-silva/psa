@@ -29,7 +29,7 @@
         <div class="card-body">
           <div class="text-muted small">Jornada padrão diária</div>
           <div class="fs-4 fw-bold">
-            {{ ((config.jornada_padrao_minutos or 0) // 60)|string|zfill(2) }}:{{ ((config.jornada_padrao_minutos or 0) % 60)|string|zfill(2) }}
+            {{ "%02d" % ((config.jornada_padrao_minutos or 0) // 60) }}:{{ "%02d" % ((config.jornada_padrao_minutos or 0) % 60) }}
           </div>
         </div>
       </div>
