@@ -6,8 +6,9 @@ from mydot.mydot_module.models.ponto import (
     MyDotLancamentoBancoHoras,
     ConfiguracaoRH,
 )
-from mydot.mydot_module.routes.mydot import obter_config_rh
-
+from app import db
+from mydot.mydot_module.models.ponto import ConfiguracaoRH
+from mydot.mydot_module.routes import mydot
 def minutos_entre(inicio, fim):
     if not inicio or not fim:
         return 0
@@ -109,9 +110,33 @@ def montar_resumo_banco_horas(config_rh):
         "saldo_total_minutos": saldo_acumulado,
         "saldo_total_fmt": formatar_minutos(saldo_acumulado),
     }
+def obter_config_rh():
+    config = ConfiguracaoRH.query.first()
+    if not config:
+        config = ConfiguracaoRH()
+        db.session.add(config)
+        db.session.commit()
+    return config
+
+def calcular_alertas(config_rh, pontos_do_dia, minutos_trabalhados):
+    alerta_refeicao = False
+    alerta_interjornada = False
+    alerta_jornada_excedida = False
+
+    entrada_1, saida_1, entrada_2, saida_2 = extrair_batidas_do_dia(pontos_do_dia)
+
+    if saida_1 and entrada_2:
+        intervalo_refeicao = minutos_entre(saida_1, entrada_2)
+        if intervalo_refeicao < config_rh.refeicao_minima_minutos:
+            alerta_refeicao = True
+
+    if minutos_trabalhados > (config_rh.jornada_maxima_diaria_horas * 60):
+        alerta_jornada_excedida = True
+
+    return alerta_refeicao, alerta_interjornada, alerta_jornada_excedida
 
 def recalcular_banco_horas():
-    config_rh = obter_config_rh()
+    config_rh = mydot.mydot_module.routes.mydot.obter_config_rh()
 
     registros = (
         MyDotPunch.query
@@ -163,7 +188,7 @@ def recalcular_banco_horas():
             minutos_trabalhados = calcular_minutos_trabalhados(pontos_do_dia)
             saldo_dia = minutos_trabalhados - jornada_prevista
 
-            entrada_1, saida_1, entrada_2, saida_2 = extrair_batidas(pontos_do_dia)
+            entrada_1, saida_1, entrada_2, saida_2 = extrair_batidas_do_dia(pontos_do_dia)
             alerta_refeicao, alerta_interjornada, alerta_jornada_excedida = calcular_alertas(
                 config_rh,
                 pontos_do_dia,

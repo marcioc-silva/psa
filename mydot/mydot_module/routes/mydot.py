@@ -21,7 +21,12 @@ from mydot.mydot_module.helpers.helper_banco_horas import montar_resumo_banco_ho
 from mydot.mydot_module.helpers.helper_aparencia import (
     obter_config_aparencia,
     inject_mydot_aparencia,
-    
+
+)
+from mydot.mydot_module.helpers.helper_banco_horas import (
+    recalcular_banco_horas,
+    listar_banco_horas,
+    formatar_minutos,
 )
 # Optional: se o PSA já usa flask_login, o módulo aproveita
 try:
