@@ -1,0 +1,97 @@
+{% extends "mydot_base.html" %}
+{% block title %}Banco de Horas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1">Banco de Horas</h4>
+      <div class="text-muted small">Resumo diário e saldo acumulado</div>
+    </div>
+
+    <a href="{{ url_for('mydot.home') }}" class="btn btn-outline-secondary btn-sm">
+      Voltar
+    </a>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Saldo inicial</div>
+          <div class="fs-4 fw-bold">{{ resumo.saldo_inicial_fmt }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Jornada padrão diária</div>
+          <div class="fs-4 fw-bold">
+            {{ ((config.jornada_padrao_minutos or 0) // 60)|string|zfill(2) }}:{{ ((config.jornada_padrao_minutos or 0) % 60)|string|zfill(2) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <div class="text-muted small">Saldo total</div>
+          <div class="fs-4 fw-bold {% if resumo.saldo_total_minutos < 0 %}text-danger{% else %}text-success{% endif %}">
+            {{ resumo.saldo_total_fmt }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Data</th>
+              <th>E1</th>
+              <th>S1</th>
+              <th>E2</th>
+              <th>S2</th>
+              <th>Previsto</th>
+              <th>Trabalhado</th>
+              <th>Saldo Dia</th>
+              <th>Acumulado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in resumo.linhas %}
+            <tr>
+              <td>{{ item.data }}</td>
+              <td>{{ item.entrada_1 }}</td>
+              <td>{{ item.saida_1 }}</td>
+              <td>{{ item.entrada_2 }}</td>
+              <td>{{ item.saida_2 }}</td>
+              <td>{{ item.jornada_prevista_fmt }}</td>
+              <td>{{ item.minutos_trabalhados_fmt }}</td>
+              <td class="{% if item.saldo_dia_minutos < 0 %}text-danger{% else %}text-success{% endif %}">
+                <strong>{{ item.saldo_dia_fmt }}</strong>
+              </td>
+              <td class="{% if item.saldo_acumulado_minutos < 0 %}text-danger{% else %}text-success{% endif %}">
+                <strong>{{ item.saldo_acumulado_fmt }}</strong>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="9" class="text-center text-muted py-4">
+                Nenhum registro encontrado para cálculo do banco de horas.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

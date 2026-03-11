@@ -193,7 +193,8 @@
               <div class="mydot-brand__title">
                 {{ mydot_aparencia.nome_sistema if mydot_aparencia and mydot_aparencia.nome_sistema else 'MyDot' }}
               </div>
-              <div class="mydot-brand__subtitle">Controle de ponto</div>
+              <a class="action-card" href="{{ url_for('mydot.home') }}">
+              <div class="mydot-brand__subtitle">Controle de ponto</div></a>
             </div>
           </div>
 

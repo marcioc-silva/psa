@@ -10,6 +10,8 @@ from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
 from mydot.mydot_module.models.ponto import ConfiguracaoRH, ConfiguracaoAparencia
 from ..services.mydot_service import get_or_set_device_id
+from mydot.mydot_module.models.ponto import ConfiguracaoRH, ConfiguracaoAparencia, MyDotBancoHoras
+from mydot.mydot_module.helpers.helper_banco_horas import montar_resumo_banco_horas
 from mydot.mydot_module.helpers.helper_aparencia import (
     obter_config_aparencia,
     inject_mydot_aparencia,
@@ -320,3 +322,14 @@ def config_rh():
 @bp.route("/config/aparencia")
 def config_aparencia():
     return render_template("mydot/configuracoes_aparencia.html")
+
+@bp.route("/banco-horas")
+def banco_horas():
+    config = obter_config_rh()
+    resumo = montar_resumo_banco_horas(config)
+
+    return render_template(
+        "mydot/banco_horas.html",
+        resumo=resumo,
+        config=config,
+    )

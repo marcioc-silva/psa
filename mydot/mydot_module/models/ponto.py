@@ -98,3 +98,30 @@ class ConfiguracaoAparencia(db.Model):
 
     def __repr__(self):
         return f"<ConfiguracaoAparencia {self.nome_sistema}>"
+
+
+class MyDotBancoHoras(db.Model):
+    __bind_key__ = "mydot"
+    __tablename__ = "mydot_banco_horas"
+
+    id = db.Column(db.Integer, primary_key=True)
+    data_referencia = db.Column(db.Date, nullable=False, index=True)
+
+    jornada_prevista_minutos = db.Column(db.Integer, nullable=False, default=0)
+    minutos_trabalhados = db.Column(db.Integer, nullable=False, default=0)
+    saldo_dia_minutos = db.Column(db.Integer, nullable=False, default=0)
+    saldo_acumulado_minutos = db.Column(db.Integer, nullable=False, default=0)
+
+    entrada_1 = db.Column(db.DateTime, nullable=True)
+    saida_1 = db.Column(db.DateTime, nullable=True)
+    entrada_2 = db.Column(db.DateTime, nullable=True)
+    saida_2 = db.Column(db.DateTime, nullable=True)
+
+    alerta_refeicao = db.Column(db.Boolean, default=False, nullable=False)
+    alerta_interjornada = db.Column(db.Boolean, default=False, nullable=False)
+    alerta_jornada_excedida = db.Column(db.Boolean, default=False, nullable=False)
+
+    observacoes = db.Column(db.String(255), nullable=True)
+
+    criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
