@@ -3,13 +3,13 @@ from __future__ import annotations
 import os
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-from flask import Blueprint, render_template, request, jsonify, make_response, redirect, url_for, flash
+from flask import Blueprint,session, render_template, request, jsonify, make_response, redirect, url_for, flash
 from sqlalchemy import desc
 from app import db
-from flask_login import login_user, logout_user, login_required, current_user
 from mydot.mydot_module.models.auth import MyDotColaborador
 from mydot.mydot_module.models.config import MyDotConfig
 from ..models.ponto import MyDotPunch
+from mydot.mydot_module.helpers.auth_helper import mydot_login_required
 from mydot.mydot_module.models.ponto import (
     MyDotPunch,
     MyDotBancoHoras,
@@ -29,6 +29,11 @@ from mydot.mydot_module.helpers.helper_banco_horas import (
     recalcular_banco_horas,
     listar_banco_horas,
     formatar_minutos,
+)
+from mydot.mydot_module.helpers.auth_helper import (
+    mydot_login_required,
+    get_mydot_current_user,
+    inject_mydot_user,
 )
 # Optional: se o PSA já usa flask_login, o módulo aproveita
 try:
@@ -54,19 +59,23 @@ bp = Blueprint(
 def contexto_aparencia():
     return inject_mydot_aparencia()
 
+@bp.context_processor
+def contexto_auth_mydot():
+    return inject_mydot_user()
+
 
 def _require_login() -> bool:
     return str(os.getenv("MYDOT_REQUIRE_LOGIN", "0")).strip() == "1"
 
 
 @bp.get("/")
-@login_required
+@mydot_login_required
 def home():
     return render_template("mydot/home.html")
 
 
 @bp.get("/history")
-@login_required
+@mydot_login_required
 def history():
     registros = (
         MyDotPunch.query
@@ -146,6 +155,7 @@ def health():
 
 
 @bp.route("/config", methods=["GET", "POST"])
+@mydot_login_required
 def config():
     resp = make_response()
     device_id = get_or_set_device_id(resp)
@@ -167,6 +177,7 @@ def config():
 
 
 @bp.get("/registrar")
+@mydot_login_required
 def registrar():
     return render_template("mydot/registrar.html")
 
@@ -176,7 +187,7 @@ TZ_BR = ZoneInfo("America/Sao_Paulo")
 
 
 @bp.post("/registrar")
-@login_required
+@mydot_login_required
 def registrar_post():
     resp = make_response()
     device_id = get_or_set_device_id(resp)
@@ -269,7 +280,7 @@ def obter_config_rh():
 
 
 @bp.route("/configuracoes/rh", methods=["GET", "POST"])
-@login_required
+@mydot_login_required
 def configuracoes_rh():
     config = obter_config_rh()
 
@@ -305,7 +316,7 @@ def configuracoes_rh():
 
 
 @bp.route("/configuracoes/aparencia", methods=["GET", "POST"])
-@login_required
+@mydot_login_required
 def configuracoes_aparencia():
     config = obter_config_aparencia()
 
@@ -333,17 +344,18 @@ def configuracoes_aparencia():
 
 
 @bp.route("/config/rh")
-@login_required
+@mydot_login_required
 def config_rh():
     return render_template("mydot/configuracoes_rh.html")
 
 
 @bp.route("/config/aparencia")
+@mydot_login_required
 def config_aparencia():
     return render_template("mydot/configuracoes_aparencia.html")
 
 @bp.route("/banco-horas")
-@login_required
+@mydot_login_required
 def banco_horas():
     config = obter_config_rh()
     resumo = montar_resumo_banco_horas(config)
@@ -355,7 +367,7 @@ def banco_horas():
     )
 
 @bp.route("/banco-horas/lancamento", methods=["GET", "POST"])
-@login_required
+@mydot_login_required
 def lancamento_banco_horas():
     if request.method == "POST":
         try:
@@ -392,7 +404,7 @@ def lancamento_banco_horas():
 
 @bp.route("/cadastro", methods=["GET", "POST"])
 def cadastro():
-    if current_user.is_authenticated:
+    if session.get("mydot_colaborador_id"):
         return redirect(url_for("mydot.home"))
 
     if request.method == "POST":
@@ -425,7 +437,10 @@ def cadastro():
             db.session.add(colaborador)
             db.session.commit()
 
-            login_user(colaborador, remember=True)
+            session["mydot_colaborador_id"] = colaborador.id
+            session["mydot_colaborador_nome"] = colaborador.nome
+            session.permanent = True
+
             flash("Cadastro realizado com sucesso.", "success")
             return redirect(url_for("mydot.home"))
 
@@ -438,7 +453,7 @@ def cadastro():
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
-    if current_user.is_authenticated:
+    if session.get("mydot_colaborador_id"):
         return redirect(url_for("mydot.home"))
 
     if request.method == "POST":
@@ -455,7 +470,10 @@ def login():
             flash("Usuário inativo.", "warning")
             return render_template("mydot/login.html")
 
-        login_user(colaborador, remember=True)
+        session["mydot_colaborador_id"] = colaborador.id
+        session["mydot_colaborador_nome"] = colaborador.nome
+        session.permanent = True
+
         flash("Login realizado com sucesso.", "success")
         return redirect(url_for("mydot.home"))
 
@@ -463,8 +481,8 @@ def login():
 
 
 @bp.route("/logout")
-@login_required
 def logout():
-    logout_user()
+    session.pop("mydot_colaborador_id", None)
+    session.pop("mydot_colaborador_nome", None)
     flash("Você saiu do MyDot.", "info")
     return redirect(url_for("mydot.login"))

@@ -6,10 +6,14 @@ from .ponto import (
     ConfiguracaoAparencia,
 )
 
+from .auth import MyDotColaborador
+
+
 __all__ = [
     "MyDotPunch",
     "MyDotBancoHoras",
     "MyDotLancamentoBancoHoras",
     "ConfiguracaoRH",
     "ConfiguracaoAparencia",
+    "MyDotColaborador",
 ]
