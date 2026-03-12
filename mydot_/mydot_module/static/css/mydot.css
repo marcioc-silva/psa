@@ -1,0 +1,68 @@
+/* Garante que o app ocupe 100% da altura da tela sem rolagem lateral */
+html, body {
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Evita scrolls horizontais acidentais */
+  background-color: #6c6a79; /* Cor sólida de fundo de app */
+  font-family: sans-serif;
+}
+
+/* Container principal sem margens externas, colado nas bordas */
+.container-fluid {
+  height: 100%;
+  padding: 0 !important; /* Remove o respiro das laterais */
+  display: flex;
+  flex-direction: column;
+}
+
+/* O "Card" aqui vira uma seção do app, não um cartão flutuante */
+.card {
+  border: none;
+  border-radius: 0; /* Apps de tela cheia raramente usam bordas arredondadas nas extremidades da tela */
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Este é o estilo do seu botão azul que aparece na foto */
+.botao-registrar {
+    background-color: #007bff; /* Cor azul do seu botão */
+    color: white;
+    width: 100%;
+    border: none;
+    padding-top: 15px;    /* Espaço interno em cima */
+    
+    /* A MÁGICA ESTÁ AQUI: */
+    /* Ele vai somar 15px de respiro + o tamanho da barra do Android */
+    padding-bottom: calc(15px + env(safe-area-inset-bottom, 20px)); 
+    
+    text-align: center;
+    font-size: 18px;
+}
+
+/* Se quiser um cabeçalho fixo como de app */
+.app-header {
+  height: 60px;
+  background-color: #0056b3; /* Exemplo de cor institucional */
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+/* Área de conteúdo que estica para preencher o resto da tela */
+.app-content {
+  flex: 1;
+  overflow-y: auto; /* A rolagem acontece apenas aqui dentro */
+  padding: 16px;
+}
+.espacador-seguro {
+    /* Ocupa a largura toda */
+    width: 100%; 
+    /* A altura será o tamanho da 'área segura' do Android + 10px de respiro */
+    height: calc(env(safe-area-inset-bottom, 0px) + 10px); 
+    /* Garante que nada apareça */
+    background: transparent; 
+}

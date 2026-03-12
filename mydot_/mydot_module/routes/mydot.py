@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-
-from flask import Blueprint, session, render_template, request, jsonify, make_response, redirect, url_for, flash
-
+from flask import Blueprint,session, render_template, request, jsonify, make_response, redirect, url_for, flash
+from sqlalchemy import desc
 from app import db
 from mydot.mydot_module.models.auth import MyDotColaborador
 from mydot.mydot_module.models.config import MyDotConfig
+from ..models.ponto import MyDotPunch
+from mydot.mydot_module.helpers.auth_helper import mydot_login_required
 from mydot.mydot_module.models.ponto import (
     MyDotPunch,
     MyDotBancoHoras,
@@ -16,22 +17,30 @@ from mydot.mydot_module.models.ponto import (
     ConfiguracaoRH,
     ConfiguracaoAparencia,
 )
+from ..services.mydot_service import get_or_set_device_id
+from mydot.mydot_module.models.ponto import ConfiguracaoRH, ConfiguracaoAparencia, MyDotBancoHoras
+from mydot.mydot_module.helpers.helper_banco_horas import montar_resumo_banco_horas
+from mydot.mydot_module.helpers.helper_aparencia import (
+    obter_config_aparencia,
+    inject_mydot_aparencia,
+
+)
+from mydot.mydot_module.helpers.helper_banco_horas import (
+    recalcular_banco_horas,
+    listar_banco_horas,
+    formatar_minutos,
+)
 from mydot.mydot_module.helpers.auth_helper import (
     mydot_login_required,
     get_mydot_current_user,
     inject_mydot_user,
 )
-from mydot.mydot_module.helpers.helper_aparencia import (
-    obter_config_aparencia,
-    inject_mydot_aparencia,
-)
-from mydot.mydot_module.helpers.helper_banco_horas import (
-    montar_resumo_banco_horas,
-    recalcular_banco_horas,
-    listar_banco_horas,
-    formatar_minutos,
-)
-from ..services.mydot_service import get_or_set_device_id
+# Optional: se o PSA já usa flask_login, o módulo aproveita
+try:
+    from flask_login import login_required, current_user
+except Exception:  # pragma: no cover
+    login_required = None
+    current_user = None
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # .../mydot_module
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -111,20 +120,20 @@ def history():
 
 
 @bp.get("/export.csv")
-@mydot_login_required
 def export_csv():
     device_id = request.cookies.get("mydot_device_id")
-    if not device_id:
-        return redirect(url_for("mydot.home"))
+    q = MyDotPunch.query
 
-    punches = (
-        MyDotPunch.query
-        .filter(MyDotPunch.device_id == device_id)
-        .order_by(MyDotPunch.ts_utc.asc())
-        .limit(2000)
-        .all()
-    )
-    filename = "mydot_pontos_device.csv"
+    if _require_login() and login_required and current_user and getattr(current_user, "is_authenticated", False):
+        q = q.filter(MyDotPunch.user_id == getattr(current_user, "id", None))
+        filename = "mydot_pontos_usuario.csv"
+    else:
+        if not device_id:
+            return redirect(url_for("mydot.home"))
+        q = q.filter(MyDotPunch.device_id == device_id)
+        filename = "mydot_pontos_device.csv"
+
+    punches = q.order_by(MyDotPunch.ts_utc.asc()).limit(2000).all()
 
     lines = ["id,data,hora,tipo"]
     for p in punches:
@@ -238,7 +247,6 @@ def registrar_post():
 
 
 @bp.get("/history-json")
-@mydot_login_required
 def history_json():
     registros = (
         MyDotPunch.query

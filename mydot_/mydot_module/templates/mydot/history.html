@@ -1,0 +1,331 @@
+{% extends "mydot_base.html" %}
+
+{% block content %}
+<div class="mydot-page">
+  <div class="mydot-top">
+    <a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.home') }}">🏠 Home</a>
+    <div class="title">Histórico de Pontos</div>
+    <a class="btn btn-sm btn-outline-light" href="{{ url_for('mydot.registrar') }}">📸 Registrar</a>
+  </div>
+
+  <div class="card bg-dark text-light border-secondary shadow-sm">
+    <div class="card-body p-2">
+      {% if historico %}
+        <div class="table-responsive">
+          <table class="table table-dark table-striped table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Data</th>
+                <th>Hora</th>
+                <th>Foto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in historico %}
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>
+                  {% if item.kind == "entrada" %}
+                    <span class="badge bg-success">Entrada</span>
+                  {% else %}
+                    <span class="badge bg-warning text-dark">Saída</span>
+                  {% endif %}
+                </td>
+                <td>{{ item.data }}</td>
+                <td>{{ item.hora }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary btn-foto"
+                    data-id="{{ item.id }}"
+                    disabled
+                  >
+                    Sem foto
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-4 opacity-75">
+          Nenhum ponto registrado ainda.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightboxFoto" class="lightbox d-none" aria-hidden="true">
+  <div class="lightbox-backdrop"></div>
+
+  <div class="lightbox-content" role="dialog" aria-modal="true" aria-label="Visualização da foto">
+    <button type="button" id="btnFecharLightbox" class="lightbox-close" aria-label="Fechar">
+      ×
+    </button>
+
+    <div class="lightbox-body">
+      <img id="lightboxImg" class="lightbox-img d-none" alt="Foto do registro" />
+      <div id="lightboxMsg" class="lightbox-msg">Carregando foto...</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .mydot-page {
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) 14px env(safe-area-inset-bottom);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-sizing: border-box;
+  }
+
+  .mydot-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .title {
+    font-weight: 800;
+    font-size: 16px;
+    text-align: center;
+  }
+
+  .table td, .table th {
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .btn-foto[disabled] {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+  }
+
+  .lightbox.d-none {
+    display: none !important;
+  }
+
+  .lightbox-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+  }
+
+  .lightbox-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+
+  .lightbox-body {
+    position: relative;
+    max-width: 95vw;
+    max-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-img {
+    max-width: 95vw;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    background: #111;
+  }
+
+  .lightbox-msg {
+    color: #fff;
+    font-size: 16px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .lightbox-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 3;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lightbox-close:hover {
+    background: rgba(255,255,255,.22);
+  }
+
+  @media (max-width: 576px) {
+    .lightbox-content {
+      padding: 12px;
+    }
+
+    .lightbox-img {
+      max-width: 94vw;
+      max-height: 80vh;
+    }
+
+    .lightbox-close {
+      top: 10px;
+      right: 10px;
+    }
+  }
+</style>
+
+<script>
+(async function () {
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open("mydot", 1);
+
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("photos")) {
+          db.createObjectStore("photos", { keyPath: "id" });
+        }
+      };
+
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function getPhoto(db, id) {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction("photos", "readonly");
+      const store = tx.objectStore("photos");
+      const req = store.get(Number(id));
+
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  const lightbox = document.getElementById("lightboxFoto");
+  const backdrop = lightbox.querySelector(".lightbox-backdrop");
+  const img = document.getElementById("lightboxImg");
+  const msg = document.getElementById("lightboxMsg");
+  const btnFechar = document.getElementById("btnFecharLightbox");
+  const botoes = document.querySelectorAll(".btn-foto");
+
+  let db = null;
+
+  function abrirLightbox() {
+    lightbox.classList.remove("d-none");
+    lightbox.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function fecharLightbox() {
+    lightbox.classList.add("d-none");
+    lightbox.setAttribute("aria-hidden", "true");
+    img.src = "";
+    img.classList.add("d-none");
+    msg.textContent = "";
+    msg.classList.remove("d-none");
+    document.body.style.overflow = "";
+  }
+
+  async function mostrarFoto(id) {
+    msg.textContent = "Carregando foto...";
+    msg.classList.remove("d-none");
+    img.src = "";
+    img.classList.add("d-none");
+
+    abrirLightbox();
+
+    if (!db) {
+      msg.textContent = "Não foi possível acessar as fotos neste dispositivo.";
+      return;
+    }
+
+    try {
+      const foto = await getPhoto(db, id);
+
+      if (foto && foto.dataUrl) {
+        img.src = foto.dataUrl;
+        img.classList.remove("d-none");
+        msg.classList.add("d-none");
+      } else {
+        msg.textContent = "Foto não encontrada neste dispositivo.";
+      }
+    } catch (erro) {
+      console.error("Erro ao buscar foto:", erro);
+      msg.textContent = "Erro ao carregar a foto.";
+    }
+  }
+
+  try {
+    db = await openDB();
+
+    for (const btn of botoes) {
+      const id = btn.dataset.id;
+      const foto = await getPhoto(db, id);
+
+      if (foto && foto.dataUrl) {
+        btn.disabled = false;
+        btn.classList.remove("btn-outline-secondary");
+        btn.classList.add("btn-outline-info");
+        btn.textContent = "📷 Ver";
+
+        btn.addEventListener("click", () => {
+          mostrarFoto(id);
+        });
+      } else {
+        btn.disabled = true;
+        btn.classList.remove("btn-outline-info");
+        btn.classList.add("btn-outline-secondary");
+        btn.textContent = "Sem foto";
+      }
+    }
+  } catch (erro) {
+    console.error("Erro ao abrir IndexedDB:", erro);
+
+    for (const btn of botoes) {
+      btn.disabled = true;
+      btn.classList.remove("btn-outline-info");
+      btn.classList.add("btn-outline-secondary");
+      btn.textContent = "Sem foto";
+    }
+  }
+
+  btnFechar.addEventListener("click", fecharLightbox);
+  backdrop.addEventListener("click", fecharLightbox);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !lightbox.classList.contains("d-none")) {
+      fecharLightbox();
+    }
+  });
+})();
+</script>
+{% endblock %}

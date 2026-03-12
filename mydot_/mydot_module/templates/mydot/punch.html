@@ -1,0 +1,52 @@
+{% extends "mydot_base.html" %}
+{% block title %}MyDot - Registro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h5 class="fw-bold">MyDot — Registro de Ponto (modo individual)</h5>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('mydot.history') }}">Histórico</a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('main.dashboard') }}">Voltar</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="alert alert-info py-2 mb-3">
+            Dica: use em <strong>HTTPS</strong> para liberar câmera. Em WebView/Android, mantenha permissões de câmera.
+          </div>
+
+          <video id="video" playsinline autoplay class="w-100 rounded border"></video>
+          <canvas id="canvas" class="d-none"></canvas>
+
+          <div class="d-flex gap-2 flex-wrap mt-3">
+            <button class="btn btn-success" data-kind="entrada">Entrada</button>
+            <button class="btn btn-danger" data-kind="saida">Saída</button>
+            <button class="btn btn-warning" data-kind="pausa">Pausa</button>
+            <button class="btn btn-primary" data-kind="retorno">Retorno</button>
+          </div>
+
+          <div class="mt-3 small text-muted" id="status">Inicializando câmera…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="fw-bold mb-2">Pré-visualização</h6>
+          <img id="preview" class="w-100 rounded border" alt="Pré-visualização da foto"/>
+          <div class="mt-2 small text-muted">
+            O registro salva foto + horário + IP + device_id (modo individual). Geolocalização é opcional.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('mydot.static', filename='mydot/js/camera.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,323 @@
+{# mydot/mydot_module/templates/mydot/home.html #}
+{% extends "mydot_base.html" %}
+{% block title %}MyDot — Início{% endblock %}
+
+{% block content %}
+<div class="mydot-shell">
+  <header class="mydot-hero">
+    <div class="mydot-hero__bg"></div>
+
+    <div class="mydot-hero__content">
+      <div class="mydot-brand">
+        <div class="mydot-logo">MD</div>
+        <div>
+          <div class="mydot-title">Meu Ponto</div>
+          <div class="mydot-subtitle">Registro simples de ponto</div>
+        </div>
+      </div>
+
+      <div class="mydot-chips">
+        <span class="chip">📷 Foto no registro</span>
+        <span class="chip">🏦 Banco de horas</span>
+        <span class="chip">⚙️ Configurações</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="mydot-main">
+    <section class="mydot-section">
+      <div class="section-head">
+        <div class="section-title">Operação</div>
+        <div class="section-subtitle">Ações principais do dia a dia</div>
+      </div>
+
+      <div class="mydot-actions">
+        <a class="action-card primary" href="{{ url_for('mydot.registrar') }}">
+          <div class="action-icon">⏱️</div>
+          <div class="action-text">
+            <div class="action-title">Registrar ponto</div>
+            <div class="action-desc">Bater ponto com foto e horário automático.</div>
+          </div>
+          <div class="action-go">→</div>
+        </a>
+
+        <a class="action-card" href="{{ url_for('mydot.history') }}">
+          <div class="action-icon">🗂️</div>
+          <div class="action-text">
+            <div class="action-title">Consultar pontos</div>
+            <div class="action-desc">Ver registros e abrir a foto em cada linha.</div>
+          </div>
+          <div class="action-go">→</div>
+        </a>
+        <a class="action-card" href="{{ url_for('mydot.banco_horas') }}">
+          <div class="action-icon">🏦</div>
+          <div class="action-text">
+            <div class="action-title">Banco de horas</div>
+            <div class="action-desc">Consultar saldo diário e acumulado da jornada.</div>
+          </div>
+          <div class="action-go">→</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="mydot-section">
+      <div class="section-head">
+        <div class="section-title">Configurações</div>
+        <div class="section-subtitle">Parâmetros visuais e regras do sistema</div>
+      </div>
+
+      <div class="mydot-actions">
+        <a class="action-card" href="{{ url_for('mydot.configuracoes_rh') }}">
+          <div class="action-icon">👥</div>
+          <div class="action-text">
+            <div class="action-title">Configuração de RH</div>
+            <div class="action-desc">Regras de jornada, escala, banco de horas e notificações.</div>
+          </div>
+          <div class="action-go">→</div>
+        </a>
+
+        <a class="action-card" href="{{ url_for('mydot.configuracoes_aparencia') }}">
+          <div class="action-icon">🎨</div>
+          <div class="action-text">
+            <div class="action-title">Configuração de aparência</div>
+            <div class="action-desc">Nome do sistema, cores, tema e identidade visual.</div>
+          </div>
+          <div class="action-go">→</div>
+        </a>
+      </div>
+    </section>
+
+    <section class="mydot-footer">
+      <div class="status">
+        <span class="dot"></span>
+        <span>Online</span>
+      </div>
+
+      <a class="tiny-link" href="{{ url_for('mydot.health') }}" target="_blank" rel="noopener">
+        health
+      </a>
+    </section>
+  </main>
+</div>
+
+<style>
+  :root{
+    --bg: #0b1020;
+    --card: rgba(255,255,255,.07);
+    --card2: rgba(255,255,255,.10);
+    --stroke: rgba(255,255,255,.12);
+    --text: rgba(255,255,255,.92);
+    --muted: rgba(255,255,255,.68);
+    --accent: #7c3aed;
+    --accent2: #22c55e;
+    --shadow: 0 14px 60px rgba(0,0,0,.45);
+  }
+
+  .mydot-shell{
+    min-height: 100dvh;
+    border-radius: 0;
+    box-shadow: none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mydot-hero{
+    position: relative;
+    padding: 22px 18px 18px;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  .mydot-hero__bg{
+    position:absolute;
+    inset:0;
+    background: linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    backdrop-filter: blur(6px);
+  }
+
+  .mydot-hero__content{
+    position: relative;
+    display: grid;
+    gap: 14px;
+  }
+
+  .mydot-brand{
+    display:flex;
+    gap: 12px;
+    align-items:center;
+  }
+
+  .mydot-logo{
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight: 800;
+    letter-spacing: .5px;
+    background: linear-gradient(135deg, rgba(124,58,237,.95), rgba(34,197,94,.55));
+    box-shadow: 0 10px 30px rgba(124,58,237,.25);
+  }
+
+  .mydot-title{
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .mydot-subtitle{
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .mydot-chips{
+    display:flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .chip{
+    font-size: 12px;
+    color: rgba(255,255,255,.82);
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.10);
+    padding: 6px 10px;
+    border-radius: 999px;
+  }
+
+  .mydot-main{
+    padding: 16px 14px 18px;
+    display: grid;
+    gap: 18px;
+  }
+
+  .mydot-section{
+    display: grid;
+    gap: 12px;
+  }
+
+  .section-head{
+    display: grid;
+    gap: 3px;
+    padding: 0 2px;
+  }
+
+  .section-title{
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .section-subtitle{
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .mydot-actions{
+    display:grid;
+    gap: 12px;
+  }
+
+  .action-card{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    padding: 14px 14px;
+    border-radius: 16px;
+    background: var(--card);
+    border: 1px solid var(--stroke);
+    text-decoration:none;
+    color: var(--text);
+    transition: transform .08s ease, background .15s ease, border-color .15s ease;
+  }
+
+  .action-card:hover{
+    transform: translateY(-1px);
+    background: var(--card2);
+    border-color: rgba(255,255,255,.18);
+  }
+
+  .action-card.primary{
+    background: linear-gradient(135deg, rgba(124,58,237,.35), rgba(255,255,255,.06));
+    border-color: rgba(124,58,237,.35);
+  }
+
+  .action-icon{
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.10);
+    font-size: 20px;
+    flex: 0 0 44px;
+  }
+
+  .action-text{
+    min-width: 0;
+    flex: 1;
+  }
+
+  .action-title{
+    font-weight: 800;
+    font-size: 14.5px;
+    margin-bottom: 2px;
+  }
+
+  .action-desc{
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.25;
+  }
+
+  .action-go{
+    font-weight: 900;
+    opacity: .8;
+    padding-left: 8px;
+  }
+
+  .mydot-footer{
+    margin-top: 6px;
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 10px 2px 0;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .status{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+  }
+
+  .dot{
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(34,197,94,.18);
+  }
+
+  .tiny-link{
+    color: rgba(255,255,255,.65);
+    text-decoration:none;
+    border-bottom: 1px dashed rgba(255,255,255,.22);
+  }
+
+  .tiny-link:hover{
+    color: rgba(255,255,255,.85);
+    border-bottom-color: rgba(255,255,255,.35);
+  }
+
+  @media (min-width: 768px){
+    .mydot-actions{
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+</style>
+{% endblock %}

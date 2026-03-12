@@ -1,0 +1,106 @@
+{% extends "mydot_base.html" %}
+
+{% block title %}Configuração de Aparência{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">Configuração de Aparência</h3>
+        <a href="{{ url_for('mydot.home') }}" class="btn btn-outline-secondary">
+            Voltar
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('mydot.configuracoes_aparencia') }}">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                Identidade do Sistema
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome do sistema</label>
+                    <input type="text" class="form-control" name="nome_sistema"
+                           value="{{ config.nome_sistema }}" required>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Mensagem de boas-vindas</label>
+                    <input type="text" class="form-control" name="mensagem_boas_vindas"
+                           value="{{ config.mensagem_boas_vindas or '' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">URL da logo</label>
+                    <input type="text" class="form-control" name="logo_url"
+                           value="{{ config.logo_url or '' }}">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">URL do favicon</label>
+                    <input type="text" class="form-control" name="favicon_url"
+                           value="{{ config.favicon_url or '' }}">
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-success text-white">
+                Cores e Tema
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Cor primária</label>
+                    <input type="color" class="form-control form-control-color" name="cor_primaria"
+                           value="{{ config.cor_primaria }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Cor secundária</label>
+                    <input type="color" class="form-control form-control-color" name="cor_secundaria"
+                           value="{{ config.cor_secundaria }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Cor de fundo</label>
+                    <input type="color" class="form-control form-control-color" name="cor_fundo"
+                           value="{{ config.cor_fundo }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Cor do texto</label>
+                    <input type="color" class="form-control form-control-color" name="cor_texto"
+                           value="{{ config.cor_texto }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Tema</label>
+                    <select class="form-select" name="tema">
+                        <option value="claro" {% if config.tema == 'claro' %}selected{% endif %}>Claro</option>
+                        <option value="escuro" {% if config.tema == 'escuro' %}selected{% endif %}>Escuro</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                Pré-visualização
+            </div>
+            <div class="card-body">
+                <div class="p-4 rounded border" style="background-color: {{ config.cor_fundo }}; color: {{ config.cor_texto }};">
+                    <h4 style="color: {{ config.cor_primaria }};"> 
+                        {{ config.nome_sistema }}
+                    </h4>
+                    <p class="mb-0">{{ config.mensagem_boas_vindas or 'Bem-vindo ao sistema' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary px-4">
+                Salvar Aparência
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

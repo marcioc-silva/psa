@@ -1,0 +1,38 @@
+{% extends "mydot_base.html" %}
+{% block title %}Lançamento Banco de Horas{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h4 class="fw-bold mb-1">Lançar Folga por Banco de Horas</h4>
+      <div class="text-muted small">O dia será debitado do saldo conforme a jornada padrão</div>
+    </div>
+    <a href="{{ url_for('mydot.banco_horas') }}" class="btn btn-outline-secondary btn-sm">
+      Voltar
+    </a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('mydot.lancamento_banco_horas') }}">
+        <div class="mb-3">
+          <label class="form-label">Data</label>
+          <input type="date" name="data_referencia" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Observação</label>
+          <textarea name="observacao" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary">
+            Salvar lançamento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
