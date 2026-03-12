@@ -83,7 +83,7 @@ def calcular_alertas(config_rh, pontos_do_dia, minutos_trabalhados):
     return alerta_refeicao, alerta_interjornada, alerta_jornada_excedida
 
 
-def montar_resumo_banco_horas(config_rh):
+def montar_resumo_banco_horas(config_rh, colaborador_id):    
     """
     Retorna:
     - linhas diárias
@@ -91,6 +91,7 @@ def montar_resumo_banco_horas(config_rh):
     """
     registros = (
         MyDotPunch.query
+        .filter(MyDotPunch.mydot_colaborador_id == colaborador_id)
         .order_by(MyDotPunch.ts_utc.asc())
         .all()
     )
@@ -145,7 +146,8 @@ def recalcular_banco_horas():
     config_rh = obter_config_rh()
 
     registros = (
-        MyDotPunch.query
+        MyDotPunch.query.filter(
+    MyDotPunch.mydot_colaborador_id == colaborador_id)
         .order_by(MyDotPunch.ts_utc.asc())
         .all()
     )

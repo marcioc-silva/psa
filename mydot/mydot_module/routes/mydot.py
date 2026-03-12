@@ -68,8 +68,11 @@ def home():
 @bp.get("/history")
 @mydot_login_required
 def history():
+    colaborador_id = session.get("mydot_colaborador_id")
+
     registros = (
         MyDotPunch.query
+        .filter(MyDotPunch.mydot_colaborador_id == colaborador_id)
         .order_by(MyDotPunch.id.desc())
         .all()
     )
@@ -185,7 +188,7 @@ def registrar_post():
 
     data = request.get_json(silent=True) or {}
     dt_local_str = (data.get("dt_local") or "").strip()
-
+    colaborador_id = session.get("mydot_colaborador_id")
     try:
         if dt_local_str:
             # Ex.: "2026-03-09T15:30"
@@ -214,7 +217,12 @@ def registrar_post():
 
     kind = "entrada" if (not last or last.kind == "saida") else "saida"
 
+    colaborador_id = session.get("mydot_colaborador_id")
+    if not colaborador_id:
+        return jsonify({"ok": False, "error": "USUARIO_NAO_AUTENTICADO"}), 401
+
     punch = MyDotPunch(
+        mydot_colaborador_id=colaborador_id,
         device_id=device_id,
         kind=kind,
         ts_utc=ts_gravar

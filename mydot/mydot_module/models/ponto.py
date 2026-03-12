@@ -11,6 +11,7 @@ class MyDotPunch(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     device_id = db.Column(db.String(64), index=True, nullable=True)
     kind = db.Column(db.String(10), nullable=False)
+    mydot_colaborador_id = db.Column(db.Integer, nullable=False, index=True)
 
     # Altere o default para já pegar o horário de São Paulo sem fuso (Naive)
     # Isso garante que o SQLite salve exatamente o número que você quer ver
