@@ -83,7 +83,7 @@ def calcular_alertas(config_rh, pontos_do_dia, minutos_trabalhados):
     return alerta_refeicao, alerta_interjornada, alerta_jornada_excedida
 
 
-def montar_resumo_banco_horas(config_rh, colaborador_id):    
+def montar_resumo_banco_horas(config_rh, colaborador_id):
     """
     Retorna:
     - linhas diárias
@@ -142,12 +142,12 @@ def montar_resumo_banco_horas(config_rh, colaborador_id):
     }
 
 
-def recalcular_banco_horas():
+def recalcular_banco_horas(colaborador_id):
     config_rh = obter_config_rh()
 
     registros = (
-        MyDotPunch.query.filter(
-    MyDotPunch.mydot_colaborador_id == colaborador_id)
+        MyDotPunch.query
+        .filter(MyDotPunch.mydot_colaborador_id == colaborador_id)
         .order_by(MyDotPunch.ts_utc.asc())
         .all()
     )
@@ -159,14 +159,20 @@ def recalcular_banco_horas():
 
     lancamentos = {
         item.data_referencia: item
-        for item in MyDotLancamentoBancoHoras.query.all()
+        for item in MyDotLancamentoBancoHoras.query
+        .filter(MyDotLancamentoBancoHoras.mydot_colaborador_id == colaborador_id)
+        .all()
     }
 
     datas_com_ponto = set(agrupado.keys())
     datas_com_lancamento = set(lancamentos.keys())
     datas_processadas = sorted(datas_com_ponto | datas_com_lancamento)
 
-    MyDotBancoHoras.query.delete()
+    (
+        MyDotBancoHoras.query
+        .filter(MyDotBancoHoras.mydot_colaborador_id == colaborador_id)
+        .delete()
+    )
     db.session.commit()
 
     saldo_acumulado = config_rh.saldo_inicial_minutos or 0
@@ -210,6 +216,7 @@ def recalcular_banco_horas():
         saldo_acumulado += saldo_dia
 
         item = MyDotBancoHoras(
+            mydot_colaborador_id=colaborador_id,
             data_referencia=data_ref,
             tipo_dia=tipo_dia,
             jornada_prevista_minutos=jornada_prevista,
@@ -229,19 +236,20 @@ def recalcular_banco_horas():
 
     db.session.commit()
 
-def listar_banco_horas():
+
+def listar_banco_horas(colaborador_id):
     """
     Retorna o resumo consolidado do banco de horas
     já pronto para a tela.
     """
-
     config_rh = obter_config_rh()
 
     # garante que o espelho esteja atualizado
-    recalcular_banco_horas()
+    recalcular_banco_horas(colaborador_id)
 
     registros = (
         MyDotBancoHoras.query
+        .filter(MyDotBancoHoras.mydot_colaborador_id == colaborador_id)
         .order_by(MyDotBancoHoras.data_referencia.asc())
         .all()
     )
@@ -252,25 +260,21 @@ def listar_banco_horas():
         linhas.append({
             "data": r.data_referencia.strftime("%d/%m/%Y") if r.data_referencia else "-",
             "tipo_dia": r.tipo_dia or "trabalhado",
-
             "entrada_1": r.entrada_1.strftime("%H:%M") if r.entrada_1 else "-",
             "saida_1": r.saida_1.strftime("%H:%M") if r.saida_1 else "-",
             "entrada_2": r.entrada_2.strftime("%H:%M") if r.entrada_2 else "-",
             "saida_2": r.saida_2.strftime("%H:%M") if r.saida_2 else "-",
-
             "jornada_prevista_minutos": r.jornada_prevista_minutos or 0,
             "minutos_trabalhados": r.minutos_trabalhados or 0,
-
             "saldo_dia_minutos": r.saldo_dia_minutos or 0,
             "saldo_acumulado_minutos": r.saldo_acumulado_minutos or 0,
-
             "jornada_prevista_fmt": formatar_minutos(r.jornada_prevista_minutos or 0).replace("+", ""),
             "minutos_trabalhados_fmt": formatar_minutos(r.minutos_trabalhados or 0).replace("+", ""),
             "saldo_dia_fmt": formatar_minutos(r.saldo_dia_minutos or 0),
             "saldo_acumulado_fmt": formatar_minutos(r.saldo_acumulado_minutos or 0),
         })
 
-    saldo_total = linhas[-1]["saldo_acumulado_minutos"] if linhas else config_rh.saldo_inicial_minutos
+    saldo_total = linhas[-1]["saldo_acumulado_minutos"] if linhas else (config_rh.saldo_inicial_minutos or 0)
 
     return {
         "linhas": linhas,

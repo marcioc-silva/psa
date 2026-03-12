@@ -4,7 +4,17 @@ import os
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-from flask import Blueprint, session, render_template, request, jsonify, make_response, redirect, url_for, flash
+from flask import (
+    Blueprint,
+    session,
+    render_template,
+    request,
+    jsonify,
+    make_response,
+    redirect,
+    url_for,
+    flash,
+)
 
 from app import db
 from mydot.mydot_module.models.auth import MyDotColaborador
@@ -18,7 +28,6 @@ from mydot.mydot_module.models.ponto import (
 )
 from mydot.mydot_module.helpers.auth_helper import (
     mydot_login_required,
-    get_mydot_current_user,
     inject_mydot_user,
 )
 from mydot.mydot_module.helpers.helper_aparencia import (
@@ -27,9 +36,6 @@ from mydot.mydot_module.helpers.helper_aparencia import (
 )
 from mydot.mydot_module.helpers.helper_banco_horas import (
     montar_resumo_banco_horas,
-    recalcular_banco_horas,
-    listar_banco_horas,
-    formatar_minutos,
 )
 from ..services.mydot_service import get_or_set_device_id
 
@@ -42,13 +48,14 @@ bp = Blueprint(
     __name__,
     template_folder=TEMPLATES_DIR,
     static_folder=STATIC_DIR,
-    static_url_path="/mydot-static"
+    static_url_path="/mydot-static",
 )
 
 
 @bp.context_processor
 def contexto_aparencia():
     return inject_mydot_aparencia()
+
 
 @bp.context_processor
 def contexto_auth_mydot():
@@ -57,6 +64,15 @@ def contexto_auth_mydot():
 
 def _require_login() -> bool:
     return str(os.getenv("MYDOT_REQUIRE_LOGIN", "0")).strip() == "1"
+
+
+def obter_config_rh():
+    config = ConfiguracaoRH.query.first()
+    if not config:
+        config = ConfiguracaoRH()
+        db.session.add(config)
+        db.session.commit()
+    return config
 
 
 @bp.get("/")
@@ -113,36 +129,6 @@ def history():
     return render_template("mydot/history.html", historico=historico)
 
 
-@bp.get("/export.csv")
-@mydot_login_required
-def export_csv():
-    device_id = request.cookies.get("mydot_device_id")
-    if not device_id:
-        return redirect(url_for("mydot.home"))
-
-    punches = (
-        MyDotPunch.query
-        .filter(MyDotPunch.device_id == device_id)
-        .order_by(MyDotPunch.ts_utc.asc())
-        .limit(2000)
-        .all()
-    )
-    filename = "mydot_pontos_device.csv"
-
-    lines = ["id,data,hora,tipo"]
-    for p in punches:
-        ts_local = p.ts_utc.replace(tzinfo=timezone.utc).astimezone() if p.ts_utc else None
-        data = ts_local.strftime("%d/%m/%Y") if ts_local else ""
-        hora = ts_local.strftime("%H:%M") if ts_local else ""
-        lines.append(f"{p.id},{data},{hora},{p.kind}")
-
-    csv_text = "\n".join(lines) + "\n"
-    resp = make_response(csv_text)
-    resp.headers["Content-Type"] = "text/csv; charset=utf-8"
-    resp.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return resp
-
-
 @bp.get("/health")
 def health():
     return jsonify({"ok": True, "ts": datetime.now(timezone.utc).isoformat()})
@@ -186,9 +172,13 @@ def registrar_post():
     resp = make_response()
     device_id = get_or_set_device_id(resp)
 
+    colaborador_id = session.get("mydot_colaborador_id")
+    if not colaborador_id:
+        return jsonify({"ok": False, "error": "USUARIO_NAO_AUTENTICADO"}), 401
+
     data = request.get_json(silent=True) or {}
     dt_local_str = (data.get("dt_local") or "").strip()
-    colaborador_id = session.get("mydot_colaborador_id")
+
     try:
         if dt_local_str:
             # Ex.: "2026-03-09T15:30"
@@ -196,8 +186,7 @@ def registrar_post():
         else:
             dt_original = datetime.now()
 
-        # Solução drástica: subtrai 3 horas antes de gravar
-        ts_gravar = dt_original  # - timedelta(hours=3)
+        ts_gravar = dt_original
 
     except ValueError:
         payload = {"ok": False, "error": "DT_LOCAL_INVALID"}
@@ -208,8 +197,8 @@ def registrar_post():
     last = (
         MyDotPunch.query
         .filter(
-            MyDotPunch.device_id == device_id,
-            MyDotPunch.ts_utc <= ts_gravar
+            MyDotPunch.mydot_colaborador_id == colaborador_id,
+            MyDotPunch.ts_utc <= ts_gravar,
         )
         .order_by(MyDotPunch.ts_utc.desc())
         .first()
@@ -217,15 +206,11 @@ def registrar_post():
 
     kind = "entrada" if (not last or last.kind == "saida") else "saida"
 
-    colaborador_id = session.get("mydot_colaborador_id")
-    if not colaborador_id:
-        return jsonify({"ok": False, "error": "USUARIO_NAO_AUTENTICADO"}), 401
-
     punch = MyDotPunch(
         mydot_colaborador_id=colaborador_id,
         device_id=device_id,
         kind=kind,
-        ts_utc=ts_gravar
+        ts_utc=ts_gravar,
     )
 
     db.session.add(punch)
@@ -248,8 +233,11 @@ def registrar_post():
 @bp.get("/history-json")
 @mydot_login_required
 def history_json():
+    colaborador_id = session.get("mydot_colaborador_id")
+
     registros = (
         MyDotPunch.query
+        .filter(MyDotPunch.mydot_colaborador_id == colaborador_id)
         .order_by(MyDotPunch.id.desc())
         .all()
     )
@@ -268,15 +256,6 @@ def history_json():
         })
 
     return jsonify(itens)
-
-
-def obter_config_rh():
-    config = ConfiguracaoRH.query.first()
-    if not config:
-        config = ConfiguracaoRH()
-        db.session.add(config)
-        db.session.commit()
-    return config
 
 
 @bp.route("/configuracoes/rh", methods=["GET", "POST"])
@@ -354,11 +333,13 @@ def config_rh():
 def config_aparencia():
     return render_template("mydot/configuracoes_aparencia.html")
 
+
 @bp.route("/banco-horas")
 @mydot_login_required
 def banco_horas():
     config = obter_config_rh()
-    resumo = montar_resumo_banco_horas(config)
+    colaborador_id = session.get("mydot_colaborador_id")
+    resumo = montar_resumo_banco_horas(config, colaborador_id)
 
     return render_template(
         "mydot/banco_horas.html",
@@ -366,9 +347,12 @@ def banco_horas():
         config=config,
     )
 
+
 @bp.route("/banco-horas/lancamento", methods=["GET", "POST"])
 @mydot_login_required
 def lancamento_banco_horas():
+    colaborador_id = session.get("mydot_colaborador_id")
+
     if request.method == "POST":
         try:
             data_referencia = request.form.get("data_referencia", "").strip()
@@ -377,11 +361,13 @@ def lancamento_banco_horas():
             data_ref = datetime.strptime(data_referencia, "%Y-%m-%d").date()
 
             lancamento = MyDotLancamentoBancoHoras.query.filter_by(
-                data_referencia=data_ref
+                mydot_colaborador_id=colaborador_id,
+                data_referencia=data_ref,
             ).first()
 
             if not lancamento:
                 lancamento = MyDotLancamentoBancoHoras(
+                    mydot_colaborador_id=colaborador_id,
                     data_referencia=data_ref,
                     tipo="folga_banco_horas",
                     observacao=observacao,
@@ -401,6 +387,7 @@ def lancamento_banco_horas():
         return redirect(url_for("mydot.banco_horas"))
 
     return render_template("mydot/lancamento_banco_horas.html")
+
 
 @bp.route("/cadastro", methods=["GET", "POST"])
 def cadastro():

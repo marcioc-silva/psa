@@ -1,8 +1,6 @@
 from app import db
 from datetime import datetime, timezone
 
-import pytz
-from datetime import datetime
 
 class MyDotPunch(db.Model):
     __bind_key__ = "mydot"
@@ -13,22 +11,15 @@ class MyDotPunch(db.Model):
     kind = db.Column(db.String(10), nullable=False)
     mydot_colaborador_id = db.Column(db.Integer, nullable=False, index=True)
 
-    # Altere o default para já pegar o horário de São Paulo sem fuso (Naive)
-    # Isso garante que o SQLite salve exatamente o número que você quer ver
-
     ts_utc = db.Column(
         db.DateTime(timezone=True),
         nullable=False,
         index=True,
         default=lambda: datetime.now(timezone.utc)
     )
-    #  ts_utc = db.Column(db.DateTime, nullable=False, 
-    #                    default=lambda: datetime.now(pytz.timezone('America/Sao_Paulo')).replace(tzinfo=None))
 
     @property
     def ts_local(self):
-        # Como o dado já vai estar "limpo" no banco com a hora de SP, 
-        # basta retornar o valor puro
         return self.ts_utc
 
 
@@ -51,11 +42,10 @@ class ConfiguracaoRH(db.Model):
     saldo_atual_minutos = db.Column(db.Integer, default=0, nullable=False)
 
     # Tipo de escala
-    # opcoes: "5x1_5x2", "6x2"
+    # opções: "5x1_5x2", "6x2"
     tipo_escala = db.Column(db.String(20), default="5x1_5x2", nullable=False)
 
     # Escala 5/1 alternado com 5/2
-    # sábado alternado e domingo fixo como folga
     usar_domingo_folga_fixa = db.Column(db.Boolean, default=True, nullable=False)
     usar_sabado_alternado = db.Column(db.Boolean, default=True, nullable=False)
 
@@ -75,7 +65,6 @@ class ConfiguracaoRH(db.Model):
         return f"<ConfiguracaoRH {self.id} - {self.tipo_escala}>"
 
 
-
 class ConfiguracaoAparencia(db.Model):
     __bind_key__ = "mydot"
     __tablename__ = "configuracoes_aparencia"
@@ -90,7 +79,7 @@ class ConfiguracaoAparencia(db.Model):
     cor_fundo = db.Column(db.String(20), default="#f8f9fa", nullable=False)
     cor_texto = db.Column(db.String(20), default="#212529", nullable=False)
 
-    tema = db.Column(db.String(20), default="claro", nullable=False)  # claro / escuro
+    tema = db.Column(db.String(20), default="claro", nullable=False)
     mensagem_boas_vindas = db.Column(db.String(255), default="Bem-vindo ao sistema", nullable=True)
     favicon_url = db.Column(db.String(255), nullable=True)
 
@@ -106,6 +95,7 @@ class MyDotBancoHoras(db.Model):
     __tablename__ = "mydot_banco_horas"
 
     id = db.Column(db.Integer, primary_key=True)
+    mydot_colaborador_id = db.Column(db.Integer, nullable=False, index=True)
     data_referencia = db.Column(db.Date, nullable=False, index=True)
 
     tipo_dia = db.Column(db.String(30), nullable=False, default="trabalhado")
@@ -128,14 +118,22 @@ class MyDotBancoHoras(db.Model):
     criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
+    def __repr__(self):
+        return f"<MyDotBancoHoras colaborador={self.mydot_colaborador_id} data={self.data_referencia}>"
+
+
 class MyDotLancamentoBancoHoras(db.Model):
     __bind_key__ = "mydot"
     __tablename__ = "mydot_lancamentos_banco_horas"
 
     id = db.Column(db.Integer, primary_key=True)
-    data_referencia = db.Column(db.Date, nullable=False, unique=True, index=True)
+    mydot_colaborador_id = db.Column(db.Integer, nullable=False, index=True)
+    data_referencia = db.Column(db.Date, nullable=False, index=True)
     tipo = db.Column(db.String(30), nullable=False, default="folga_banco_horas")
     observacao = db.Column(db.String(255), nullable=True)
 
     criado_em = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False) 
+    atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<MyDotLancamentoBancoHoras colaborador={self.mydot_colaborador_id} data={self.data_referencia} tipo={self.tipo}>"
