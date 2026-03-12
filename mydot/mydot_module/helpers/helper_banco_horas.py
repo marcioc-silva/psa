@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime
 
 from app import db
 from mydot.mydot_module.models.ponto import (
@@ -83,65 +82,6 @@ def calcular_alertas(config_rh, pontos_do_dia, minutos_trabalhados):
     return alerta_refeicao, alerta_interjornada, alerta_jornada_excedida
 
 
-def montar_resumo_banco_horas(config_rh, colaborador_id):
-    """
-    Retorna:
-    - linhas diárias
-    - saldo total
-    """
-    registros = (
-        MyDotPunch.query
-        .filter(MyDotPunch.mydot_colaborador_id == colaborador_id)
-        .order_by(MyDotPunch.ts_utc.asc())
-        .all()
-    )
-
-    agrupado = defaultdict(list)
-
-    for r in registros:
-        if r.ts_utc:
-            data_ref = r.ts_utc.date()
-            agrupado[data_ref].append(r)
-
-    linhas = []
-    saldo_acumulado = config_rh.saldo_inicial_minutos or 0
-
-    for data_ref in sorted(agrupado.keys()):
-        pontos_do_dia = agrupado[data_ref]
-
-        minutos_trabalhados = calcular_minutos_trabalhados(pontos_do_dia)
-        jornada_prevista = config_rh.jornada_padrao_minutos or 0
-        saldo_dia = minutos_trabalhados - jornada_prevista
-        saldo_acumulado += saldo_dia
-
-        entrada_1, saida_1, entrada_2, saida_2 = extrair_batidas_do_dia(pontos_do_dia)
-
-        linhas.append({
-            "data": data_ref.strftime("%d/%m/%Y"),
-            "tipo_dia": "trabalhado",
-            "entrada_1": entrada_1.strftime("%H:%M") if entrada_1 else "-",
-            "saida_1": saida_1.strftime("%H:%M") if saida_1 else "-",
-            "entrada_2": entrada_2.strftime("%H:%M") if entrada_2 else "-",
-            "saida_2": saida_2.strftime("%H:%M") if saida_2 else "-",
-            "jornada_prevista_minutos": jornada_prevista,
-            "minutos_trabalhados": minutos_trabalhados,
-            "saldo_dia_minutos": saldo_dia,
-            "saldo_acumulado_minutos": saldo_acumulado,
-            "jornada_prevista_fmt": formatar_minutos(jornada_prevista).replace("+", ""),
-            "minutos_trabalhados_fmt": formatar_minutos(minutos_trabalhados).replace("+", ""),
-            "saldo_dia_fmt": formatar_minutos(saldo_dia),
-            "saldo_acumulado_fmt": formatar_minutos(saldo_acumulado),
-        })
-
-    return {
-        "linhas": linhas,
-        "saldo_inicial_minutos": config_rh.saldo_inicial_minutos or 0,
-        "saldo_inicial_fmt": formatar_minutos(config_rh.saldo_inicial_minutos or 0),
-        "saldo_total_minutos": saldo_acumulado,
-        "saldo_total_fmt": formatar_minutos(saldo_acumulado),
-    }
-
-
 def recalcular_banco_horas(colaborador_id):
     config_rh = obter_config_rh()
 
@@ -191,8 +131,8 @@ def recalcular_banco_horas(colaborador_id):
         alerta_jornada_excedida = False
         observacoes = None
 
-        if lancamento and lancamento.tipo == "folga_banco_horas":
-            tipo_dia = "folga_banco_horas"
+        if lancamento and lancamento.tipo == "banco_horas":
+            tipo_dia = "banco_horas"
             minutos_trabalhados = 0
             saldo_dia = -jornada_prevista
             observacoes = lancamento.observacao
@@ -237,23 +177,7 @@ def recalcular_banco_horas(colaborador_id):
     db.session.commit()
 
 
-def listar_banco_horas(colaborador_id):
-    """
-    Retorna o resumo consolidado do banco de horas
-    já pronto para a tela.
-    """
-    config_rh = obter_config_rh()
-
-    # garante que o espelho esteja atualizado
-    recalcular_banco_horas(colaborador_id)
-
-    registros = (
-        MyDotBancoHoras.query
-        .filter(MyDotBancoHoras.mydot_colaborador_id == colaborador_id)
-        .order_by(MyDotBancoHoras.data_referencia.asc())
-        .all()
-    )
-
+def _montar_resumo_de_registros(registros, saldo_inicial_minutos):
     linhas = []
 
     for r in registros:
@@ -274,12 +198,53 @@ def listar_banco_horas(colaborador_id):
             "saldo_acumulado_fmt": formatar_minutos(r.saldo_acumulado_minutos or 0),
         })
 
-    saldo_total = linhas[-1]["saldo_acumulado_minutos"] if linhas else (config_rh.saldo_inicial_minutos or 0)
+    saldo_total = linhas[-1]["saldo_acumulado_minutos"] if linhas else (saldo_inicial_minutos or 0)
 
     return {
         "linhas": linhas,
-        "saldo_inicial_minutos": config_rh.saldo_inicial_minutos or 0,
-        "saldo_inicial_fmt": formatar_minutos(config_rh.saldo_inicial_minutos or 0),
+        "saldo_inicial_minutos": saldo_inicial_minutos or 0,
+        "saldo_inicial_fmt": formatar_minutos(saldo_inicial_minutos or 0),
         "saldo_total_minutos": saldo_total,
         "saldo_total_fmt": formatar_minutos(saldo_total),
     }
+
+
+def montar_resumo_banco_horas(config_rh, colaborador_id):
+    """
+    Gera o resumo já com os lançamentos de banco de horas
+    impactando diretamente no saldo.
+    """
+    recalcular_banco_horas(colaborador_id)
+
+    registros = (
+        MyDotBancoHoras.query
+        .filter(MyDotBancoHoras.mydot_colaborador_id == colaborador_id)
+        .order_by(MyDotBancoHoras.data_referencia.asc())
+        .all()
+    )
+
+    return _montar_resumo_de_registros(
+        registros,
+        config_rh.saldo_inicial_minutos or 0,
+    )
+
+
+def listar_banco_horas(colaborador_id):
+    """
+    Retorna o resumo consolidado do banco de horas
+    já pronto para a tela.
+    """
+    config_rh = obter_config_rh()
+    recalcular_banco_horas(colaborador_id)
+
+    registros = (
+        MyDotBancoHoras.query
+        .filter(MyDotBancoHoras.mydot_colaborador_id == colaborador_id)
+        .order_by(MyDotBancoHoras.data_referencia.asc())
+        .all()
+    )
+
+    return _montar_resumo_de_registros(
+        registros,
+        config_rh.saldo_inicial_minutos or 0,
+    )
